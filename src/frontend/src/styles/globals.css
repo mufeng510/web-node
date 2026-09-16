@@ -1,0 +1,144 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 255 255 255;
+    --foreground: 17 24 39;
+    --primary: 37 99 235;
+    --primary-foreground: 255 255 255;
+    --secondary: 243 244 246;
+    --secondary-foreground: 17 24 39;
+    --muted: 243 244 246;
+    --muted-foreground: 107 114 128;
+    --accent: 243 244 246;
+    --accent-foreground: 17 24 39;
+    --destructive: 220 38 38;
+    --destructive-foreground: 255 255 255;
+    --border: 229 231 235;
+    --ring: 37 99 235;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 17 24 39;
+    --foreground: 249 250 251;
+    --primary: 59 130 246;
+    --primary-foreground: 255 255 255;
+    --secondary: 31 41 55;
+    --secondary-foreground: 249 250 251;
+    --muted: 31 41 55;
+    --muted-foreground: 156 163 175;
+    --accent: 31 41 55;
+    --accent-foreground: 249 250 251;
+    --destructive: 239 68 68;
+    --destructive-foreground: 255 255 255;
+    --border: 55 65 81;
+    --ring: 59 130 246;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-gray-200 dark:border-gray-700;
+  }
+
+  body {
+    @apply bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  ::selection {
+    @apply bg-blue-200 dark:bg-blue-800 text-blue-900 dark:text-blue-100;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(156 163 175) transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: rgb(156 163 175);
+    border-radius: 3px;
+  }
+
+  .dark .scrollbar-thin {
+    scrollbar-color: rgb(75 85 99) transparent;
+  }
+
+  .dark .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: rgb(75 85 99);
+  }
+}
+
+.prose {
+  @apply text-gray-900 dark:text-gray-100;
+}
+
+.prose h1 {
+  @apply text-3xl font-bold mt-6 mb-3;
+}
+.prose h2 {
+  @apply text-2xl font-bold mt-5 mb-2;
+}
+.prose h3 {
+  @apply text-xl font-bold mt-4 mb-2;
+}
+.prose p {
+  @apply my-3 leading-relaxed;
+}
+.prose ul {
+  @apply list-disc list-inside my-3 space-y-1;
+}
+.prose ol {
+  @apply list-decimal list-inside my-3 space-y-1;
+}
+.prose code {
+  @apply bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-sm font-mono;
+}
+.prose pre {
+  @apply bg-gray-100 dark:bg-gray-800 p-4 rounded-lg overflow-x-auto my-3;
+}
+.prose pre code {
+  @apply bg-transparent p-0 text-sm;
+}
+.prose blockquote {
+  @apply border-l-4 border-blue-500 pl-4 italic my-3 text-gray-600 dark:text-gray-400;
+}
+.prose a {
+  @apply text-blue-600 dark:text-blue-400 underline hover:text-blue-800 dark:hover:text-blue-300;
+}
+.prose table {
+  @apply w-full border-collapse my-3;
+}
+.prose th,
+.prose td {
+  @apply border border-gray-200 dark:border-gray-700 px-3 py-2 text-left;
+}
+.prose th {
+  @apply bg-gray-100 dark:bg-gray-800 font-semibold;
+}
+
+.kbd {
+  @apply px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-xs font-mono border border-gray-200 dark:border-gray-700;
+}
+
+.focus-ring {
+  @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900;
+}
+
+.transition-all-200 {
+  @apply transition-all duration-200 ease-in-out;
+}

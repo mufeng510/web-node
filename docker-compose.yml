@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  webnote:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: webnote
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/data
+      - ./app-data:/app-data
+    environment:
+      - NODE_ENV=development
+      - PORT=8080
+      - DATA_ROOT=/data
+      - APP_DATA_ROOT=/app-data
+      - MASTER_ENCRYPTION_KEY=${MASTER_ENCRYPTION_KEY}
+      - DATABASE_URL=file:/app-data/webnote.db
+      - TZ=${TZ:-UTC}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - webnote-network
+
+networks:
+  webnote-network:
+    driver: bridge

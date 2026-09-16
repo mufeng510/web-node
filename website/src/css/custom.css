@@ -1,0 +1,91 @@
+:root {
+  --ifm-color-primary: #2563eb;
+  --ifm-color-primary-dark: #1d4ed8;
+  --ifm-color-primary-darker: #1e40af;
+  --ifm-color-primary-darkest: #172554;
+  --ifm-color-primary-light: #3b82f6;
+  --ifm-color-primary-lighter: #60a5fa;
+  --ifm-color-primary-lightest: #93c5fd;
+  --ifm-code-font-size: 95%;
+  --ifm-font-family-base: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
+  --ifm-font-family-monospace: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+}
+
+[data-theme="dark"] {
+  --ifm-color-primary: #3b82f6;
+  --ifm-color-primary-dark: #60a5fa;
+  --ifm-color-primary-darker: #93c5fd;
+  --ifm-color-primary-darkest: #bfdbfe;
+  --ifm-color-primary-light: #2563eb;
+  --ifm-color-primary-lighter: #1d4ed8;
+  --ifm-color-primary-lightest: #1e40af;
+}
+
+.hero {
+  padding: 4rem 0;
+}
+
+.heroTitle {
+  font-size: 3.5rem;
+  font-weight: 700;
+  line-height: 1.1;
+  margin-bottom: 1.5rem;
+}
+
+.heroSubtitle {
+  font-size: 1.25rem;
+  color: var(--ifm-font-color-base);
+  opacity: 0.8;
+  max-width: 600px;
+  margin: 0 auto 2rem;
+}
+
+.features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin: 3rem 0;
+}
+
+.feature {
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  background: var(--ifm-background-surface-color);
+  border: 1px solid var(--ifm-color-emphasis-200);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.feature:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] .feature:hover {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
+}
+
+.featureIcon {
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
+}
+
+.featureTitle {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.featureDescription {
+  color: var(--ifm-font-color-base);
+  opacity: 0.8;
+  line-height: 1.6;
+}
+
+.navbarLogo {
+  height: 2.5rem;
+}
+
+.footerLogo {
+  height: 2rem;
+}

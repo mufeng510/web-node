@@ -1,0 +1,111 @@
+import { type ReactNode, createContext, useContext, useEffect, useState } from 'react';
+import { api } from '../services/api';
+
+interface User {
+  id: string;
+  email: string;
+  role: 'admin' | 'user';
+}
+
+interface AuthContextType {
+  user: User | null;
+  loading: boolean;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
+  logout: () => Promise<void>;
+  logoutAll: () => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  checkSetup: () => Promise<void>;
+  setup: (email: string, password: string) => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | null>(null);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [setupComplete, setSetupComplete] = useState(false);
+
+  const fetchUser = async () => {
+    try {
+      const response = await api.get('/auth/me');
+      if (response.success) {
+        setUser(response.data.user);
+      } else {
+        setUser(null);
+      }
+    } catch {
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const checkSetup = async () => {
+    try {
+      const response = await api.get('/auth/me');
+      setSetupComplete(response.success);
+    } catch {
+      setSetupComplete(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const login = async (email: string, password: string, rememberMe = false) => {
+    const response = await api.post('/auth/login', { email, password, rememberMe });
+    if (response.success) {
+      setUser(response.data.user);
+    } else {
+      throw new Error(response.error?.message || 'Login failed');
+    }
+  };
+
+  const logout = async () => {
+    await api.post('/auth/logout');
+    setUser(null);
+  };
+
+  const logoutAll = async () => {
+    await api.post('/auth/logout-all');
+    setUser(null);
+  };
+
+  const changePassword = async (currentPassword: string, newPassword: string) => {
+    const response = await api.post('/auth/change-password', { currentPassword, newPassword });
+    if (!response.success) {
+      throw new Error(response.error?.message || 'Failed to change password');
+    }
+  };
+
+  const setup = async (email: string, password: string) => {
+    const response = await api.post('/auth/setup', { email, password, confirmPassword: password });
+    if (response.success) {
+      setUser(response.data.user);
+      setSetupComplete(true);
+    } else {
+      throw new Error(response.error?.message || 'Setup failed');
+    }
+  };
+
+  useEffect(() => {
+    if (setupComplete) {
+      fetchUser();
+    }
+  }, [setupComplete]);
+
+  return (
+    <AuthContext.Provider
+      value={{ user, loading, login, logout, logoutAll, changePassword, checkSetup, setup }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}
