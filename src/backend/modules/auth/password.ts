@@ -1,8 +1,8 @@
-import { getDb } from '@backend/db/index';
-import { users } from '@backend/db/schema/users';
-import { AuthenticationError, NotFoundError, ValidationError } from '@backend/utils/errors';
-import { createId } from '@backend/utils/id';
 import { eq } from 'drizzle-orm';
+import { getDb } from '../../db/index.js';
+import { users } from '../../db/schema/users.js';
+import { AuthenticationError, NotFoundError, ValidationError } from '../../utils/errors.js';
+import { createId } from '../../utils/id.js';
 
 const ARGON2_OPTIONS = {
   memoryCost: 19456,
