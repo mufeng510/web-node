@@ -34,7 +34,7 @@ jobs:
       - name: Push database schema
         run: |
           mkdir -p app-data
-          bun run db:push
+          bunx drizzle-kit push --yes
 
       - name: Start server
         run: |
