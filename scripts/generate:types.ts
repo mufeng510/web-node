@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -217,5 +217,6 @@ export interface ApiMeta {
 }
 `;
 
+mkdirSync(resolve(ROOT, 'src/frontend/src/types'), { recursive: true });
 writeFileSync(resolve(ROOT, 'src/frontend/src/types/api.ts'), types);
 console.log('✅ Types generated at src/frontend/src/types/api.ts');
