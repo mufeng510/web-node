@@ -10,15 +10,14 @@ import { auditLog } from '../../middleware/audit.js';
 import {
   createSession,
   extractTokenFromCookie,
-  generateCsrfToken,
   getUserSessions,
   revokeAllSessions,
   revokeSession,
-  setCsrfCookie,
 } from '../../middleware/auth.js';
 import { hashSecret } from '../../utils/crypto.js';
 import { AuthenticationError, NotFoundError } from '../../utils/errors.js';
 import { createId } from '../../utils/id.js';
+import { generateCsrfToken, setCsrfCookie } from './csrf.js';
 import { changePassword, hashPassword, verifyPassword } from './password.js';
 
 const auth = new Hono();
