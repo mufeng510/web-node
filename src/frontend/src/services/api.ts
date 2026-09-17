@@ -9,6 +9,11 @@ const api = axios.create({
 });
 
 let csrfToken: string | null = null;
+let suppressAuthRedirect = false;
+
+export function setSuppressAuthRedirect(value: boolean) {
+  suppressAuthRedirect = value;
+}
 
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   if (csrfToken && ['post', 'put', 'patch', 'delete'].includes(config.method || '')) {
@@ -29,7 +34,7 @@ api.interceptors.response.use(
     return response;
   },
   (error: AxiosError) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && !suppressAuthRedirect) {
       window.location.href = '/login';
     }
     return Promise.reject(error);

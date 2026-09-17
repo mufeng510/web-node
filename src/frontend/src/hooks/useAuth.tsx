@@ -1,5 +1,5 @@
 import { type ReactNode, createContext, useContext, useEffect, useState } from 'react';
-import { api } from '../services/api';
+import { api, setSuppressAuthRedirect } from '../services/api';
 
 interface User {
   id: string;
@@ -43,6 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const checkSetup = async () => {
+    setSuppressAuthRedirect(true);
     try {
       const statusResponse = await api.get('/auth/setup-status');
       if (statusResponse.data?.needsSetup) {
@@ -54,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSetupComplete(false);
     } finally {
       setLoading(false);
+      setSuppressAuthRedirect(false);
     }
   };
 
