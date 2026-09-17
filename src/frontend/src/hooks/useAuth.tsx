@@ -103,10 +103,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [checkSetup]);
 
   useEffect(() => {
-    if (setupComplete) {
+    if (setupComplete && !user) {
       fetchUser();
     }
-  }, [setupComplete]);
+  }, [setupComplete, user]);
 
   return (
     <AuthContext.Provider

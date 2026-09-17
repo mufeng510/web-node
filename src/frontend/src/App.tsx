@@ -9,10 +9,14 @@ import { Settings } from './pages/Settings';
 import { Setup } from './pages/Setup';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, needsSetup } = useAuth();
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
+
+  if (needsSetup) {
+    return <Navigate to="/setup" replace />;
   }
 
   if (!user) {
