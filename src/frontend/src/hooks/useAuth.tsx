@@ -42,8 +42,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkSetup = async () => {
     try {
-      const response = await api.get('/auth/me');
-      setSetupComplete(response.success);
+      const statusResponse = await api.get('/auth/setup-status');
+      if (statusResponse.data?.needsSetup) {
+        window.location.href = '/setup';
+        return;
+      }
+      setSetupComplete(true);
     } catch {
       setSetupComplete(false);
     } finally {

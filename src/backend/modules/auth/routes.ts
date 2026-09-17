@@ -51,6 +51,14 @@ const changePasswordSchema = z
     path: ['confirmPassword'],
   });
 
+auth.get('/setup-status', async (c) => {
+  const db = getDb();
+  const existingAdmin = await db.query.users.findFirst({
+    where: eq(users.role, 'admin'),
+  });
+  return c.json({ success: true, data: { needsSetup: !existingAdmin } });
+});
+
 auth.post('/setup', zValidator('json', setupSchema), async (c) => {
   const db = getDb();
   const existingAdmin = await db.query.users.findFirst({
