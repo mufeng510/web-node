@@ -19,7 +19,7 @@ editorRoutes.get('/:libraryId/*/wikilinks', async (c) => {
   const _filePath = c.req.param('*') || '';
   const query = c.req.query('q') || '';
 
-  const { library } = await checkLibraryAccess(userId, libraryId);
+  await checkLibraryAccess(userId, libraryId);
   const db = getDb();
 
   const allFiles = await db.query.files.findMany({
@@ -69,7 +69,7 @@ editorRoutes.post(
       where: and(eq(files.libraryId, libraryId), eq(files.isDir, false)),
     });
 
-    const updates: any[] = [];
+    const updates: Record<string, unknown>[] = [];
 
     for (const file of allFiles) {
       const absolutePath = getAbsolutePath(library.path, file.path);
@@ -142,7 +142,7 @@ editorRoutes.get('/:libraryId/*/backlinks', async (c) => {
     where: and(eq(files.libraryId, libraryId), eq(files.isDir, false)),
   });
 
-  const backlinks: any[] = [];
+  const backlinks: Record<string, unknown>[] = [];
 
   for (const file of allFiles) {
     const absolutePath = getAbsolutePath(library.path, file.path);
@@ -153,8 +153,7 @@ editorRoutes.get('/:libraryId/*/backlinks', async (c) => {
       const embedRegex = /!\[\[([^\]|#^]+)(?:#([^\]|^]+))?(?:\^([^\]]+))?(?:\|([^\]]+))?\]\]/g;
       const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
 
-      let match;
-      while ((match = wikilinkRegex.exec(content)) !== null) {
+      for (const match of content.matchAll(wikilinkRegex)) {
         const target = match[1];
         if (target === filePath || target === filePath.replace(/\.md$/, '')) {
           backlinks.push({
@@ -169,7 +168,7 @@ editorRoutes.get('/:libraryId/*/backlinks', async (c) => {
         }
       }
 
-      while ((match = embedRegex.exec(content)) !== null) {
+      for (const match of content.matchAll(embedRegex)) {
         const target = match[1];
         if (target === filePath || target === filePath.replace(/\.md$/, '')) {
           backlinks.push({
@@ -184,7 +183,7 @@ editorRoutes.get('/:libraryId/*/backlinks', async (c) => {
         }
       }
 
-      while ((match = linkRegex.exec(content)) !== null) {
+      for (const match of content.matchAll(linkRegex)) {
         const url = match[2];
         if (url === filePath || url === `./${filePath}`) {
           backlinks.push({

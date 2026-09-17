@@ -2,7 +2,7 @@ import { zValidator } from '@hono/zod-validator';
 import { eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { hashPassword, unlockUser } from '../auth/password.js';
+import { hashPassword } from '../auth/password.js';
 import { getDb } from '../db/index.js';
 import { users } from '../db/schema/users.js';
 import { auditLog } from '../middleware/audit.js';
@@ -11,11 +11,11 @@ import { authMiddleware } from '../middleware/auth.middleware.js';
 import { NotFoundError, ValidationError } from '../utils/errors.js';
 import { createId } from '../utils/id.js';
 
-const users = new Hono();
+const usersRouter = new Hono();
 
-users.use('*', authMiddleware(['admin']));
+usersRouter.use('*', authMiddleware(['admin']));
 
-users.get('/', async (c) => {
+usersRouter.get('/', async (c) => {
   const db = getDb();
   const allUsers = await db.query.users.findMany({
     orderBy: (users, { desc }) => [desc(users.createdAt)],
@@ -36,7 +36,7 @@ users.get('/', async (c) => {
   });
 });
 
-users.post(
+usersRouter.post(
   '/',
   zValidator(
     'json',
@@ -70,7 +70,7 @@ users.post(
   }
 );
 
-users.get('/:id', async (c) => {
+usersRouter.get('/:id', async (c) => {
   const db = getDb();
   const user = await db.query.users.findFirst({ where: eq(users.id, c.req.param('id')) });
   if (!user) throw new NotFoundError('User', c.req.param('id'));
@@ -87,7 +87,7 @@ users.get('/:id', async (c) => {
   });
 });
 
-users.patch(
+usersRouter.patch(
   '/:id',
   zValidator(
     'json',
@@ -127,7 +127,7 @@ users.patch(
   }
 );
 
-users.delete('/:id', async (c) => {
+usersRouter.delete('/:id', async (c) => {
   const id = c.req.param('id');
   const db = getDb();
   const user = await db.query.users.findFirst({ where: eq(users.id, id) });
@@ -150,20 +150,26 @@ users.delete('/:id', async (c) => {
   return c.json({ success: true });
 });
 
-users.post('/:id/unlock', async (c) => {
-  await unlockUser(c.req.param('id'));
+usersRouter.post('/:id/unlock', async (c) => {
+  const db = getDb();
+  const id = c.req.param('id');
+
+  await db
+    .update(users)
+    .set({ isActive: true, lockedUntil: null, failedLoginAttempts: 0 })
+    .where(eq(users.id, id));
 
   auditLog({
     userId: c.get('userId'),
     action: 'user.unlock',
     resourceType: 'user',
-    resourceId: c.req.param('id'),
+    resourceId: id,
   });
 
   return c.json({ success: true });
 });
 
-users.get('/:id/sessions', async (c) => {
+usersRouter.get('/:id/sessions', async (c) => {
   const sessions = await getUserSessions(c.req.param('id'));
   return c.json({
     success: true,
@@ -178,7 +184,7 @@ users.get('/:id/sessions', async (c) => {
   });
 });
 
-users.delete('/:id/sessions', async (c) => {
+usersRouter.delete('/:id/sessions', async (c) => {
   await revokeAllSessions(c.req.param('id'));
 
   auditLog({
@@ -191,8 +197,4 @@ users.delete('/:id/sessions', async (c) => {
   return c.json({ success: true });
 });
 
-function desc<T>(_fn: (t: T) => any) {
-  return { desc: true };
-}
-
-export default users;
+export default usersRouter;

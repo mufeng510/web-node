@@ -15,6 +15,7 @@ export default defineConfig({
       '@frontend': path.resolve(__dirname, './src/frontend'),
       '@shared': path.resolve(__dirname, './src/shared'),
     },
+    extensions: ['.ts', '.tsx', '.js', '.jsx', '.json'],
   },
   test: {
     environment: 'jsdom',

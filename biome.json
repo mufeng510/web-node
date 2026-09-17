@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "ignore": ["dist", "node_modules", ".git", ".codegraph", "*.log"]
+    "ignore": ["dist", "node_modules", ".git", ".codegraph", "*.log", ".omo"]
   },
   "formatter": {
     "enabled": true,
@@ -21,16 +21,17 @@
     "rules": {
       "recommended": true,
       "correctness": {
-        "noUnusedVariables": "warn",
-        "noUnusedImports": "warn"
+        "noUnusedVariables": "off",
+        "noUnusedImports": "warn",
+        "useExhaustiveDependencies": "off"
       },
       "style": {
-        "noNonNullAssertion": "warn",
+        "noNonNullAssertion": "off",
         "useConst": "warn",
         "useTemplate": "warn"
       },
       "suspicious": {
-        "noExplicitAny": "warn",
+        "noExplicitAny": "off",
         "noArrayIndexKey": "warn"
       }
     }

@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
-import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { $ } from 'bun';
 
 const __filename = fileURLToPath(import.meta.url);

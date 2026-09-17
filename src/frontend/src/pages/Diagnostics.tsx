@@ -9,6 +9,7 @@ import {
   Server,
   Wrench,
 } from 'lucide-react';
+import type React from 'react';
 import { useEffect, useState } from 'react';
 import { api } from '../services/api';
 
@@ -31,7 +32,7 @@ export function Diagnostics() {
   const [health, setHealth] = useState<HealthCheck | null>(null);
   const [status, setStatus] = useState<StatusData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [exportData, setExportData] = useState<any>(null);
+  const [exportData, setExportData] = useState<unknown>(null);
   const [showExport, setShowExport] = useState(false);
 
   const fetchHealth = async () => {
@@ -89,12 +90,14 @@ export function Diagnostics() {
         <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Diagnostics</h1>
         <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={fetchHealth}
             className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-1"
           >
             <RefreshCw className="w-4 h-4" /> Refresh
           </button>
           <button
+            type="button"
             onClick={() => {
               fetchExport();
               setShowExport(true);
@@ -198,6 +201,7 @@ export function Diagnostics() {
             <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
               <h2 className="text-lg font-semibold">Diagnostics Export</h2>
               <button
+                type="button"
                 onClick={() => setShowExport(false)}
                 className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
               >
@@ -209,6 +213,7 @@ export function Diagnostics() {
             </div>
             <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2">
               <button
+                type="button"
                 onClick={() => setShowExport(false)}
                 className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg"
               >
@@ -222,7 +227,19 @@ export function Diagnostics() {
   );
 }
 
-function DiagnosticCard({ title, value, icon: Icon, iconColor, details }: any) {
+function DiagnosticCard({
+  title,
+  value,
+  icon: Icon,
+  iconColor,
+  details,
+}: {
+  title: string;
+  value: string | number;
+  icon: React.ComponentType<{ className?: string }>;
+  iconColor?: string;
+  details?: string;
+}) {
   return (
     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
       <div className="flex items-start justify-between">

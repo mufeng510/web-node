@@ -68,9 +68,14 @@ export function LeftSidebar({ library, className = '' }: LeftSidebarProps) {
           className={`flex items-center gap-1 px-2 py-1.5 rounded ${isSelected ? 'bg-blue-50 dark:bg-blue-900/30' : 'hover:bg-gray-100 dark:hover:bg-gray-700'} cursor-pointer`}
           style={{ paddingLeft: `${12 + depth * 16}px` }}
           onClick={(e) => handleNodeClick(node, e)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') handleNodeClick(node, e);
+          }}
+          role="treeitem"
         >
           {hasChildren && (
             <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 toggleExpand(node.relativePath);

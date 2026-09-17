@@ -3,8 +3,7 @@ import { useState } from 'react';
 import { useLibraries } from '../hooks/useLibraries';
 
 export function Dashboard() {
-  const { libraries, currentLibrary, setCurrentLibrary, createLibrary, fetchLibraries } =
-    useLibraries();
+  const { currentLibrary, createLibrary } = useLibraries();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newLibraryName, setNewLibraryName] = useState('');
   const [newLibraryPath, setNewLibraryPath] = useState('');
@@ -35,6 +34,7 @@ export function Dashboard() {
             Create or select a library to get started
           </p>
           <button
+            type="button"
             onClick={() => setShowCreateModal(true)}
             className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
@@ -57,18 +57,21 @@ export function Dashboard() {
           </div>
           <div className="flex items-center gap-2">
             <button
+              type="button"
               className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
               title="Search"
             >
               <Search className="w-5 h-5" />
             </button>
             <button
+              type="button"
               className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
               title="AI Assistant"
             >
               <Brain className="w-5 h-5" />
             </button>
             <button
+              type="button"
               onClick={() => setShowCreateModal(true)}
               className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1"
             >
@@ -90,11 +93,17 @@ export function Dashboard() {
             assistant in the right sidebar for help with your notes.
           </p>
           <div className="flex items-center justify-center gap-4">
-            <button className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+            <button
+              type="button"
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+            >
               <Plus className="w-5 h-5" />
               New Note
             </button>
-            <button className="px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-2">
+            <button
+              type="button"
+              className="px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
+            >
               <Search className="w-5 h-5" />
               Browse Files
             </button>
@@ -108,10 +117,14 @@ export function Dashboard() {
             <h2 className="text-lg font-semibold mb-4">Create New Library</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label
+                  htmlFor="libraryName"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
                   Library Name
                 </label>
                 <input
+                  id="libraryName"
                   value={newLibraryName}
                   onChange={(e) => setNewLibraryName(e.target.value)}
                   placeholder="My Notes"
@@ -119,10 +132,14 @@ export function Dashboard() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label
+                  htmlFor="libraryPath"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
                   Folder Path (relative to /data)
                 </label>
                 <input
+                  id="libraryPath"
                   value={newLibraryPath}
                   onChange={(e) => setNewLibraryPath(e.target.value)}
                   placeholder="my-notes"
@@ -132,12 +149,14 @@ export function Dashboard() {
             </div>
             <div className="mt-6 flex justify-end gap-2">
               <button
+                type="button"
                 onClick={() => setShowCreateModal(false)}
                 className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleCreateLibrary}
                 disabled={creating}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400"

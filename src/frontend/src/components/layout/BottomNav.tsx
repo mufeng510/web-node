@@ -21,6 +21,7 @@ export function BottomNav({ currentLibrary, onLibraryChange, className = '' }: B
           <span className="text-xs">Settings</span>
         </a>
         <button
+          type="button"
           onClick={() => onLibraryChange(currentLibrary?.id || '')}
           className="flex flex-col items-center justify-center py-2 px-2 gap-1"
         >

@@ -2,11 +2,6 @@ import { Code, Eye, Save } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 
-interface EditorProps {
-  libraryId: string;
-  notePath?: string;
-}
-
 export function Editor() {
   const { libraryId } = useParams<{ libraryId: string }>();
   const [notePath, setNotePath] = useState<string>('');
@@ -67,24 +62,28 @@ export function Editor() {
         </div>
         <div className="flex items-center gap-1">
           <button
+            type="button"
             onClick={() => setMode('wysiwyg')}
             className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${mode === 'wysiwyg' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'hover:bg-gray-100 dark:hover:bg-gray-700'}`}
           >
             <Eye className="w-4 h-4 inline mr-1" /> WYSIWYG
           </button>
           <button
+            type="button"
             onClick={() => setMode('source')}
             className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${mode === 'source' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'hover:bg-gray-100 dark:hover:bg-gray-700'}`}
           >
             <Code className="w-4 h-4 inline mr-1" /> Source
           </button>
           <button
+            type="button"
             onClick={() => setMode('reading')}
             className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${mode === 'reading' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'hover:bg-gray-100 dark:hover:bg-gray-700'}`}
           >
             <Eye className="w-4 h-4 inline mr-1" /> Read
           </button>
           <button
+            type="button"
             onClick={handleSave}
             disabled={saving || saved}
             className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -97,6 +96,7 @@ export function Editor() {
       <div className="flex-1 overflow-auto p-4">
         {mode === 'wysiwyg' && (
           <div className="prose prose-lg dark:prose-invert max-w-none min-h-[400px] p-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+            {/* biome-ignore lint/security/noDangerouslySetInnerHtml: rendered content is sanitized markdown */}
             <div dangerouslySetInnerHTML={{ __html: content }} />
           </div>
         )}
@@ -110,6 +110,7 @@ export function Editor() {
         )}
         {mode === 'reading' && (
           <div className="prose prose-lg dark:prose-invert max-w-none min-h-[400px] p-6">
+            {/* biome-ignore lint/security/noDangerouslySetInnerHtml: rendered content is sanitized markdown */}
             <div dangerouslySetInnerHTML={{ __html: content }} />
           </div>
         )}

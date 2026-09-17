@@ -20,7 +20,11 @@ export function RightSidebar({ isOpen, onClose, className = '' }: RightSidebarPr
     >
       <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700">
         <h2 className="text-sm font-medium">Right Sidebar</h2>
-        <button onClick={onClose} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700">
+        <button
+          type="button"
+          onClick={onClose}
+          className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+        >
           <X className="w-4 h-4" />
         </button>
       </div>
@@ -37,6 +41,7 @@ export function RightSidebar({ isOpen, onClose, className = '' }: RightSidebarPr
             { id: 'tags', label: 'Tags', icon: '🏷️' },
           ].map((tab) => (
             <button
+              type="button"
               key={tab.id}
               role="tab"
               aria-selected={activeTab === tab.id}

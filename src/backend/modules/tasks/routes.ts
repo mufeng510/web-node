@@ -90,7 +90,7 @@ taskRoutes.get('/:id/logs', async (c) => {
   }
 
   const { taskSteps } = await import('../db/schema/tasks.js');
-  const { eq, asc } = await import('drizzle-orm');
+  const { asc } = await import('drizzle-orm');
 
   const steps = await db.query.taskSteps.findMany({
     where: eq(taskSteps.taskId, taskId),
@@ -99,9 +99,5 @@ taskRoutes.get('/:id/logs', async (c) => {
 
   return c.json({ success: true, data: { steps } });
 });
-
-function gt(column: any, value: any) {
-  return { gt: [column, value] };
-}
 
 export default taskRoutes;

@@ -22,12 +22,18 @@ export function MobileDrawer({
       <div
         className="fixed inset-0 bg-black/50 z-40 lg:hidden"
         onClick={onClose}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') onClose();
+        }}
+        role="button"
+        tabIndex={-1}
         aria-hidden="true"
       />
       <aside className="fixed inset-y-0 left-0 z-50 w-72 bg-white dark:bg-gray-800 transform transition-transform lg:hidden flex flex-col">
         <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-medium">Menu</h2>
           <button
+            type="button"
             onClick={onClose}
             className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
           >
@@ -41,6 +47,7 @@ export function MobileDrawer({
           </h3>
           {libraries.map((lib) => (
             <button
+              type="button"
               key={lib.id}
               onClick={() => {
                 onLibraryChange(lib.id);

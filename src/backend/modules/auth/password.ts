@@ -1,7 +1,8 @@
+import { getDb } from '@backend/db/index';
+import { users } from '@backend/db/schema/users';
+import { AuthenticationError, NotFoundError, ValidationError } from '@backend/utils/errors';
+import { createId } from '@backend/utils/id';
 import { eq } from 'drizzle-orm';
-import { getDb } from '../db/index.js';
-import { users } from '../db/schema/users.js';
-import { AuthenticationError, ValidationError } from '../utils/errors.js';
 
 const ARGON2_OPTIONS = {
   memoryCost: 19456,
@@ -120,10 +121,4 @@ export async function changePassword(userId: string, currentPassword: string, ne
   await db.update(users).set({ passwordHash, updatedAt: new Date() }).where(eq(users.id, userId));
 
   await revokeAllSessions(userId);
-}
-
-function createId(): string {
-  const timestamp = Date.now().toString(36);
-  const random = Math.random().toString(36).substring(2, 8);
-  return `${timestamp}${random}`;
 }

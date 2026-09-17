@@ -1,14 +1,14 @@
+import { getDb } from '@backend/db/index';
+import { taskSteps, tasks } from '@backend/db/schema/tasks';
+import { checkLibraryAccess } from '@backend/libraries/access';
+import { auditLog } from '@backend/middleware/audit';
+import { authMiddleware } from '@backend/middleware/auth.middleware';
+import { NotFoundError, ValidationError } from '@backend/utils/errors';
+import { createId } from '@backend/utils/id';
 import { zValidator } from '@hono/zod-validator';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, gt } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { getDb } from '../db/index.js';
-import { taskSteps, tasks } from '../db/schema/tasks.js';
-import { checkLibraryAccess } from '../libraries/access.js';
-import { auditLog } from '../middleware/audit.js';
-import { authMiddleware } from '../middleware/auth.middleware.js';
-import { NotFoundError, ValidationError } from '../utils/errors.js';
-import { createId } from '../utils/id.js';
 
 const agentRoutes = new Hono();
 
@@ -295,9 +295,5 @@ agentRoutes.get('/tasks/:id/steps', async (c) => {
 
   return c.json({ success: true, data: { steps } });
 });
-
-function gt(column: string, value: Date | string | number) {
-  return { gt: [column, value] };
-}
 
 export default agentRoutes;

@@ -20,6 +20,8 @@ const envSchema = z.object({
   SESSION_SECRET: z.string().min(32).optional(),
   SESSION_MAX_AGE_DAYS: z.coerce.number().int().positive().default(30),
   SESSION_CLEANUP_INTERVAL_HOURS: z.coerce.number().int().positive().default(24),
+  SESSION_COOKIE_NAME: z.string().default('webnote_session'),
+  CSRF_COOKIE_NAME: z.string().default('webnote_csrf'),
 
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
   LOG_RETENTION_DAYS: z.coerce.number().int().positive().default(30),
@@ -83,6 +85,8 @@ export function getEnv(): Env {
     SESSION_SECRET: getEnvVar('SESSION_SECRET'),
     SESSION_MAX_AGE_DAYS: getEnvVar('SESSION_MAX_AGE_DAYS'),
     SESSION_CLEANUP_INTERVAL_HOURS: getEnvVar('SESSION_CLEANUP_INTERVAL_HOURS'),
+    SESSION_COOKIE_NAME: getEnvVar('SESSION_COOKIE_NAME'),
+    CSRF_COOKIE_NAME: getEnvVar('CSRF_COOKIE_NAME'),
     LOG_LEVEL: getEnvVar('LOG_LEVEL'),
     LOG_RETENTION_DAYS: getEnvVar('LOG_RETENTION_DAYS'),
     AUDIT_RETENTION_DAYS: getEnvVar('AUDIT_RETENTION_DAYS'),

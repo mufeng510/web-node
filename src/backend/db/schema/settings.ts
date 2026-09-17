@@ -1,4 +1,4 @@
-import { integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 export const settings = sqliteTable(
   'settings',
@@ -34,5 +34,6 @@ export const dbBackups = sqliteTable(
 );
 
 export type Setting = typeof settings.$inferSelect;
+export type NewSetting = typeof settings.$inferInsert;
 export type DbBackup = typeof dbBackups.$inferSelect;
 export type NewDbBackup = typeof dbBackups.$inferInsert;

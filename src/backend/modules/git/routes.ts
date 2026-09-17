@@ -112,7 +112,7 @@ gitRoutes.post(
       throw new ValidationError('No changes to commit');
     }
 
-    const commitOptions: any = { '--no-verify': true };
+    const commitOptions: Record<string, unknown> = { '--no-verify': true };
     if (author) {
       commitOptions.author = `${author.name} <${author.email}>`;
     }
