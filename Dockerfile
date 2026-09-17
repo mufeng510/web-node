@@ -31,21 +31,21 @@ WORKDIR /app
 # Install runtime dependencies
 RUN apk add --no-cache sqlite-libs tini
 
-# Create non-root user
-RUN addgroup -g 1000 -S webnote && \
-    adduser -u 1000 -S webnote -G webnote
+# Create non-root user (GID 1000 may already exist in base image)
+RUN addgroup -g 1001 -S webnote 2>/dev/null || true && \
+    adduser -u 1001 -S webnote -G webnote 2>/dev/null || adduser -S webnote -G webnote || true
 
 # Create data directories
 RUN mkdir -p /data /app-data && \
     chown -R webnote:webnote /data /app-data
 
 # Copy built artifacts
-COPY --from=builder --chown=webnote:webnode /app/dist ./dist
-COPY --from=builder --chown=webnote:webnode /app/node_modules ./node_modules
-COPY --from=builder --chown=webnote:webnode /app/package.json ./
+COPY --from=builder --chown=webnote:webnote /app/dist ./dist
+COPY --from=builder --chown=webnote:webnote /app/node_modules ./node_modules
+COPY --from=builder --chown=webnote:webnote /app/package.json ./
 
 # Copy scripts
-COPY --from=builder --chown=webnote:webnode /app/scripts ./scripts
+COPY --from=builder --chown=webnote:webnote /app/scripts ./scripts
 
 # Set environment
 ENV NODE_ENV=production
