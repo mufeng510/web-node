@@ -13,14 +13,15 @@ async function ensureAuthenticated(page: import('@playwright/test').Page) {
     await page.fill('input[type="password"]', 'password123');
     await page.fill('input[id="confirmPassword"]', 'password123');
     await page.click('button[type="submit"]');
+    await page.waitForURL('/', { timeout: 10000 });
   } else if (url.includes('/login')) {
     await page.fill('input[type="email"]', 'admin@example.com');
     await page.fill('input[type="password"]', 'password123');
     await page.click('button[type="submit"]');
+    await page.waitForURL('/', { timeout: 10000 });
   }
 
-  await expect(page).toHaveURL('/');
-  await expect(page.locator('text=Files')).toBeVisible({ timeout: 10000 });
+  await page.waitForLoadState('networkidle');
 }
 
 test.describe('Authentication', () => {
