@@ -39,6 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
     } finally {
       setLoading(false);
+      setSuppressAuthRedirect(false);
     }
   };
 
@@ -48,12 +49,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const statusResponse = await api.get('/auth/setup-status');
       if (statusResponse.data?.needsSetup) {
         setNeedsSetup(true);
+        setLoading(false);
+        // Don't clear suppressAuthRedirect here — keep suppressing 401 redirects
+        // while in setup mode (e.g., LibraryProvider.fetchLibraries() may 401).
         return;
       }
       setSetupComplete(true);
     } catch {
       setSetupComplete(false);
-    } finally {
       setLoading(false);
       setSuppressAuthRedirect(false);
     }
@@ -91,6 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(response.data.user);
       setNeedsSetup(false);
       setSetupComplete(true);
+      setSuppressAuthRedirect(false);
     } else {
       throw new Error(response.error?.message || 'Setup failed');
     }
