@@ -2,9 +2,14 @@ import { expect, test } from '@playwright/test';
 
 /**
  * Ensure the user is authenticated. Handles both /setup and /login redirects.
+ * Waits for the app to finish loading before checking the URL.
  */
 async function ensureAuthenticated(page: import('@playwright/test').Page) {
   await page.goto('/');
+
+  // Wait for React app to finish auth check and redirect
+  // The app makes 2-3 API calls (setup-status, auth/me, libraries) before stabilizing
+  await page.waitForLoadState('networkidle');
 
   const url = page.url();
   if (url.includes('/setup')) {
@@ -13,11 +18,13 @@ async function ensureAuthenticated(page: import('@playwright/test').Page) {
     await page.fill('input[id="confirmPassword"]', 'password123');
     await page.click('button[type="submit"]');
     await page.waitForURL('/', { timeout: 10000 });
+    await page.waitForLoadState('networkidle');
   } else if (url.includes('/login')) {
     await page.fill('input[type="email"]', 'admin@example.com');
     await page.fill('input[type="password"]', 'password123');
     await page.click('button[type="submit"]');
     await page.waitForURL('/', { timeout: 10000 });
+    await page.waitForLoadState('networkidle');
   }
 
   // Wait for dashboard to be ready - either "Create Library" (no library) or "New Library" (library exists)
@@ -48,7 +55,7 @@ async function ensureLibraryExists(page: import('@playwright/test').Page) {
   await page.click('button:has-text("Create")');
 
   // Wait for the library to be created and selected
-  // After creation, the Dashboard shows "New Library" button and "New Note" button
+  // After creation, the Dashboard shows "New Library" button
   await expect(newLibraryBtn).toBeVisible({ timeout: 10000 });
 }
 
