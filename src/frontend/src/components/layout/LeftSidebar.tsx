@@ -1,5 +1,5 @@
 import { ChevronRight, FileText, Folder } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface TreeNode {
   id: string;
@@ -36,7 +36,7 @@ export function LeftSidebar({ library, className = '' }: LeftSidebarProps) {
     });
   };
 
-  const handleNodeClick = (node: TreeNode, e: React.MouseEvent) => {
+  const handleNodeClick = (node: TreeNode, e: React.MouseEvent | React.KeyboardEvent) => {
     e.stopPropagation();
     if (node.isDir) {
       toggleExpand(node.relativePath);
