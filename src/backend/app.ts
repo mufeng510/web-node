@@ -1,3 +1,6 @@
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
 import type { Context, Next } from 'hono';
 import { cors } from 'hono/cors';
@@ -86,6 +89,13 @@ export function createApp() {
   api.route('/notifications', notificationRoutes);
   api.route('/webhooks', webhookRoutes);
   api.route('/settings', settingsRoutes);
+
+  // Serve frontend static files from dist/public (production build)
+  const publicDir = resolve(process.cwd(), 'dist/public');
+  if (existsSync(publicDir)) {
+    app.use('/*', serveStatic({ root: './dist/public' }));
+    app.get('*', serveStatic({ root: './dist/public', path: '/index.html' }));
+  }
 
   return app;
 }
