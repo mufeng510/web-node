@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { Layout } from './components/layout/Layout';
 import { useAuth } from './hooks/useAuth';
 import { Dashboard } from './pages/Dashboard';
@@ -37,6 +37,17 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function SetupRedirect() {
+  const { needsSetup, loading } = useAuth();
+  const location = useLocation();
+
+  if (!loading && needsSetup && location.pathname !== '/setup') {
+    return <Navigate to="/setup" replace />;
+  }
+
+  return null;
+}
+
 export function App() {
   const { checkSetup } = useAuth();
 
@@ -46,6 +57,7 @@ export function App() {
 
   return (
     <BrowserRouter>
+      <SetupRedirect />
       <Routes>
         <Route
           path="/login"

@@ -10,6 +10,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  needsSetup: boolean;
   login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
   logout: () => Promise<void>;
   logoutAll: () => Promise<void>;
@@ -24,6 +25,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [setupComplete, setSetupComplete] = useState(false);
+  const [needsSetup, setNeedsSetup] = useState(false);
 
   const fetchUser = async () => {
     try {
@@ -44,9 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const statusResponse = await api.get('/auth/setup-status');
       if (statusResponse.data?.needsSetup) {
-        if (window.location.pathname !== '/setup') {
-          window.location.href = '/setup';
-        }
+        setNeedsSetup(true);
         return;
       }
       setSetupComplete(true);
@@ -87,6 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const response = await api.post('/auth/setup', { email, password, confirmPassword: password });
     if (response.success) {
       setUser(response.data.user);
+      setNeedsSetup(false);
       setSetupComplete(true);
     } else {
       throw new Error(response.error?.message || 'Setup failed');
@@ -101,7 +102,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, login, logout, logoutAll, changePassword, checkSetup, setup }}
+      value={{
+        user,
+        loading,
+        needsSetup,
+        login,
+        logout,
+        logoutAll,
+        changePassword,
+        checkSetup,
+        setup,
+      }}
     >
       {children}
     </AuthContext.Provider>
