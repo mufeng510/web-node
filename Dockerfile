@@ -11,7 +11,7 @@ RUN apk add --no-cache python3 make g++ sqlite-dev
 COPY package.json bun.lock* ./
 
 # Install dependencies
-RUN bun install --frozen-lockfile
+RUN bun install
 
 # Copy source code
 COPY . .
