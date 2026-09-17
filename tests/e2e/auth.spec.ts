@@ -41,7 +41,6 @@ async function createLibraryViaUI(
   name: string,
   path: string
 ) {
-  // If library already visible (e.g. from a previous retry), skip creation
   if (
     await page
       .locator(`h1:has-text("${name}"), h2:has-text("${name}")`)
@@ -50,6 +49,18 @@ async function createLibraryViaUI(
   ) {
     return;
   }
+
+  const errors: string[] = [];
+  page.on('console', (msg) => {
+    if (msg.type() === 'error') errors.push(msg.text());
+  });
+  const failedResponses: { url: string; status: number; body?: string }[] = [];
+  page.on('response', async (resp) => {
+    if (resp.url().includes('/api/') && resp.status() >= 400) {
+      const body = await resp.text().catch(() => '');
+      failedResponses.push({ url: resp.url(), status: resp.status(), body });
+    }
+  });
 
   const createBtn = page.locator('button:has-text("Create Library")');
   const newBtn = page.locator('button:has-text("New Library")');
@@ -60,16 +71,23 @@ async function createLibraryViaUI(
     await newBtn.click();
   }
 
-  // Wait for the modal to appear
   await expect(page.locator('input[placeholder="My Notes"]')).toBeVisible({ timeout: 10000 });
   await page.fill('input[placeholder="My Notes"]', name);
   await page.fill('input[placeholder="my-notes"]', path);
 
-  // Use exact match for the modal's Create button (not "Create Library" behind it)
   await page.locator('button:has-text("Create")').last().click();
 
-  // Wait for library to be created and visible
-  await expect(page.locator(`text=${name}`)).toBeVisible({ timeout: 10000 });
+  try {
+    await expect(page.locator(`text=${name}`)).toBeVisible({ timeout: 10000 });
+  } catch (e) {
+    const detail = [
+      `Console errors: ${JSON.stringify(errors)}`,
+      `Failed API responses: ${JSON.stringify(failedResponses)}`,
+      `Page URL: ${page.url()}`,
+      `Page title: ${await page.title()}`,
+    ].join('\n');
+    throw new Error(`Library "${name}" not visible after creation.\n${detail}`);
+  }
 }
 
 /**
