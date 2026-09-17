@@ -39,7 +39,7 @@ export function createApp() {
     c.header('x-request-id', requestId);
     await next();
   });
-  app.use('*', errorHandler);
+  app.onError(errorHandler);
   app.use('*', auditMiddleware());
 
   app.use(
