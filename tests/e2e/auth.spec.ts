@@ -15,8 +15,9 @@ async function ensureAuthenticated(page: import('@playwright/test').Page) {
     await page.click('button[type="submit"]');
   }
 
-  // Wait until we're on the main page
+  // Wait until we're on the main page and it's fully loaded
   await expect(page).toHaveURL('/');
+  await expect(page.locator('text=Files')).toBeVisible({ timeout: 10000 });
 }
 
 test.describe('Authentication', () => {
