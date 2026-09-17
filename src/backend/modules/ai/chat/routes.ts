@@ -4,11 +4,11 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { getDb } from '../../../db/index.js';
 import { conversations, messages } from '../../../db/schema/conversations.js';
+import { auditLog } from '../../../middleware/audit.js';
+import { authMiddleware } from '../../../middleware/auth.middleware.js';
+import { NotFoundError } from '../../../utils/errors.js';
+import { createId } from '../../../utils/id.js';
 import { checkLibraryAccess } from '../../libraries/access.js';
-import { auditLog } from '../../middleware/audit.js';
-import { authMiddleware } from '../../middleware/auth.middleware.js';
-import { NotFoundError } from '../../utils/errors.js';
-import { createId } from '../../utils/id.js';
 
 const chatRoutes = new Hono();
 

@@ -5,12 +5,12 @@ import { z } from 'zod';
 import { getDb } from '../../db/index.js';
 import { libraries } from '../../db/schema/libraries.js';
 import { mcpTokens } from '../../db/schema/mcp_tokens.js';
-import { checkLibraryAccess } from '../../libraries/access.js';
 import { auditLog } from '../../middleware/audit.js';
 import { authMiddleware } from '../../middleware/auth.middleware.js';
 import { generateApiKey, hashSecret } from '../../utils/crypto.js';
 import { NotFoundError } from '../../utils/errors.js';
 import { createId } from '../../utils/id.js';
+import { checkLibraryAccess } from '../libraries/access.js';
 
 const mcpRoutes = new Hono();
 

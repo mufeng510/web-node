@@ -5,9 +5,9 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { getDb } from '../../db/index.js';
 import { files } from '../../db/schema/files.js';
-import { checkLibraryAccess } from '../../libraries/access.js';
 import { authMiddleware } from '../../middleware/auth.middleware.js';
 import { getAbsolutePath } from '../../utils/path.js';
+import { checkLibraryAccess } from '../libraries/access.js';
 
 const editorRoutes = new Hono();
 

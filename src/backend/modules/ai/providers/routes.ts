@@ -4,11 +4,11 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { getDb } from '../../../db/index.js';
 import { providers } from '../../../db/schema/providers.js';
-import { auditLog } from '../../middleware/audit.js';
-import { authMiddleware } from '../../middleware/auth.middleware.js';
-import { decrypt, encrypt } from '../../utils/crypto.js';
-import { NotFoundError, ValidationError } from '../../utils/errors.js';
-import { createId } from '../../utils/id.js';
+import { auditLog } from '../../../middleware/audit.js';
+import { authMiddleware } from '../../../middleware/auth.middleware.js';
+import { decrypt, encrypt } from '../../../utils/crypto.js';
+import { NotFoundError, ValidationError } from '../../../utils/errors.js';
+import { createId } from '../../../utils/id.js';
 
 const providerRoutes = new Hono();
 
