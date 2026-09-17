@@ -1,8 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 /**
- * Ensure the user is authenticated. If setup is needed, complete it.
- * Works whether setup was already done or not.
+ * Ensure the user is authenticated. Handles both /setup and /login redirects.
  */
 async function ensureAuthenticated(page: import('@playwright/test').Page) {
   await page.goto('/');
@@ -21,23 +20,36 @@ async function ensureAuthenticated(page: import('@playwright/test').Page) {
     await page.waitForURL('/', { timeout: 10000 });
   }
 
-  await page.waitForLoadState('networkidle');
+  // Wait for dashboard to be ready - either "Create Library" (no library) or "New Library" (library exists)
+  await expect(
+    page.locator('button:has-text("Create Library"), button:has-text("New Library")')
+  ).toBeVisible({ timeout: 15000 });
 }
 
+/**
+ * Ensure a library exists. If not, create one through the UI.
+ * After this function, a library is selected and "New Note" button is visible.
+ */
 async function ensureLibraryExists(page: import('@playwright/test').Page) {
-  await page.evaluate(async () => {
-    const res = await fetch('/api/v1/libraries');
-    const data = await res.json();
-    if (data.success && data.data.length > 0) return;
+  // If "New Library" button is visible, a library already exists
+  const newLibraryBtn = page.locator('button:has-text("New Library")');
+  if (await newLibraryBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+    return;
+  }
 
-    await fetch('/api/v1/libraries', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'Test Library', path: 'test-library' }),
-    });
-  });
-  await page.reload();
-  await page.waitForLoadState('networkidle');
+  // No library exists - create one through the UI
+  const createBtn = page.locator('button:has-text("Create Library")');
+  await expect(createBtn).toBeVisible({ timeout: 5000 });
+  await createBtn.click();
+
+  // Fill the modal
+  await page.fill('input[placeholder="My Notes"]', 'Test Library');
+  await page.fill('input[placeholder="my-notes"]', 'test-library');
+  await page.click('button:has-text("Create")');
+
+  // Wait for the library to be created and selected
+  // After creation, the Dashboard shows "New Library" button and "New Note" button
+  await expect(newLibraryBtn).toBeVisible({ timeout: 10000 });
 }
 
 test.describe('Authentication', () => {
