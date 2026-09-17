@@ -1,6 +1,6 @@
 import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
-import { getErrorResponse } from '../../utils/errors.js';
+import { getErrorResponse } from '../utils/errors.js';
 
 export function errorHandler(err: Error, c: Context) {
   const requestId = c.get('requestId') || createId();
