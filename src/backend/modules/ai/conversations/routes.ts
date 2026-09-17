@@ -4,9 +4,9 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { getDb } from '../../../db/index.js';
 import { conversations } from '../../../db/schema/conversations.js';
-import { checkLibraryAccess } from '../libraries/access.js';
-import { authMiddleware } from '../middleware/auth.middleware.js';
-import { NotFoundError } from '../utils/errors.js';
+import { checkLibraryAccess } from '../../libraries/access.js';
+import { authMiddleware } from '../../middleware/auth.middleware.js';
+import { NotFoundError } from '../../utils/errors.js';
 
 const conversationRoutes = new Hono();
 
