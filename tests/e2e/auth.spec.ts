@@ -35,7 +35,11 @@ async function ensureAuthenticated(page: import('@playwright/test').Page) {
 /**
  * Create a library through the UI by clicking the create button and filling the modal.
  */
-async function createLibraryViaUI(page: import('@playwright/test').Page, name: string, path: string) {
+async function createLibraryViaUI(
+  page: import('@playwright/test').Page,
+  name: string,
+  path: string
+) {
   const createBtn = page.locator('button:has-text("Create Library")');
   const newBtn = page.locator('button:has-text("New Library")');
 

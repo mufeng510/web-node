@@ -53,9 +53,7 @@ export function Dashboard() {
                 <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
                   {currentLibrary.name}
                 </h1>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {currentLibrary.path}
-                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{currentLibrary.path}</p>
               </div>
               <div className="flex items-center gap-2">
                 <button
