@@ -3,9 +3,9 @@ import { zValidator } from '@hono/zod-validator';
 import { and, eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
+import { getDb } from '../../db/index.js';
+import { files } from '../../db/schema/files.js';
 import { getAbsolutePath } from '../../utils/path.js';
-import { getDb } from '../db/index.js';
-import { files } from '../db/schema/files.js';
 import { checkLibraryAccess } from '../libraries/access.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 

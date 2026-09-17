@@ -1,7 +1,7 @@
 import { and, eq } from 'drizzle-orm';
-import { getDb } from '../db/index.js';
-import { libraries } from '../db/schema/libraries.js';
-import { libraryMembers } from '../db/schema/libraries.js';
+import { getDb } from '../../db/index.js';
+import { libraries } from '../../db/schema/libraries.js';
+import { libraryMembers } from '../../db/schema/libraries.js';
 import { AuthorizationError, NotFoundError } from '../utils/errors.js';
 
 export async function checkLibraryAccess(

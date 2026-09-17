@@ -1,8 +1,8 @@
 import { eq } from 'drizzle-orm';
 import { Hono } from 'hono';
-import { getDb } from '../db/index.js';
-import { aiIndexes } from '../db/schema/ai_index.js';
-import { providers } from '../db/schema/providers.js';
+import { getDb } from '../../../db/index.js';
+import { aiIndexes } from '../../../db/schema/ai_index.js';
+import { providers } from '../../../db/schema/providers.js';
 import { checkLibraryAccess } from '../libraries/access.js';
 import { auditLog } from '../middleware/audit.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';

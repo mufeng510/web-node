@@ -2,13 +2,13 @@ import { zValidator } from '@hono/zod-validator';
 import { desc, eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
+import { getDb } from '../../db/index.js';
+import { webhooks } from '../../db/schema/webhooks.js';
 import { auditLog } from '../../middleware/audit.js';
 import { authMiddleware } from '../../middleware/auth.middleware.js';
 import { encrypt } from '../../utils/crypto.js';
 import { NotFoundError } from '../../utils/errors.js';
 import { createId } from '../../utils/id.js';
-import { getDb } from '../db/index.js';
-import { webhooks } from '../db/schema/webhooks.js';
 
 const webhookRoutes = new Hono();
 

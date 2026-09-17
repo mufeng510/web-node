@@ -2,8 +2,8 @@ import { zValidator } from '@hono/zod-validator';
 import { desc, eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { getDb } from '../db/index.js';
-import { auditLogs } from '../db/schema/audit.js';
+import { getDb } from '../../db/index.js';
+import { auditLogs } from '../../db/schema/audit.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 
 const auditRoutes = new Hono();

@@ -2,9 +2,9 @@ import { zValidator } from '@hono/zod-validator';
 import { eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
+import { getDb } from '../../db/index.js';
+import { settings } from '../../db/schema/settings.js';
 import { authMiddleware } from '../../middleware/auth.middleware.js';
-import { getDb } from '../db/index.js';
-import { settings } from '../db/schema/settings.js';
 
 const settingsRoutes = new Hono();
 

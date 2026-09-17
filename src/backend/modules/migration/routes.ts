@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
+import { getDb } from '../../db/index.js';
 import { authMiddleware } from '../../middleware/auth.middleware.js';
-import { getDb } from '../db/index.js';
 
 const migrationRoutes = new Hono();
 

@@ -3,12 +3,12 @@ import { and, eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { getEnv } from '../../config/env.js';
+import { getDb } from '../../db/index.js';
+import { sessions } from '../../db/schema/sessions.js';
+import { users } from '../../db/schema/users.js';
 import { hashSecret } from '../../utils/crypto.js';
 import { AuthenticationError, NotFoundError } from '../../utils/errors.js';
 import { createId } from '../../utils/id.js';
-import { getDb } from '../db/index.js';
-import { sessions } from '../db/schema/sessions.js';
-import { users } from '../db/schema/users.js';
 import { auditLog } from '../middleware/audit.js';
 import {
   createSession,

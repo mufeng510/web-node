@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
-import { getDb } from '../db/index.js';
-import { users } from '../db/schema/users.js';
+import { getDb } from '../../db/index.js';
+import { users } from '../../db/schema/users.js';
 import { NotFoundError, ValidationError } from '../utils/errors.js';
 import { createId } from '../utils/id.js';
 

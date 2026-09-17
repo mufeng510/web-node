@@ -2,8 +2,8 @@ import { zValidator } from '@hono/zod-validator';
 import { and, desc, eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { getDb } from '../db/index.js';
-import { notifications } from '../db/schema/notifications.js';
+import { getDb } from '../../db/index.js';
+import { notifications } from '../../db/schema/notifications.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 
 const notificationRoutes = new Hono();

@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { getEnv } from '../../config/env.js';
+import { getDb } from '../../db/index.js';
 import { authMiddleware } from '../../middleware/auth.middleware.js';
-import { getDb } from '../db/index.js';
 
 const diagnosticsRoutes = new Hono();
 
