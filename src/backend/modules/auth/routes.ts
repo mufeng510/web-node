@@ -93,13 +93,8 @@ auth.post('/setup', zValidator('json', setupSchema), async (c) => {
   );
   const csrfToken = generateCsrfToken();
 
-  const res = c.json({
-    success: true,
-    data: { user: { id: userId, email, role: 'admin' }, expiresAt },
-  });
-
-  setCsrfCookie(res, csrfToken);
-  res.header(
+  setCsrfCookie(c, csrfToken);
+  c.header(
     'Set-Cookie',
     `${getEnv().SESSION_COOKIE_NAME}=${token}; HttpOnly; Secure=${getEnv().NODE_ENV === 'production'}; SameSite=Strict; Path=/; Max-Age=${getEnv().SESSION_MAX_AGE_DAYS * 24 * 60 * 60}`
   );
@@ -113,7 +108,10 @@ auth.post('/setup', zValidator('json', setupSchema), async (c) => {
     userAgent: c.req.header('user-agent'),
   });
 
-  return res;
+  return c.json({
+    success: true,
+    data: { user: { id: userId, email, role: 'admin' }, expiresAt },
+  });
 });
 
 auth.post('/login', zValidator('json', loginSchema), async (c) => {
@@ -154,13 +152,8 @@ auth.post('/login', zValidator('json', loginSchema), async (c) => {
   );
   const csrfToken = generateCsrfToken();
 
-  const res = c.json({
-    success: true,
-    data: { user: { id: user.id, email: user.email, role: user.role }, expiresAt },
-  });
-
-  setCsrfCookie(res, csrfToken);
-  res.header(
+  setCsrfCookie(c, csrfToken);
+  c.header(
     'Set-Cookie',
     `${getEnv().SESSION_COOKIE_NAME}=${token}; HttpOnly; Secure=${getEnv().NODE_ENV === 'production'}; SameSite=Strict; Path=/; Max-Age=${maxAge}`
   );
@@ -174,7 +167,10 @@ auth.post('/login', zValidator('json', loginSchema), async (c) => {
     userAgent: c.req.header('user-agent'),
   });
 
-  return res;
+  return c.json({
+    success: true,
+    data: { user: { id: user.id, email: user.email, role: user.role }, expiresAt },
+  });
 });
 
 auth.post('/logout', async (c) => {
@@ -185,12 +181,11 @@ auth.post('/logout', async (c) => {
     await revokeSession(token);
   }
 
-  const res = c.json({ success: true });
-  res.header(
+  c.header(
     'Set-Cookie',
     `${getEnv().SESSION_COOKIE_NAME}=; HttpOnly; Secure=${getEnv().NODE_ENV === 'production'}; SameSite=Strict; Path=/; Max-Age=0`
   );
-  res.header(
+  c.header(
     'Set-Cookie',
     `${getEnv().CSRF_COOKIE_NAME}=; HttpOnly; Secure=${getEnv().NODE_ENV === 'production'}; SameSite=Strict; Path=/; Max-Age=0`
   );
@@ -202,7 +197,7 @@ auth.post('/logout', async (c) => {
     resourceId: userId,
   });
 
-  return res;
+  return c.json({ success: true });
 });
 
 auth.post('/logout-all', async (c) => {
@@ -211,12 +206,11 @@ auth.post('/logout-all', async (c) => {
 
   await revokeAllSessions(userId, token);
 
-  const res = c.json({ success: true });
-  res.header(
+  c.header(
     'Set-Cookie',
     `${getEnv().SESSION_COOKIE_NAME}=; HttpOnly; Secure=${getEnv().NODE_ENV === 'production'}; SameSite=Strict; Path=/; Max-Age=0`
   );
-  res.header(
+  c.header(
     'Set-Cookie',
     `${getEnv().CSRF_COOKIE_NAME}=; HttpOnly; Secure=${getEnv().NODE_ENV === 'production'}; SameSite=Strict; Path=/; Max-Age=0`
   );
@@ -228,7 +222,7 @@ auth.post('/logout-all', async (c) => {
     resourceId: userId,
   });
 
-  return res;
+  return c.json({ success: true });
 });
 
 auth.get('/me', async (c) => {
@@ -261,12 +255,11 @@ auth.post('/change-password', zValidator('json', changePasswordSchema), async (c
 
   await changePassword(userId, currentPassword, newPassword);
 
-  const res = c.json({ success: true });
-  res.header(
+  c.header(
     'Set-Cookie',
     `${getEnv().SESSION_COOKIE_NAME}=; HttpOnly; Secure=${getEnv().NODE_ENV === 'production'}; SameSite=Strict; Path=/; Max-Age=0`
   );
-  res.header(
+  c.header(
     'Set-Cookie',
     `${getEnv().CSRF_COOKIE_NAME}=; HttpOnly; Secure=${getEnv().NODE_ENV === 'production'}; SameSite=Strict; Path=/; Max-Age=0`
   );
@@ -278,7 +271,7 @@ auth.post('/change-password', zValidator('json', changePasswordSchema), async (c
     resourceId: userId,
   });
 
-  return res;
+  return c.json({ success: true });
 });
 
 auth.get('/sessions', async (c) => {

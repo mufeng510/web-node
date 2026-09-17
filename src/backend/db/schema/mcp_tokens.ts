@@ -1,5 +1,6 @@
 import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { createId } from '../../utils/id.js';
+import { libraries } from './libraries.js';
 
 export const mcpTokens = sqliteTable(
   'mcp_tokens',
@@ -32,10 +33,6 @@ export const mcpTokens = sqliteTable(
     libraryIdIdx: index('mcp_tokens_library_id_idx').on(table.libraryId),
   })
 );
-
-export const libraries = sqliteTable('libraries', {
-  id: text('id').primaryKey(),
-});
 
 export type McpToken = typeof mcpTokens.$inferSelect;
 export type NewMcpToken = typeof mcpTokens.$inferInsert;

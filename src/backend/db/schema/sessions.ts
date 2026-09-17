@@ -1,5 +1,6 @@
 import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { createId } from '../../utils/id.js';
+import { users } from './users.js';
 
 export const sessions = sqliteTable(
   'sessions',
@@ -27,10 +28,6 @@ export const sessions = sqliteTable(
     expiresAtIdx: index('sessions_expires_at_idx').on(table.expiresAt),
   })
 );
-
-export const users = sqliteTable('users', {
-  id: text('id').primaryKey(),
-});
 
 export type Session = typeof sessions.$inferSelect;
 export type NewSession = typeof sessions.$inferInsert;

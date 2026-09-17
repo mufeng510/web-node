@@ -1,5 +1,6 @@
 import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { createId } from '../../utils/id.js';
+import { users } from './users.js';
 
 export const notifications = sqliteTable(
   'notifications',
@@ -25,10 +26,6 @@ export const notifications = sqliteTable(
     createdAtIdx: index('notifications_created_at_idx').on(table.createdAt),
   })
 );
-
-export const users = sqliteTable('users', {
-  id: text('id').primaryKey(),
-});
 
 export type Notification = typeof notifications.$inferSelect;
 export type NewNotification = typeof notifications.$inferInsert;

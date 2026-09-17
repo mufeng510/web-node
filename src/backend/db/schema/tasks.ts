@@ -1,5 +1,10 @@
 import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { createId } from '../../utils/id.js';
+import { conversations } from './conversations.js';
+import { files } from './files.js';
+import { libraries } from './libraries.js';
+import { providers } from './providers.js';
+import { users } from './users.js';
 
 export const tasks = sqliteTable(
   'tasks',
@@ -114,26 +119,6 @@ export const taskRollbacks = sqliteTable(
     fileIdIdx: index('task_rollbacks_file_id_idx').on(table.fileId),
   })
 );
-
-export const conversations = sqliteTable('conversations', {
-  id: text('id').primaryKey(),
-});
-
-export const users = sqliteTable('users', {
-  id: text('id').primaryKey(),
-});
-
-export const libraries = sqliteTable('libraries', {
-  id: text('id').primaryKey(),
-});
-
-export const providers = sqliteTable('providers', {
-  id: text('id').primaryKey(),
-});
-
-export const files = sqliteTable('files', {
-  id: text('id').primaryKey(),
-});
 
 export type Task = typeof tasks.$inferSelect;
 export type NewTask = typeof tasks.$inferInsert;

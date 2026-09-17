@@ -1,5 +1,6 @@
 import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { createId } from '../../utils/id.js';
+import { libraries } from './libraries.js';
 
 export const gitConfigs = sqliteTable(
   'git_configs',
@@ -63,10 +64,6 @@ export const gitCommits = sqliteTable(
     authorDateIdx: index('git_commits_author_date_idx').on(table.authorDate),
   })
 );
-
-export const libraries = sqliteTable('libraries', {
-  id: text('id').primaryKey(),
-});
 
 export type GitConfig = typeof gitConfigs.$inferSelect;
 export type NewGitConfig = typeof gitConfigs.$inferInsert;

@@ -1,5 +1,7 @@
 import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { createId } from '../../utils/id.js';
+import { libraries } from './libraries.js';
+import { users } from './users.js';
 
 export const auditLogs = sqliteTable(
   'audit_logs',
@@ -26,14 +28,6 @@ export const auditLogs = sqliteTable(
     createdAtIdx: index('audit_logs_created_at_idx').on(table.createdAt),
   })
 );
-
-export const users = sqliteTable('users', {
-  id: text('id').primaryKey(),
-});
-
-export const libraries = sqliteTable('libraries', {
-  id: text('id').primaryKey(),
-});
 
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type NewAuditLog = typeof auditLogs.$inferInsert;

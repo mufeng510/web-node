@@ -1,5 +1,6 @@
 import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { createId } from '../../utils/id.js';
+import { users } from './users.js';
 
 export const libraries = sqliteTable(
   'libraries',
@@ -56,10 +57,6 @@ export const libraryMembers = sqliteTable(
     userIdIdx: index('library_members_user_id_idx').on(table.userId),
   })
 );
-
-export const users = sqliteTable('users', {
-  id: text('id').primaryKey(),
-});
 
 export type Library = typeof libraries.$inferSelect;
 export type NewLibrary = typeof libraries.$inferInsert;

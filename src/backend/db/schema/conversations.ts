@@ -1,5 +1,7 @@
 import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { createId } from '../../utils/id.js';
+import { libraries } from './libraries.js';
+import { users } from './users.js';
 
 export const conversations = sqliteTable(
   'conversations',
@@ -57,14 +59,6 @@ export const messages = sqliteTable(
     createdAtIdx: index('messages_created_at_idx').on(table.createdAt),
   })
 );
-
-export const libraries = sqliteTable('libraries', {
-  id: text('id').primaryKey(),
-});
-
-export const users = sqliteTable('users', {
-  id: text('id').primaryKey(),
-});
 
 export type Conversation = typeof conversations.$inferSelect;
 export type NewConversation = typeof conversations.$inferInsert;

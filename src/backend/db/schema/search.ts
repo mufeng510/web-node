@@ -1,5 +1,7 @@
 import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { createId } from '../../utils/id.js';
+import { files } from './files.js';
+import { libraries } from './libraries.js';
 
 export const searchIndex = sqliteTable(
   'search_index',
@@ -28,14 +30,6 @@ export const searchIndex = sqliteTable(
     nameIdx: index('search_index_name_idx').on(table.name),
   })
 );
-
-export const libraries = sqliteTable('libraries', {
-  id: text('id').primaryKey(),
-});
-
-export const files = sqliteTable('files', {
-  id: text('id').primaryKey(),
-});
 
 export type SearchIndex = typeof searchIndex.$inferSelect;
 export type NewSearchIndex = typeof searchIndex.$inferInsert;

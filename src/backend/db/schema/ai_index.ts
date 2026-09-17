@@ -1,5 +1,8 @@
 import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { createId } from '../../utils/id.js';
+import { files } from './files.js';
+import { libraries } from './libraries.js';
+import { providers } from './providers.js';
 
 export const aiIndexes = sqliteTable(
   'ai_indexes',
@@ -66,18 +69,6 @@ export const aiIndexChunks = sqliteTable(
     fileIdIdx: index('ai_index_chunks_file_id_idx').on(table.fileId),
   })
 );
-
-export const libraries = sqliteTable('libraries', {
-  id: text('id').primaryKey(),
-});
-
-export const files = sqliteTable('files', {
-  id: text('id').primaryKey(),
-});
-
-export const providers = sqliteTable('providers', {
-  id: text('id').primaryKey(),
-});
 
 export type AiIndex = typeof aiIndexes.$inferSelect;
 export type NewAiIndex = typeof aiIndexes.$inferInsert;
