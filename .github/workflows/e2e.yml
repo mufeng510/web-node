@@ -32,14 +32,16 @@ jobs:
           NODE_ENV: production
 
       - name: Push database schema
-        run: bun run db:push
+        run: |
+          mkdir -p app-data
+          bun run db:push
 
       - name: Start server
         run: |
           MASTER_ENCRYPTION_KEY=$(openssl rand -base64 32) \
           NODE_ENV=production \
           PORT=8080 \
-          bun run start &
+          bun run src/backend/index.ts &
           SERVER_PID=$!
           echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
 
