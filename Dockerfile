@@ -4,15 +4,15 @@ FROM oven/bun:1-alpine AS builder
 
 WORKDIR /app
 
-# Install build dependencies
-RUN apk add --no-cache python3 make g++ sqlite-dev
+# Install build dependencies (npm needed for node-gyp upgrade)
+RUN apk add --no-cache python3 make g++ sqlite-dev npm
 
 # Copy package files
 COPY package.json bun.lock* ./
 
-# Install dependencies (skip native addon scripts, rebuild manually)
-RUN bun install --frozen-lockfile --ignore-scripts
-RUN bun rebuild better-sqlite3
+# Upgrade node-gyp to support Node 26, then install deps
+RUN npm install -g node-gyp@latest
+RUN bun install --frozen-lockfile
 
 # Copy source code
 COPY . .
