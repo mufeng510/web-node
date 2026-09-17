@@ -7,15 +7,18 @@ import { expect, test } from '@playwright/test';
 async function ensureAuthenticated(page: import('@playwright/test').Page) {
   await page.goto('/');
 
-  // If we got redirected to /setup, complete the setup wizard
-  if (page.url().includes('/setup')) {
+  const url = page.url();
+  if (url.includes('/setup')) {
     await page.fill('input[type="email"]', 'admin@example.com');
     await page.fill('input[type="password"]', 'password123');
     await page.fill('input[id="confirmPassword"]', 'password123');
     await page.click('button[type="submit"]');
+  } else if (url.includes('/login')) {
+    await page.fill('input[type="email"]', 'admin@example.com');
+    await page.fill('input[type="password"]', 'password123');
+    await page.click('button[type="submit"]');
   }
 
-  // Wait until we're on the main page and it's fully loaded
   await expect(page).toHaveURL('/');
   await expect(page.locator('text=Files')).toBeVisible({ timeout: 10000 });
 }
