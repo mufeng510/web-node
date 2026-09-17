@@ -10,8 +10,9 @@ const ROOT = resolve(__dirname, '..');
 
 async function main() {
   // Get commits since last tag
-  const lastTag = await $`git describe --tags --abbrev=0 2>/dev/null || echo ""`.cwd(ROOT).text();
-  const commits = await $`git log ${lastTag}..HEAD --oneline --pretty=format:"%s"`.cwd(ROOT).text();
+  const lastTag = (await $`git describe --tags --abbrev=0 2>/dev/null || echo ""`.cwd(ROOT).text()).trim();
+  const range = lastTag ? `${lastTag}..HEAD` : 'HEAD';
+  const commits = (await $`git log ${range} --oneline --pretty=format:"%s"`.cwd(ROOT).text()).trim();
 
   if (!commits.trim()) {
     console.log('0.0.0');
