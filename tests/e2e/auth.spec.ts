@@ -34,12 +34,23 @@ async function ensureAuthenticated(page: import('@playwright/test').Page) {
 
 /**
  * Create a library through the UI by clicking the create button and filling the modal.
+ * Idempotent: if the library name is already visible, returns early.
  */
 async function createLibraryViaUI(
   page: import('@playwright/test').Page,
   name: string,
   path: string
 ) {
+  // If library already visible (e.g. from a previous retry), skip creation
+  if (
+    await page
+      .locator(`h1:has-text("${name}"), h2:has-text("${name}")`)
+      .isVisible({ timeout: 2000 })
+      .catch(() => false)
+  ) {
+    return;
+  }
+
   const createBtn = page.locator('button:has-text("Create Library")');
   const newBtn = page.locator('button:has-text("New Library")');
 
@@ -53,7 +64,9 @@ async function createLibraryViaUI(
   await expect(page.locator('input[placeholder="My Notes"]')).toBeVisible({ timeout: 10000 });
   await page.fill('input[placeholder="My Notes"]', name);
   await page.fill('input[placeholder="my-notes"]', path);
-  await page.click('button:has-text("Create")');
+
+  // Use exact match for the modal's Create button (not "Create Library" behind it)
+  await page.locator('button:has-text("Create")').last().click();
 
   // Wait for library to be created and visible
   await expect(page.locator(`text=${name}`)).toBeVisible({ timeout: 10000 });
@@ -63,7 +76,6 @@ async function createLibraryViaUI(
  * Ensure a library exists. If not, create one through the UI.
  */
 async function ensureLibraryExists(page: import('@playwright/test').Page) {
-  // If "New Library" button is visible, a library already exists
   const newLibraryBtn = page.locator('button:has-text("New Library")');
   if (await newLibraryBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
     return;
