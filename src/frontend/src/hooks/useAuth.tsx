@@ -43,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const checkSetup = async () => {
     try {
       const statusResponse = await api.get('/auth/setup-status');
-      if (statusResponse.data?.needsSetup) {
+      if (statusResponse.data?.needsSetup && window.location.pathname !== '/setup') {
         window.location.href = '/setup';
         return;
       }

@@ -23,6 +23,9 @@ api.interceptors.response.use(
     if (newCsrf) {
       csrfToken = newCsrf;
     }
+    if (response.data && typeof response.data === 'object' && 'success' in response.data) {
+      return response.data;
+    }
     return response;
   },
   (error: AxiosError) => {
