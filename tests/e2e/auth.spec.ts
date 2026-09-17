@@ -24,6 +24,25 @@ async function ensureAuthenticated(page: import('@playwright/test').Page) {
   await page.waitForLoadState('networkidle');
 }
 
+async function createLibraryIfNone(page: import('@playwright/test').Page) {
+  const createBtn = page.locator('button:has-text("Create Library")');
+  const newBtn = page.locator('button:has-text("New Library")');
+
+  if (await createBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+    await createBtn.click();
+    await page.fill('input[placeholder="My Notes"]', 'Test Library');
+    await page.fill('input[placeholder="my-notes"]', 'test-library');
+    await page.click('button:has-text("Create")');
+    await expect(page.locator('text=Test Library')).toBeVisible();
+  } else if (await newBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+    await newBtn.click();
+    await page.fill('input[placeholder="My Notes"]', 'Test Library');
+    await page.fill('input[placeholder="my-notes"]', 'test-library');
+    await page.click('button:has-text("Create")');
+    await expect(page.locator('text=Test Library')).toBeVisible();
+  }
+}
+
 test.describe('Authentication', () => {
   test('should redirect to setup on first visit', async ({ page }) => {
     await page.goto('/');
@@ -46,10 +65,7 @@ test.describe('Library Management', () => {
   });
 
   test('should create a new library', async ({ page }) => {
-    await page.click('button:has-text("New Library")');
-    await page.fill('input[placeholder="My Notes"]', 'Test Library');
-    await page.fill('input[placeholder="my-notes"]', 'test-library');
-    await page.click('button:has-text("Create")');
+    await createLibraryIfNone(page);
     await expect(page.locator('text=Test Library')).toBeVisible();
   });
 });
@@ -57,10 +73,7 @@ test.describe('Library Management', () => {
 test.describe('Editor', () => {
   test.beforeEach(async ({ page }) => {
     await ensureAuthenticated(page);
-    await page.click('button:has-text("New Library")');
-    await page.fill('input[placeholder="My Notes"]', 'Test Library');
-    await page.fill('input[placeholder="my-notes"]', 'test-library');
-    await page.click('button:has-text("Create")');
+    await createLibraryIfNone(page);
   });
 
   test('should create and edit a note', async ({ page }) => {
