@@ -6,13 +6,13 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { getDb } from '../../db/index.js';
 import { files } from '../../db/schema/files.js';
+import { checkLibraryAccess } from '../../libraries/access.js';
+import { readLibraryConfig } from '../../libraries/config.js';
+import { auditLog } from '../../middleware/audit.js';
+import { authMiddleware } from '../../middleware/auth.middleware.js';
+import { ConcurrencyError, NotFoundError, ValidationError } from '../../utils/errors.js';
+import { createId } from '../../utils/id.js';
 import { getAbsolutePath, getLibraryRoot } from '../../utils/path.js';
-import { checkLibraryAccess } from '../libraries/access.js';
-import { readLibraryConfig } from '../libraries/config.js';
-import { auditLog } from '../middleware/audit.js';
-import { authMiddleware } from '../middleware/auth.middleware.js';
-import { ConcurrencyError, NotFoundError, ValidationError } from '../utils/errors.js';
-import { createId } from '../utils/id.js';
 
 const fileRoutes = new Hono();
 

@@ -6,9 +6,9 @@ import { z } from 'zod';
 import { getEnv } from '../../config/env.js';
 import { getDb } from '../../db/index.js';
 import { dbBackups } from '../../db/schema/settings.js';
-import { authMiddleware } from '../middleware/auth.middleware.js';
-import { NotFoundError } from '../utils/errors.js';
-import { createId } from '../utils/id.js';
+import { authMiddleware } from '../../middleware/auth.middleware.js';
+import { NotFoundError } from '../../utils/errors.js';
+import { createId } from '../../utils/id.js';
 
 const backupRoutes = new Hono();
 

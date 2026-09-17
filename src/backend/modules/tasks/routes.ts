@@ -4,8 +4,8 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { getDb } from '../../db/index.js';
 import { tasks } from '../../db/schema/tasks.js';
-import { authMiddleware } from '../middleware/auth.middleware.js';
-import { NotFoundError } from '../utils/errors.js';
+import { authMiddleware } from '../../middleware/auth.middleware.js';
+import { NotFoundError } from '../../utils/errors.js';
 
 const taskRoutes = new Hono();
 

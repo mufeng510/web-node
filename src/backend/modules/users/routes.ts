@@ -2,14 +2,14 @@ import { zValidator } from '@hono/zod-validator';
 import { eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
+import { hashPassword } from '../../auth/password.js';
 import { getDb } from '../../db/index.js';
 import { users } from '../../db/schema/users.js';
-import { hashPassword } from '../auth/password.js';
-import { auditLog } from '../middleware/audit.js';
-import { getUserSessions, revokeAllSessions } from '../middleware/auth.js';
-import { authMiddleware } from '../middleware/auth.middleware.js';
-import { NotFoundError, ValidationError } from '../utils/errors.js';
-import { createId } from '../utils/id.js';
+import { auditLog } from '../../middleware/audit.js';
+import { getUserSessions, revokeAllSessions } from '../../middleware/auth.js';
+import { authMiddleware } from '../../middleware/auth.middleware.js';
+import { NotFoundError, ValidationError } from '../../utils/errors.js';
+import { createId } from '../../utils/id.js';
 
 const usersRouter = new Hono();
 

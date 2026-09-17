@@ -6,10 +6,7 @@ import { getEnv } from '../../config/env.js';
 import { getDb } from '../../db/index.js';
 import { sessions } from '../../db/schema/sessions.js';
 import { users } from '../../db/schema/users.js';
-import { hashSecret } from '../../utils/crypto.js';
-import { AuthenticationError, NotFoundError } from '../../utils/errors.js';
-import { createId } from '../../utils/id.js';
-import { auditLog } from '../middleware/audit.js';
+import { auditLog } from '../../middleware/audit.js';
 import {
   createSession,
   extractTokenFromCookie,
@@ -18,7 +15,10 @@ import {
   revokeAllSessions,
   revokeSession,
   setCsrfCookie,
-} from '../middleware/auth.js';
+} from '../../middleware/auth.js';
+import { hashSecret } from '../../utils/crypto.js';
+import { AuthenticationError, NotFoundError } from '../../utils/errors.js';
+import { createId } from '../../utils/id.js';
 import { changePassword, hashPassword, verifyPassword } from './password.js';
 
 const auth = new Hono();

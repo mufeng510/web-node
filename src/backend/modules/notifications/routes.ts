@@ -4,7 +4,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { getDb } from '../../db/index.js';
 import { notifications } from '../../db/schema/notifications.js';
-import { authMiddleware } from '../middleware/auth.middleware.js';
+import { authMiddleware } from '../../middleware/auth.middleware.js';
 
 const notificationRoutes = new Hono();
 
