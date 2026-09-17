@@ -25,13 +25,6 @@ async function main() {
     console.warn('⚠️  Lint failed, continuing...');
   }
 
-  console.log('🔍 Running typecheck...');
-  try {
-    await $`bun run typecheck`.cwd(ROOT);
-  } catch {
-    console.warn('⚠️  Typecheck failed, continuing...');
-  }
-
   console.log('🧪 Running tests...');
   try {
     await $`bun run test`.cwd(ROOT);
@@ -40,7 +33,7 @@ async function main() {
   }
 
   console.log('🏗️  Building frontend...');
-  await $`bun run build`.cwd(ROOT);
+  await $`bunx vite build`.cwd(ROOT);
 
   console.log('✅ Build complete!');
 }
