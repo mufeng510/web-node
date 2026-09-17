@@ -24,23 +24,20 @@ async function ensureAuthenticated(page: import('@playwright/test').Page) {
   await page.waitForLoadState('networkidle');
 }
 
-async function createLibraryIfNone(page: import('@playwright/test').Page) {
-  const createBtn = page.locator('button:has-text("Create Library")');
-  const newBtn = page.locator('button:has-text("New Library")');
+async function ensureLibraryExists(page: import('@playwright/test').Page) {
+  await page.evaluate(async () => {
+    const res = await fetch('/api/v1/libraries');
+    const data = await res.json();
+    if (data.success && data.data.length > 0) return;
 
-  if (await createBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-    await createBtn.click();
-    await page.fill('input[placeholder="My Notes"]', 'Test Library');
-    await page.fill('input[placeholder="my-notes"]', 'test-library');
-    await page.click('button:has-text("Create")');
-    await expect(page.locator('text=Test Library')).toBeVisible();
-  } else if (await newBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-    await newBtn.click();
-    await page.fill('input[placeholder="My Notes"]', 'Test Library');
-    await page.fill('input[placeholder="my-notes"]', 'test-library');
-    await page.click('button:has-text("Create")');
-    await expect(page.locator('text=Test Library')).toBeVisible();
-  }
+    await fetch('/api/v1/libraries', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Test Library', path: 'test-library' }),
+    });
+  });
+  await page.reload();
+  await page.waitForLoadState('networkidle');
 }
 
 test.describe('Authentication', () => {
@@ -65,7 +62,18 @@ test.describe('Library Management', () => {
   });
 
   test('should create a new library', async ({ page }) => {
-    await createLibraryIfNone(page);
+    const createBtn = page.locator('button:has-text("Create Library")');
+    const newBtn = page.locator('button:has-text("New Library")');
+
+    if (await createBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await createBtn.click();
+    } else if (await newBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await newBtn.click();
+    }
+
+    await page.fill('input[placeholder="My Notes"]', 'Test Library');
+    await page.fill('input[placeholder="my-notes"]', 'test-library');
+    await page.click('button:has-text("Create")');
     await expect(page.locator('text=Test Library')).toBeVisible();
   });
 });
@@ -73,7 +81,7 @@ test.describe('Library Management', () => {
 test.describe('Editor', () => {
   test.beforeEach(async ({ page }) => {
     await ensureAuthenticated(page);
-    await createLibraryIfNone(page);
+    await ensureLibraryExists(page);
   });
 
   test('should create and edit a note', async ({ page }) => {
