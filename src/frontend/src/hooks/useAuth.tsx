@@ -54,9 +54,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       setSetupComplete(true);
     } catch {
-      setSetupComplete(false);
+      // If check fails, assume setup is needed (fresh DB without admin)
+      // This prevents redirecting to /login when the DB query fails
+      setNeedsSetup(true);
       setLoading(false);
-      setSuppressAuthRedirect(false);
     }
   }, []);
 
