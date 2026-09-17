@@ -1,6 +1,6 @@
 # Multi-stage build for Web Note
 # Stage 1: Build frontend and backend
-FROM oven/bun:1.1-alpine AS builder
+FROM oven/bun:1.4-alpine AS builder
 
 WORKDIR /app
 
@@ -8,7 +8,7 @@ WORKDIR /app
 RUN apk add --no-cache python3 make g++ sqlite-dev
 
 # Copy package files
-COPY package.json bun.lockb* ./
+COPY package.json bun.lock* ./
 
 # Install dependencies
 RUN bun install --frozen-lockfile
@@ -21,10 +21,10 @@ RUN bun run types:generate
 RUN bun run openapi:generate
 
 # Build frontend
-RUN bun run build
+RUN bunx vite build
 
 # Stage 2: Production image
-FROM oven/bun:1.1-alpine AS runner
+FROM oven/bun:1.4-alpine AS runner
 
 WORKDIR /app
 
