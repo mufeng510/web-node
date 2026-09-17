@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { Layout } from './components/layout/Layout';
 import { useAuth } from './hooks/useAuth';
@@ -49,12 +48,6 @@ function SetupRedirect() {
 }
 
 export function App() {
-  const { checkSetup } = useAuth();
-
-  useEffect(() => {
-    checkSetup();
-  }, [checkSetup]);
-
   return (
     <BrowserRouter>
       <SetupRedirect />

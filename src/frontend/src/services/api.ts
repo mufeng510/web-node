@@ -9,7 +9,7 @@ const api = axios.create({
 });
 
 let csrfToken: string | null = null;
-let suppressAuthRedirect = false;
+let suppressAuthRedirect = true;
 
 export function setSuppressAuthRedirect(value: boolean) {
   suppressAuthRedirect = value;

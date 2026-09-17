@@ -1,4 +1,4 @@
-import { type ReactNode, createContext, useContext, useEffect, useState } from 'react';
+import { type ReactNode, createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { api, setSuppressAuthRedirect } from '../services/api';
 
 interface User {
@@ -43,15 +43,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const checkSetup = async () => {
+  const checkSetup = useCallback(async () => {
     setSuppressAuthRedirect(true);
     try {
       const statusResponse = await api.get('/auth/setup-status');
       if (statusResponse.data?.needsSetup) {
         setNeedsSetup(true);
         setLoading(false);
-        // Don't clear suppressAuthRedirect here — keep suppressing 401 redirects
-        // while in setup mode (e.g., LibraryProvider.fetchLibraries() may 401).
         return;
       }
       setSetupComplete(true);
@@ -60,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
       setSuppressAuthRedirect(false);
     }
-  };
+  }, []);
 
   const login = async (email: string, password: string, rememberMe = false) => {
     const response = await api.post('/auth/login', { email, password, rememberMe });
@@ -99,6 +97,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error(response.error?.message || 'Setup failed');
     }
   };
+
+  useEffect(() => {
+    checkSetup();
+  }, [checkSetup]);
 
   useEffect(() => {
     if (setupComplete) {

@@ -19,6 +19,14 @@ export default defineConfig({
           mkdirSync(distDir, { recursive: true });
           copyFileSync(path.join(publicDir, 'manifest.json'), path.join(distDir, 'manifest.json'));
         }
+        // Vite preserves the input path structure, so index.html ends up at
+        // dist/public/src/frontend/index.html. The Hono SPA fallback expects
+        // dist/public/index.html — copy it there.
+        const nestedHtml = path.join(distDir, 'src/frontend/index.html');
+        const rootHtml = path.join(distDir, 'index.html');
+        if (existsSync(nestedHtml)) {
+          copyFileSync(nestedHtml, rootHtml);
+        }
       },
     },
   ],
