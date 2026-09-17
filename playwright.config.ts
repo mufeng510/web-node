@@ -41,10 +41,16 @@ export default defineConfig({
       use: { ...devices['iPad Pro'] },
     },
   ],
-  webServer: {
-    command: 'bun run dev',
-    url: 'http://localhost:8080',
-    reuseExistingServer: true,
-    timeout: 120000,
-  },
+  // In CI, the server is started externally (e2e.yml) before Playwright runs.
+  // Only define webServer for local development.
+  ...(CI
+    ? {}
+    : {
+        webServer: {
+          command: 'bun run dev',
+          url: 'http://localhost:8080',
+          reuseExistingServer: true,
+          timeout: 120000,
+        },
+      }),
 });
