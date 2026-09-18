@@ -47,7 +47,6 @@ COPY --from=builder --chown=webnote:webnote /app/package.json ./
 
 # Copy backend source (needed for Bun to run TypeScript directly)
 COPY --from=builder --chown=webnote:webnote /app/src/backend ./src/backend
-COPY --from=builder --chown=webnote:webnote /app/src/shared ./src/shared
 
 # Copy scripts
 COPY --from=builder --chown=webnote:webnote /app/scripts ./scripts
