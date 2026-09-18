@@ -112,20 +112,31 @@ async function createLibraryViaUI(
  * Ensure a library exists. If not, create one through the UI.
  */
 async function ensureLibraryExists(page: import('@playwright/test').Page) {
+  // Wait for libraries to load - check for either library-selected state or no-library state
   const newLibraryBtn = page.locator('button:has-text("New Library")');
   const welcomeMsg = page.locator('h2:has-text("Welcome to")');
   const createLibraryBtn = page.locator('button:has-text("Create Library")');
 
+  // Wait up to 15s for either library-selected indicators or Create Library button
+  try {
+    await expect(
+      page.locator('button:has-text("New Library"), h2:has-text("Welcome to"), button:has-text("Create Library")')
+        .first()
+    ).toBeVisible({ timeout: 15000 });
+  } catch {
+    // Continue anyway
+  }
+
   // Check if a library is already selected (New Library button in header OR welcome message)
   if (
-    await newLibraryBtn.isVisible({ timeout: 3000 }).catch(() => false) ||
-    await welcomeMsg.isVisible({ timeout: 3000 }).catch(() => false)
+    await newLibraryBtn.isVisible({ timeout: 2000 }).catch(() => false) ||
+    await welcomeMsg.isVisible({ timeout: 2000 }).catch(() => false)
   ) {
     return;
   }
 
   // No library selected - check for Create Library button and create one
-  if (await createLibraryBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+  if (await createLibraryBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
     await createLibraryViaUI(page, 'Test Library', 'test-library');
   }
 }
