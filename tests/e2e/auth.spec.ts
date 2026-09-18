@@ -191,7 +191,7 @@ test.describe('Editor', () => {
     ]);
     // Wait for editor toolbar to appear (WYSIWYG/Source/Read/Save buttons)
     await expect(page.locator('button:has-text("WYSIWYG"), button:has-text("Source"), button:has-text("Read"), button:has-text("Save")').first()).toBeVisible({ timeout: 15000 });
-    // Then check for editor content area
-    await expect(page.locator('textarea, .prose')).toBeVisible({ timeout: 15000 });
+    // Verify editor content loads by checking for welcome text
+    await expect(page.locator('text=Welcome to Web Note')).toBeVisible({ timeout: 15000 });
   });
 });
