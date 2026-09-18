@@ -34,6 +34,7 @@ jobs:
       - name: Push database schema
         run: |
           mkdir -p app-data
+          rm -f app-data/webnote.db
           bunx drizzle-kit push --force
 
       - name: Create data directories
