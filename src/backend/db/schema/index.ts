@@ -38,3 +38,24 @@ export { mcpTokens } from './mcp_tokens.ts';
 export { settings, dbBackups } from './settings.ts';
 export { notifications } from './notifications.ts';
 export { webhooks } from './webhooks.ts';
+
+export {
+  usersRelations,
+  sessionsRelations,
+  librariesRelations,
+  libraryMembersRelations,
+  filesRelations,
+  searchIndexRelations,
+  aiIndexesRelations,
+  aiIndexChunksRelations,
+  providersRelations,
+  conversationsRelations,
+  messagesRelations,
+  tasksRelations,
+  taskStepsRelations,
+  taskRollbacksRelations,
+  gitConfigsRelations,
+  gitCommitsRelations,
+  mcpTokensRelations,
+  notificationsRelations,
+} from './relations.ts';
