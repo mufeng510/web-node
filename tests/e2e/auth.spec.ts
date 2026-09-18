@@ -114,7 +114,11 @@ async function createLibraryViaUI(
 /**
  * Ensure a library exists. If not, create one through the UI.
  */
-async function ensureLibraryExists(page: import('@playwright/test').Page) {
+async function ensureLibraryExists(
+  page: import('@playwright/test').Page,
+  name = 'Test Library',
+  path = 'test-library'
+) {
   // Wait for libraries to load - check for either library-selected state or no-library state
   const newLibraryBtn = page.locator('button:has-text("New Library")');
   const welcomeMsg = page.locator('h2:has-text("Welcome to")');
@@ -143,7 +147,7 @@ async function ensureLibraryExists(page: import('@playwright/test').Page) {
 
   // No library selected - check for Create Library button and create one
   if (await createLibraryBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-    await createLibraryViaUI(page, 'Test Library', 'test-library');
+    await createLibraryViaUI(page, name, path);
   }
 }
 
@@ -176,7 +180,7 @@ test.describe('Library Management', () => {
 test.describe('Editor', () => {
   test.beforeEach(async ({ page }) => {
     await ensureAuthenticated(page);
-    await ensureLibraryExists(page);
+    await ensureLibraryExists(page, 'Test Library Editor', 'test-library-editor');
   });
 
   test('should create and edit a note', async ({ page }) => {
