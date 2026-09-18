@@ -113,11 +113,21 @@ async function createLibraryViaUI(
  */
 async function ensureLibraryExists(page: import('@playwright/test').Page) {
   const newLibraryBtn = page.locator('button:has-text("New Library")');
-  if (await newLibraryBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+  const welcomeMsg = page.locator('h2:has-text("Welcome to")');
+  const createLibraryBtn = page.locator('button:has-text("Create Library")');
+
+  // Check if a library is already selected (New Library button in header OR welcome message)
+  if (
+    await newLibraryBtn.isVisible({ timeout: 3000 }).catch(() => false) ||
+    await welcomeMsg.isVisible({ timeout: 3000 }).catch(() => false)
+  ) {
     return;
   }
 
-  await createLibraryViaUI(page, 'Test Library', 'test-library');
+  // No library selected - check for Create Library button and create one
+  if (await createLibraryBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+    await createLibraryViaUI(page, 'Test Library', 'test-library');
+  }
 }
 
 test.describe('Authentication', () => {
