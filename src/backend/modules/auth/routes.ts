@@ -94,9 +94,10 @@ auth.post('/setup', zValidator('json', setupSchema), async (c) => {
   const csrfToken = generateCsrfToken();
 
   setCsrfCookie(c, csrfToken);
+  const secure = getEnv().NODE_ENV === 'production' ? '; Secure' : '';
   c.header(
     'Set-Cookie',
-    `${getEnv().SESSION_COOKIE_NAME}=${token}; HttpOnly; Secure=${getEnv().NODE_ENV === 'production'}; SameSite=Strict; Path=/; Max-Age=${getEnv().SESSION_MAX_AGE_DAYS * 24 * 60 * 60}`
+    `${getEnv().SESSION_COOKIE_NAME}=${token}; HttpOnly${secure}; SameSite=Strict; Path=/; Max-Age=${getEnv().SESSION_MAX_AGE_DAYS * 24 * 60 * 60}`
   );
 
   auditLog({
@@ -153,9 +154,10 @@ auth.post('/login', zValidator('json', loginSchema), async (c) => {
   const csrfToken = generateCsrfToken();
 
   setCsrfCookie(c, csrfToken);
+  const secure = getEnv().NODE_ENV === 'production' ? '; Secure' : '';
   c.header(
     'Set-Cookie',
-    `${getEnv().SESSION_COOKIE_NAME}=${token}; HttpOnly; Secure=${getEnv().NODE_ENV === 'production'}; SameSite=Strict; Path=/; Max-Age=${maxAge}`
+    `${getEnv().SESSION_COOKIE_NAME}=${token}; HttpOnly${secure}; SameSite=Strict; Path=/; Max-Age=${maxAge}`
   );
 
   auditLog({
@@ -181,13 +183,14 @@ auth.post('/logout', async (c) => {
     await revokeSession(token);
   }
 
+  const secure = getEnv().NODE_ENV === 'production' ? '; Secure' : '';
   c.header(
     'Set-Cookie',
-    `${getEnv().SESSION_COOKIE_NAME}=; HttpOnly; Secure=${getEnv().NODE_ENV === 'production'}; SameSite=Strict; Path=/; Max-Age=0`
+    `${getEnv().SESSION_COOKIE_NAME}=; HttpOnly${secure}; SameSite=Strict; Path=/; Max-Age=0`
   );
   c.header(
     'Set-Cookie',
-    `${getEnv().CSRF_COOKIE_NAME}=; HttpOnly; Secure=${getEnv().NODE_ENV === 'production'}; SameSite=Strict; Path=/; Max-Age=0`
+    `${getEnv().CSRF_COOKIE_NAME}=; HttpOnly${secure}; SameSite=Strict; Path=/; Max-Age=0`
   );
 
   auditLog({
@@ -206,13 +209,14 @@ auth.post('/logout-all', async (c) => {
 
   await revokeAllSessions(userId, token);
 
+  const secure = getEnv().NODE_ENV === 'production' ? '; Secure' : '';
   c.header(
     'Set-Cookie',
-    `${getEnv().SESSION_COOKIE_NAME}=; HttpOnly; Secure=${getEnv().NODE_ENV === 'production'}; SameSite=Strict; Path=/; Max-Age=0`
+    `${getEnv().SESSION_COOKIE_NAME}=; HttpOnly${secure}; SameSite=Strict; Path=/; Max-Age=0`
   );
   c.header(
     'Set-Cookie',
-    `${getEnv().CSRF_COOKIE_NAME}=; HttpOnly; Secure=${getEnv().NODE_ENV === 'production'}; SameSite=Strict; Path=/; Max-Age=0`
+    `${getEnv().CSRF_COOKIE_NAME}=; HttpOnly${secure}; SameSite=Strict; Path=/; Max-Age=0`
   );
 
   auditLog({
@@ -255,13 +259,14 @@ auth.post('/change-password', zValidator('json', changePasswordSchema), async (c
 
   await changePassword(userId, currentPassword, newPassword);
 
+  const secure = getEnv().NODE_ENV === 'production' ? '; Secure' : '';
   c.header(
     'Set-Cookie',
-    `${getEnv().SESSION_COOKIE_NAME}=; HttpOnly; Secure=${getEnv().NODE_ENV === 'production'}; SameSite=Strict; Path=/; Max-Age=0`
+    `${getEnv().SESSION_COOKIE_NAME}=; HttpOnly${secure}; SameSite=Strict; Path=/; Max-Age=0`
   );
   c.header(
     'Set-Cookie',
-    `${getEnv().CSRF_COOKIE_NAME}=; HttpOnly; Secure=${getEnv().NODE_ENV === 'production'}; SameSite=Strict; Path=/; Max-Age=0`
+    `${getEnv().CSRF_COOKIE_NAME}=; HttpOnly${secure}; SameSite=Strict; Path=/; Max-Age=0`
   );
 
   auditLog({

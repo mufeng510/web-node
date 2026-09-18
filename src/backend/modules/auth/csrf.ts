@@ -20,9 +20,10 @@ export function verifyCsrfToken(token: string, hash: string): boolean {
 
 export function setCsrfCookie(c: Context, token: string) {
   const env = getEnv();
+  const secure = env.NODE_ENV === 'production' ? '; Secure' : '';
   c.header(
     'Set-Cookie',
-    `${CSRF_COOKIE_NAME}=${hashSecret(token)}; HttpOnly; Secure=${env.NODE_ENV === 'production'}; SameSite=Strict; Path=/; Max-Age=${env.SESSION_MAX_AGE_DAYS * 24 * 60 * 60}`
+    `${CSRF_COOKIE_NAME}=${hashSecret(token)}; HttpOnly${secure}; SameSite=Strict; Path=/; Max-Age=${env.SESSION_MAX_AGE_DAYS * 24 * 60 * 60}`
   );
 }
 
