@@ -1,9 +1,11 @@
 import { Brain, FolderGit2, Plus, Search } from 'lucide-react';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useLibraries } from '../hooks/useLibraries';
 
 export function Dashboard() {
   const { currentLibrary, createLibrary } = useLibraries();
+  const navigate = useNavigate();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newLibraryName, setNewLibraryName] = useState('');
   const [newLibraryPath, setNewLibraryPath] = useState('');
@@ -21,6 +23,12 @@ export function Dashboard() {
       console.error('Failed to create library:', error);
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleNewNote = () => {
+    if (currentLibrary) {
+      navigate(`/editor/${currentLibrary.id}`);
     }
   };
 
@@ -95,6 +103,7 @@ export function Dashboard() {
               <div className="flex items-center justify-center gap-4">
                 <button
                   type="button"
+                  onClick={handleNewNote}
                   className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
                 >
                   <Plus className="w-5 h-5" />
