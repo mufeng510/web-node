@@ -43,7 +43,9 @@ async function createLibraryViaUI(
 ) {
   if (
     await page
-      .locator(`h1:has-text("${name}"), h2:has-text("${name}"), [data-testid="library-card"]:has-text("${name}"), .library-card:has-text("${name}")`)
+      .locator(
+        `h1:has-text("${name}"), h2:has-text("${name}"), [data-testid="library-card"]:has-text("${name}"), .library-card:has-text("${name}")`
+      )
       .isVisible({ timeout: 2000 })
       .catch(() => false)
   ) {
@@ -87,14 +89,15 @@ async function createLibraryViaUI(
   const response = await createResponse;
   const responseBody = await response.json().catch(() => ({}));
   if (!response.ok()) {
-    throw new Error(`Library creation failed: ${response.status()} ${JSON.stringify(responseBody)}`);
+    throw new Error(
+      `Library creation failed: ${response.status()} ${JSON.stringify(responseBody)}`
+    );
   }
 
   // Wait for library to become currentLibrary in UI - check for welcome message or New Note button
   try {
     await expect(
-      page.locator(`h2:has-text("Welcome to ${name}"), button:has-text("New Note")`)
-        .first()
+      page.locator(`h2:has-text("Welcome to ${name}"), button:has-text("New Note")`).first()
     ).toBeVisible({ timeout: 20000 });
   } catch (e) {
     const detail = [
@@ -120,7 +123,10 @@ async function ensureLibraryExists(page: import('@playwright/test').Page) {
   // Wait up to 15s for either library-selected indicators or Create Library button
   try {
     await expect(
-      page.locator('button:has-text("New Library"), h2:has-text("Welcome to"), button:has-text("Create Library")')
+      page
+        .locator(
+          'button:has-text("New Library"), h2:has-text("Welcome to"), button:has-text("Create Library")'
+        )
         .first()
     ).toBeVisible({ timeout: 15000 });
   } catch {
@@ -129,8 +135,8 @@ async function ensureLibraryExists(page: import('@playwright/test').Page) {
 
   // Check if a library is already selected (New Library button in header OR welcome message)
   if (
-    await newLibraryBtn.isVisible({ timeout: 2000 }).catch(() => false) ||
-    await welcomeMsg.isVisible({ timeout: 2000 }).catch(() => false)
+    (await newLibraryBtn.isVisible({ timeout: 2000 }).catch(() => false)) ||
+    (await welcomeMsg.isVisible({ timeout: 2000 }).catch(() => false))
   ) {
     return;
   }

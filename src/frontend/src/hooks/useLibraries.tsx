@@ -26,8 +26,17 @@ const LibraryContext = createContext<LibraryContextType | null>(null);
 
 export function LibraryProvider({ children }: { children: ReactNode }) {
   const [libraries, setLibraries] = useState<Library[]>([]);
-  const [currentLibrary, setCurrentLibrary] = useState<Library | null>(null);
+  const [currentLibrary, setCurrentLibraryState] = useState<Library | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const setCurrentLibrary = (library: Library | null) => {
+    setCurrentLibraryState(library);
+    if (library) {
+      localStorage.setItem('currentLibraryId', library.id);
+    } else {
+      localStorage.removeItem('currentLibraryId');
+    }
+  };
 
   const fetchLibraries = async () => {
     setLoading(true);
