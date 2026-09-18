@@ -2,6 +2,8 @@ import type { Context, Next } from 'hono';
 import { getEnv } from '../../config/env.js';
 import { generateSecureToken, hashSecret } from '../../utils/crypto.js';
 
+export { hashSecret };
+
 const CSRF_COOKIE_NAME = 'webnote_csrf';
 const CSRF_HEADER_NAME = 'x-csrf-token';
 
@@ -23,7 +25,7 @@ export function setCsrfCookie(c: Context, token: string) {
   const secure = env.NODE_ENV === 'production' ? '; Secure' : '';
   c.header(
     'Set-Cookie',
-    `${CSRF_COOKIE_NAME}=${hashSecret(token)}; HttpOnly${secure}; SameSite=Strict; Path=/; Max-Age=${env.SESSION_MAX_AGE_DAYS * 24 * 60 * 60}`
+    `${CSRF_COOKIE_NAME}=${hashSecret(token)}; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=${env.SESSION_MAX_AGE_DAYS * 24 * 60 * 60}`
   );
 }
 
@@ -38,7 +40,7 @@ export function getCsrfFromCookie(c: Context): string | null {
   const cookies = cookieHeader.split(';').map((c: string) => c.trim());
   for (const cookie of cookies) {
     const [name, value] = cookie.split('=');
-    if (name === CSRF_COOKIE_NAME) {
+    if (name === CSRF_COOKIE_NAME && value !== undefined) {
       return value;
     }
   }

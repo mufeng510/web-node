@@ -14,10 +14,9 @@ import {
   revokeAllSessions,
   revokeSession,
 } from '../../middleware/auth.js';
-import { hashSecret } from '../../utils/crypto.js';
 import { AuthenticationError, NotFoundError } from '../../utils/errors.js';
 import { createId } from '../../utils/id.js';
-import { generateCsrfToken, setCsrfCookie } from './csrf.js';
+import { generateCsrfToken, hashSecret } from './csrf.js';
 import { changePassword, hashPassword, verifyPassword } from './password.js';
 
 const auth = new Hono();
@@ -93,12 +92,11 @@ auth.post('/setup', zValidator('json', setupSchema), async (c) => {
   );
   const csrfToken = generateCsrfToken();
 
-  setCsrfCookie(c, csrfToken);
   const secure = getEnv().NODE_ENV === 'production' ? '; Secure' : '';
-  c.header(
-    'Set-Cookie',
-    `${getEnv().SESSION_COOKIE_NAME}=${token}; HttpOnly${secure}; SameSite=Strict; Path=/; Max-Age=${getEnv().SESSION_MAX_AGE_DAYS * 24 * 60 * 60}`
-  );
+  const sessionMaxAge = getEnv().SESSION_MAX_AGE_DAYS * 24 * 60 * 60;
+  const sessionCookie = `${getEnv().SESSION_COOKIE_NAME}=${token}; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=${sessionMaxAge}`;
+  const csrfCookie = `${getEnv().CSRF_COOKIE_NAME}=${hashSecret(csrfToken)}; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=${sessionMaxAge}`;
+  c.header('Set-Cookie', [sessionCookie, csrfCookie]);
 
   auditLog({
     userId,
@@ -153,12 +151,10 @@ auth.post('/login', zValidator('json', loginSchema), async (c) => {
   );
   const csrfToken = generateCsrfToken();
 
-  setCsrfCookie(c, csrfToken);
   const secure = getEnv().NODE_ENV === 'production' ? '; Secure' : '';
-  c.header(
-    'Set-Cookie',
-    `${getEnv().SESSION_COOKIE_NAME}=${token}; HttpOnly${secure}; SameSite=Strict; Path=/; Max-Age=${maxAge}`
-  );
+  const sessionCookie = `${getEnv().SESSION_COOKIE_NAME}=${token}; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=${maxAge}`;
+  const csrfCookie = `${getEnv().CSRF_COOKIE_NAME}=${hashSecret(csrfToken)}; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=${maxAge}`;
+  c.header('Set-Cookie', [sessionCookie, csrfCookie]);
 
   auditLog({
     userId: user.id,
@@ -184,14 +180,9 @@ auth.post('/logout', async (c) => {
   }
 
   const secure = getEnv().NODE_ENV === 'production' ? '; Secure' : '';
-  c.header(
-    'Set-Cookie',
-    `${getEnv().SESSION_COOKIE_NAME}=; HttpOnly${secure}; SameSite=Strict; Path=/; Max-Age=0`
-  );
-  c.header(
-    'Set-Cookie',
-    `${getEnv().CSRF_COOKIE_NAME}=; HttpOnly${secure}; SameSite=Strict; Path=/; Max-Age=0`
-  );
+  const sessionClear = `${getEnv().SESSION_COOKIE_NAME}=; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=0`;
+  const csrfClear = `${getEnv().CSRF_COOKIE_NAME}=; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=0`;
+  c.header('Set-Cookie', [sessionClear, csrfClear]);
 
   auditLog({
     userId,
@@ -210,14 +201,9 @@ auth.post('/logout-all', async (c) => {
   await revokeAllSessions(userId, token);
 
   const secure = getEnv().NODE_ENV === 'production' ? '; Secure' : '';
-  c.header(
-    'Set-Cookie',
-    `${getEnv().SESSION_COOKIE_NAME}=; HttpOnly${secure}; SameSite=Strict; Path=/; Max-Age=0`
-  );
-  c.header(
-    'Set-Cookie',
-    `${getEnv().CSRF_COOKIE_NAME}=; HttpOnly${secure}; SameSite=Strict; Path=/; Max-Age=0`
-  );
+  const sessionClear = `${getEnv().SESSION_COOKIE_NAME}=; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=0`;
+  const csrfClear = `${getEnv().CSRF_COOKIE_NAME}=; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=0`;
+  c.header('Set-Cookie', [sessionClear, csrfClear]);
 
   auditLog({
     userId,
@@ -260,14 +246,9 @@ auth.post('/change-password', zValidator('json', changePasswordSchema), async (c
   await changePassword(userId, currentPassword, newPassword);
 
   const secure = getEnv().NODE_ENV === 'production' ? '; Secure' : '';
-  c.header(
-    'Set-Cookie',
-    `${getEnv().SESSION_COOKIE_NAME}=; HttpOnly${secure}; SameSite=Strict; Path=/; Max-Age=0`
-  );
-  c.header(
-    'Set-Cookie',
-    `${getEnv().CSRF_COOKIE_NAME}=; HttpOnly${secure}; SameSite=Strict; Path=/; Max-Age=0`
-  );
+  const sessionClear = `${getEnv().SESSION_COOKIE_NAME}=; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=0`;
+  const csrfClear = `${getEnv().CSRF_COOKIE_NAME}=; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=0`;
+  c.header('Set-Cookie', [sessionClear, csrfClear]);
 
   auditLog({
     userId,

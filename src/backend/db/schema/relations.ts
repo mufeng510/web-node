@@ -1,15 +1,15 @@
 import { relations } from 'drizzle-orm';
-import { aiIndexes, aiIndexChunks } from './ai_index.js';
+import { aiIndexChunks, aiIndexes } from './ai_index.js';
 import { conversations, messages } from './conversations.js';
 import { files } from './files.js';
-import { gitConfigs, gitCommits } from './git.js';
+import { gitCommits, gitConfigs } from './git.js';
 import { libraries, libraryMembers } from './libraries.js';
 import { mcpTokens } from './mcp_tokens.js';
 import { notifications } from './notifications.js';
 import { providers } from './providers.js';
 import { searchIndex } from './search.js';
 import { sessions } from './sessions.js';
-import { tasks, taskRollbacks, taskSteps } from './tasks.js';
+import { taskRollbacks, taskSteps, tasks } from './tasks.js';
 import { users } from './users.js';
 
 // --- Users ---
