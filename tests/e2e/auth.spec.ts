@@ -184,7 +184,11 @@ test.describe('Editor', () => {
   });
 
   test('should create and edit a note', async ({ page }) => {
-    await page.click('button:has-text("New Note")');
+    // Wait for navigation to editor after clicking New Note
+    await Promise.all([
+      page.waitForURL(/\/editor\//),
+      page.click('button:has-text("New Note")'),
+    ]);
     // Wait for editor to load - increased timeout for CI
     await expect(page.locator('textarea, .prose')).toBeVisible({ timeout: 15000 });
   });
