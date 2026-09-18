@@ -185,12 +185,15 @@ test.describe('Editor', () => {
 
   test('should create and edit a note', async ({ page }) => {
     // Wait for navigation to editor after clicking New Note
-    await Promise.all([
-      page.waitForURL(/\/editor\//),
-      page.click('button:has-text("New Note")'),
-    ]);
+    await Promise.all([page.waitForURL(/\/editor\//), page.click('button:has-text("New Note")')]);
     // Wait for editor toolbar to appear (WYSIWYG/Source/Read/Save buttons)
     // This confirms the editor page loaded successfully
-    await expect(page.locator('button:has-text("WYSIWYG"), button:has-text("Source"), button:has-text("Read"), button:has-text("Save")').first()).toBeVisible({ timeout: 15000 });
+    await expect(
+      page
+        .locator(
+          'button:has-text("WYSIWYG"), button:has-text("Source"), button:has-text("Read"), button:has-text("Save")'
+        )
+        .first()
+    ).toBeVisible({ timeout: 15000 });
   });
 });
