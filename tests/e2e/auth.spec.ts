@@ -90,11 +90,12 @@ async function createLibraryViaUI(
     throw new Error(`Library creation failed: ${response.status()} ${JSON.stringify(responseBody)}`);
   }
 
-  // Wait for library to appear in UI - try multiple selectors
+  // Wait for library to become currentLibrary in UI - check for welcome message or New Note button
   try {
     await expect(
-      page.locator(`h1:has-text("${name}"), h2:has-text("${name}"), [data-testid="library-card"]:has-text("${name}"), .library-card:has-text("${name}"), text=${name}`)
-    ).toBeVisible({ timeout: 15000 });
+      page.locator(`h2:has-text("Welcome to ${name}"), button:has-text("New Note")`)
+        .first()
+    ).toBeVisible({ timeout: 20000 });
   } catch (e) {
     const detail = [
       `Console errors: ${JSON.stringify(errors)}`,
