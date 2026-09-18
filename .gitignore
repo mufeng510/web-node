@@ -45,6 +45,9 @@ coverage/
 # TypeScript cache
 *.tsbuildinfo
 
+# OpenCode
+.omo/
+
 # Database
 *.db
 *.sqlite
