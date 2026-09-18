@@ -43,7 +43,7 @@ async function createLibraryViaUI(
 ) {
   if (
     await page
-      .locator(`h1:has-text("${name}"), h2:has-text("${name}")`)
+      .locator(`h1:has-text("${name}"), h2:has-text("${name}"), [data-testid="library-card"]:has-text("${name}"), .library-card:has-text("${name}")`)
       .isVisible({ timeout: 2000 })
       .catch(() => false)
   ) {
@@ -75,14 +75,31 @@ async function createLibraryViaUI(
   await page.fill('input[placeholder="My Notes"]', name);
   await page.fill('input[placeholder="my-notes"]', path);
 
+  // Wait for the library creation API response
+  const createResponse = page.waitForResponse(
+    (resp) => resp.url().includes('/api/v1/libraries') && resp.request().method() === 'POST',
+    { timeout: 15000 }
+  );
+
   await page.locator('button:has-text("Create")').last().click();
 
+  // Wait for API response to complete
+  const response = await createResponse;
+  const responseBody = await response.json().catch(() => ({}));
+  if (!response.ok()) {
+    throw new Error(`Library creation failed: ${response.status()} ${JSON.stringify(responseBody)}`);
+  }
+
+  // Wait for library to appear in UI - try multiple selectors
   try {
-    await expect(page.locator(`text=${name}`)).toBeVisible({ timeout: 10000 });
+    await expect(
+      page.locator(`h1:has-text("${name}"), h2:has-text("${name}"), [data-testid="library-card"]:has-text("${name}"), .library-card:has-text("${name}"), text=${name}`)
+    ).toBeVisible({ timeout: 15000 });
   } catch (e) {
     const detail = [
       `Console errors: ${JSON.stringify(errors)}`,
       `Failed API responses: ${JSON.stringify(failedResponses)}`,
+      `Create API response: ${JSON.stringify(responseBody)}`,
       `Page URL: ${page.url()}`,
       `Page title: ${await page.title()}`,
     ].join('\n');
