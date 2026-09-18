@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "bun run scripts/dev.ts",
     "build": "bun run scripts/build.ts",
-    "start": "bun run dist/index.js",
+    "start": "bun run src/backend/index.ts",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
