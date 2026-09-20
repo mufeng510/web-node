@@ -15,7 +15,6 @@ permissions:
   contents: write
   packages: write
   id-token: write
-  workflow: write
 
 jobs:
   release:
@@ -99,8 +98,3 @@ jobs:
             dist/fnos/manifest.json
             dist/fnos/docker-compose.yml
             dist/fnos/README.md
-
-      - name: Update latest tag
-        run: |
-          git tag -f latest ${{ steps.version.outputs.version }}
-          git push -f origin latest
