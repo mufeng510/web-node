@@ -56,6 +56,7 @@ ENV NODE_ENV=production
 ENV PORT=8080
 ENV DATA_ROOT=/data
 ENV APP_DATA_ROOT=/app-data
+ENV DATABASE_URL=file:/app-data/webnote.db
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
