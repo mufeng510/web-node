@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import Database from 'better-sqlite3';
-import { drizzle } from 'drizzle-orm/better-sqlite3';
+import { Database } from 'bun:sqlite';
+import { drizzle } from 'drizzle-orm/bun-sqlite';
 import { getEnv } from '../config/env.js';
 import * as schema from './schema/index.js';
 
@@ -20,18 +20,18 @@ export function getDb() {
   }
 
   const sqlite = new Database(resolvedPath, {
-    fileMustExist: false,
+    create: true,
     readonly: false,
-    timeout: 30000,
   });
 
-  sqlite.pragma('journal_mode = WAL');
-  sqlite.pragma('synchronous = NORMAL');
-  sqlite.pragma('foreign_keys = ON');
-  sqlite.pragma('temp_store = MEMORY');
-  sqlite.pragma('cache_size = -32768');
+  // Configure SQLite pragmas for better performance
+  sqlite.exec('PRAGMA journal_mode = WAL;');
+  sqlite.exec('PRAGMA synchronous = NORMAL;');
+  sqlite.exec('PRAGMA foreign_keys = ON;');
+  sqlite.exec('PRAGMA temp_store = MEMORY;');
+  sqlite.exec('PRAGMA cache_size = -32768;');
 
-  dbInstance = drizzle(sqlite, { schema, logger: env.NODE_ENV === 'development' });
+  dbInstance = drizzle({ client: sqlite, schema, logger: env.NODE_ENV === 'development' });
 
   return dbInstance;
 }

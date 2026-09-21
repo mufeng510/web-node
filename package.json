@@ -51,7 +51,6 @@
     "@tiptap/starter-kit": "^2.9.0",
     "argon2": "^0.41.1",
     "axios": "^1.20.0",
-    "better-sqlite3": "^11.5.0",
     "chokidar": "^4.0.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
@@ -78,7 +77,6 @@
   "devDependencies": {
     "@biomejs/biome": "^1.9.0",
     "@playwright/test": "^1.48.0",
-    "@types/better-sqlite3": "^7.6.11",
     "@types/bun": "^1.4.2",
     "@types/node": "^22.20.3",
     "@types/react": "^18.3.0",
@@ -97,7 +95,7 @@
     "vite-plugin-static-copy": "^1.0.0",
     "vitest": "^2.1.0"
   },
-  "trustedDependencies": ["@biomejs/biome", "argon2", "better-sqlite3", "playwright"],
+  "trustedDependencies": ["@biomejs/biome", "argon2", "playwright"],
   "engines": {
     "node": ">=20.0.0"
   },

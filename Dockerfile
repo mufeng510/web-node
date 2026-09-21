@@ -51,6 +51,10 @@ COPY --from=builder --chown=webnote:webnote /app/src/backend ./src/backend
 # Copy scripts
 COPY --from=builder --chown=webnote:webnote /app/scripts ./scripts
 
+# Copy Drizzle config and migrations
+COPY --from=builder --chown=webnote:webnote /app/drizzle.config.ts ./
+COPY --from=builder --chown=webnote:webnote /app/src/backend/db/migrations ./src/backend/db/migrations
+
 # Set environment
 ENV NODE_ENV=production
 ENV PORT=8080
