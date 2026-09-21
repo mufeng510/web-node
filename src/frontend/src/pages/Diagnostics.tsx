@@ -8,6 +8,7 @@ import {
   RefreshCw,
   Server,
   Wrench,
+  X,
 } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useState } from 'react';
@@ -81,19 +82,19 @@ export function Diagnostics() {
   };
 
   if (loading) {
-    return <div className="flex-1 flex items-center justify-center">Loading diagnostics...</div>;
+    return (
+      <div className="flex-1 flex items-center justify-center text-fg-muted">
+        Loading diagnostics...
+      </div>
+    );
   }
 
   return (
     <div className="flex-1 p-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Diagnostics</h1>
+        <h1 className="text-xl font-semibold text-fg">Diagnostics</h1>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={fetchHealth}
-            className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-1"
-          >
+          <button type="button" onClick={fetchHealth} className="btn-secondary btn-sm">
             <RefreshCw className="w-4 h-4" /> Refresh
           </button>
           <button
@@ -102,7 +103,7 @@ export function Diagnostics() {
               fetchExport();
               setShowExport(true);
             }}
-            className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-1"
+            className="btn-secondary btn-sm"
           >
             <Wrench className="w-4 h-4" /> Export
           </button>
@@ -114,11 +115,11 @@ export function Diagnostics() {
           title="Overall Health"
           value={health?.healthy ? 'Healthy' : 'Unhealthy'}
           icon={health?.healthy ? CheckCircle : AlertCircle}
-          iconColor={health?.healthy ? 'text-green-500' : 'text-red-500'}
+          iconColor={health?.healthy ? 'text-success' : 'text-destructive'}
           details={Object.entries(health?.checks || {}).map(([k, v]) => (
             <div key={k} className="flex justify-between text-xs">
-              <span className="capitalize">{k.replace(/_/g, ' ')}</span>
-              <span className={v ? 'text-green-500' : 'text-red-500'}>{v ? '✓' : '✗'}</span>
+              <span className="capitalize text-fg-muted">{k.replace(/_/g, ' ')}</span>
+              <span className={v ? 'text-success' : 'text-destructive'}>{v ? '✓' : '✗'}</span>
             </div>
           ))}
         />
@@ -126,11 +127,11 @@ export function Diagnostics() {
           title="Database"
           value={formatBytes(status?.database?.size || 0)}
           icon={Database}
-          iconColor="text-blue-500"
+          iconColor="text-primary"
           details={Object.entries(status?.database?.tables || {}).map(([k, v]) => (
             <div key={k} className="flex justify-between text-xs">
-              <span className="capitalize">{k}</span>
-              <span>{v}</span>
+              <span className="capitalize text-fg-muted">{k}</span>
+              <span className="text-fg">{v}</span>
             </div>
           ))}
         />
@@ -141,12 +142,12 @@ export function Diagnostics() {
           iconColor="text-amber-500"
           details={[
             <div key="data" className="flex justify-between text-xs">
-              <span>Data Root</span>
-              <span>{status?.storage?.dataRoot}</span>
+              <span className="text-fg-muted">Data Root</span>
+              <span className="text-fg">{status?.storage?.dataRoot}</span>
             </div>,
             <div key="app" className="flex justify-between text-xs">
-              <span>App Data Root</span>
-              <span>{status?.storage?.appDataRoot}</span>
+              <span className="text-fg-muted">App Data Root</span>
+              <span className="text-fg">{status?.storage?.appDataRoot}</span>
             </div>,
           ]}
         />
@@ -157,66 +158,54 @@ export function Diagnostics() {
           iconColor="text-purple-500"
           details={[
             <div key="mem" className="flex justify-between text-xs">
-              <span>Memory</span>
-              <span>
+              <span className="text-fg-muted">Memory</span>
+              <span className="text-fg">
                 {formatBytes(status?.memory?.heapUsed || 0)} /{' '}
                 {formatBytes(status?.memory?.heapTotal || 0)}
               </span>
             </div>,
             <div key="env" className="flex justify-between text-xs">
-              <span>Environment</span>
-              <span>{status?.environment}</span>
+              <span className="text-fg-muted">Environment</span>
+              <span className="text-fg">{status?.environment}</span>
             </div>,
             <div key="ver" className="flex justify-between text-xs">
-              <span>Version</span>
-              <span>{status?.version}</span>
+              <span className="text-fg-muted">Version</span>
+              <span className="text-fg">{status?.version}</span>
             </div>,
           ]}
         />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-          <h3 className="font-medium text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-            <GitBranch className="w-5 h-5" /> Git Status
+        <div className="card p-4">
+          <h3 className="font-medium text-fg mb-3 flex items-center gap-2">
+            <GitBranch className="w-5 h-5 text-fg-muted" /> Git Status
           </h3>
-          <div className="text-sm text-gray-500 dark:text-gray-400">
-            Git integration status will appear here
-          </div>
+          <div className="text-sm text-fg-muted">Git integration status will appear here</div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-          <h3 className="font-medium text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-            <BrainCircuit className="w-5 h-5" /> AI Services
+        <div className="card p-4">
+          <h3 className="font-medium text-fg mb-3 flex items-center gap-2">
+            <BrainCircuit className="w-5 h-5 text-fg-muted" /> AI Services
           </h3>
-          <div className="text-sm text-gray-500 dark:text-gray-400">
-            AI provider status will appear here
-          </div>
+          <div className="text-sm text-fg-muted">AI provider status will appear here</div>
         </div>
       </div>
 
       {showExport && exportData && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-3xl w-full max-h-[80vh] flex flex-col">
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Diagnostics Export</h2>
-              <button
-                type="button"
-                onClick={() => setShowExport(false)}
-                className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-              >
-                <X className="w-5 h-5" />
+          <div className="card shadow-xl max-w-3xl w-full max-h-[80vh] flex flex-col">
+            <div className="p-4 border-b border-border flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-fg">Diagnostics Export</h2>
+              <button type="button" onClick={() => setShowExport(false)} className="btn-ghost p-1">
+                <X className="w-5 h-5 text-fg-muted" />
               </button>
             </div>
-            <div className="flex-1 overflow-auto p-4 font-mono text-xs">
-              <pre>{JSON.stringify(exportData, null, 2)}</pre>
+            <div className="flex-1 overflow-auto p-4 font-mono text-xs bg-bg">
+              <pre className="text-fg">{JSON.stringify(exportData, null, 2)}</pre>
             </div>
-            <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setShowExport(false)}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg"
-              >
+            <div className="p-4 border-t border-border flex justify-end gap-2">
+              <button type="button" onClick={() => setShowExport(false)} className="btn-secondary">
                 Close
               </button>
             </div>
@@ -238,24 +227,18 @@ function DiagnosticCard({
   value: string | number;
   icon: React.ComponentType<{ className?: string }>;
   iconColor?: string;
-  details?: string;
+  details?: React.ReactNode;
 }) {
   return (
-    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+    <div className="card p-4">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm text-gray-500 dark:text-gray-400">{title}</p>
-          <p className="text-xl font-semibold text-gray-900 dark:text-white mt-1">{value}</p>
+          <p className="text-sm text-fg-muted">{title}</p>
+          <p className="text-xl font-semibold text-fg mt-1">{value}</p>
         </div>
         <Icon className={`w-8 h-8 ${iconColor}`} />
       </div>
-      {details && (
-        <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 space-y-1">
-          {details}
-        </div>
-      )}
+      {details && <div className="mt-3 pt-3 border-t border-border space-y-1">{details}</div>}
     </div>
   );
 }
-
-import { X } from 'lucide-react';
