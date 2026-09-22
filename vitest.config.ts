@@ -10,6 +10,8 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
+      // `bun:sqlite` 仅在 Bun 运行时可用；CI 的 vitest 在 Node 下运行，用本地 stub 替代
+      'bun:sqlite': path.resolve(__dirname, './tests/mocks/bun-sqlite.ts'),
       '@': path.resolve(__dirname, './src'),
       '@backend': path.resolve(__dirname, './src/backend'),
       '@frontend': path.resolve(__dirname, './src/frontend'),
