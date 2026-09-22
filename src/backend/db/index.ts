@@ -1,6 +1,6 @@
+import { Database } from 'bun:sqlite';
 import { existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { Database } from 'bun:sqlite';
 import { drizzle } from 'drizzle-orm/bun-sqlite';
 import { getEnv } from '../config/env.js';
 import * as schema from './schema/index.js';
