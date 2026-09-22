@@ -1,4 +1,7 @@
-import { ChevronRight, FolderGit2, X } from 'lucide-react';
+import { ChevronRight, FolderGit2, Home, Settings, Wrench, X } from 'lucide-react';
+import { useEffect } from 'react';
+import { cn } from '../../lib/utils';
+import { IconButton } from '../ui/IconButton';
 
 interface MobileDrawerProps {
   isOpen: boolean;
@@ -15,34 +18,35 @@ export function MobileDrawer({
   currentLibrary,
   onLibraryChange,
 }: MobileDrawerProps) {
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
     <>
-      <div
-        className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+      <button
+        type="button"
+        className="fixed inset-0 bg-overlay/50 z-40 lg:hidden animate-in fade-in-0 cursor-default"
         onClick={onClose}
-        onKeyDown={(e) => {
-          if (e.key === 'Escape') onClose();
-        }}
-        role="button"
-        tabIndex={-1}
-        aria-hidden="true"
+        aria-label="Close menu"
       />
-      <aside className="fixed inset-y-0 left-0 z-50 w-72 bg-white dark:bg-gray-800 transform transition-transform lg:hidden flex flex-col">
-        <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-medium">Menu</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-          >
+      <aside className="fixed inset-y-0 left-0 z-50 w-[var(--mobile-drawer-w)] bg-bg-elevated border-r border-border lg:hidden flex flex-col animate-in slide-in-from-left">
+        <div className="flex items-center justify-between px-3 py-3 border-b border-border">
+          <h2 className="text-lg font-medium text-fg">Menu</h2>
+          <IconButton size="sm" onClick={onClose} aria-label="Close menu">
             <X className="w-5 h-5" />
-          </button>
+          </IconButton>
         </div>
 
-        <div className="p-3 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+        <div className="px-3 py-3 border-b border-border">
+          <h3 className="text-xs font-medium text-fg-muted uppercase tracking-wider mb-2">
             Libraries
           </h3>
           {libraries.map((lib) => (
@@ -53,31 +57,46 @@ export function MobileDrawer({
                 onLibraryChange(lib.id);
                 onClose();
               }}
-              className={`w-full px-3 py-2 text-left text-sm rounded-lg flex items-center gap-2 ${currentLibrary?.id === lib.id ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+              className={cn(
+                'w-full px-3 py-2 text-left text-sm rounded-md flex items-center gap-2 transition-colors duration-150',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
+                currentLibrary?.id === lib.id
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-fg hover:bg-bg-hover'
+              )}
             >
-              <FolderGit2 className="w-4 h-4" />
+              <FolderGit2 className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
               <span className="truncate">{lib.name}</span>
-              {currentLibrary?.id === lib.id && <ChevronRight className="w-4 h-4 ml-auto" />}
+              {currentLibrary?.id === lib.id && (
+                <ChevronRight className="w-4 h-4 ml-auto" aria-hidden="true" />
+              )}
             </button>
           ))}
         </div>
 
-        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+        <nav className="flex-1 px-3 py-3 space-y-1 overflow-y-auto" aria-label="Primary">
           {[
-            { href: '/', label: 'Dashboard', icon: '🏠' },
-            { href: '/settings', label: 'Settings', icon: '⚙️' },
-            { href: '/diagnostics', label: 'Diagnostics', icon: '🔧' },
-          ].map((item) => (
-            <a
-              key={item.href}
-              href={item.href}
-              onClick={onClose}
-              className="flex items-center gap-3 px-3 py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
-            >
-              <span>{item.icon}</span>
-              {item.label}
-            </a>
-          ))}
+            { href: '/', label: 'Dashboard', icon: Home },
+            { href: '/settings', label: 'Settings', icon: Settings },
+            { href: '/diagnostics', label: 'Diagnostics', icon: Wrench },
+          ].map((item) => {
+            const Icon = item.icon;
+            return (
+              <a
+                key={item.href}
+                href={item.href}
+                onClick={onClose}
+                className={cn(
+                  'flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors duration-150',
+                  'text-fg hover:bg-bg-hover',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg'
+                )}
+              >
+                <Icon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+                {item.label}
+              </a>
+            );
+          })}
         </nav>
       </aside>
     </>

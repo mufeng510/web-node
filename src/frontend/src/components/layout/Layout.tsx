@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useLibraries } from '../../hooks/useLibraries';
+import { Spinner } from '../ui/Spinner';
 import { BottomNav } from './BottomNav';
 import { LeftSidebar } from './LeftSidebar';
 import { MobileDrawer } from './MobileDrawer';
@@ -9,8 +10,8 @@ import { RightSidebar } from './RightSidebar';
 import { TopBar } from './TopBar';
 
 export function Layout() {
-  const _navigate = useNavigate();
-  const _location = useLocation();
+  const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useAuth();
   const { libraries, currentLibrary, setCurrentLibrary, loading: libLoading } = useLibraries();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -28,7 +29,7 @@ export function Layout() {
     if (currentLibrary && libraries.length > 0) {
       const found = libraries.find((l) => l.id === currentLibrary.id);
       if (!found) {
-        setCurrentLibrary(libraries[0]);
+        setCurrentLibrary(libraries[0] ?? null);
       }
     }
   }, [libraries, currentLibrary, setCurrentLibrary]);
@@ -43,11 +44,15 @@ export function Layout() {
   };
 
   if (libLoading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-bg">
+        <Spinner label="Loading libraries" />
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+    <div className="min-h-screen bg-bg flex flex-col">
       <TopBar
         user={user}
         libraries={libraries}
@@ -78,7 +83,7 @@ export function Layout() {
           onClose={() => setRightSidebarOpen(false)}
           className={
             isMobile
-              ? 'fixed inset-y-0 right-0 z-50 w-96 transform transition-transform lg:static lg:translate-x-0'
+              ? 'fixed inset-y-0 right-0 z-50 w-[var(--right-sidebar-w)] transform transition-transform lg:static lg:translate-x-0'
               : ''
           }
         />

@@ -1,6 +1,12 @@
-import { AlertCircle, Eye, EyeOff, Lock, Mail } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Alert } from '../components/ui/Alert';
+import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
+import { Checkbox } from '../components/ui/Checkbox';
+import { IconButton } from '../components/ui/IconButton';
+import { Input } from '../components/ui/Input';
 import { useAuth } from '../hooks/useAuth';
 
 export function Login() {
@@ -36,88 +42,70 @@ export function Login() {
           <p className="text-fg-muted mt-2">Sign in to your knowledge base</p>
         </div>
 
-        <div className="card p-6">
+        <Card className="p-6">
           <form onSubmit={handleSubmit}>
-            {error && (
-              <div className="mb-4 flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-md text-destructive text-sm">
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                {error}
-              </div>
-            )}
+            {error && <Alert className="mb-4">{error}</Alert>}
 
             <div className="mb-4">
-              <label htmlFor="email" className="block text-sm font-medium text-fg mb-1">
-                Email
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-fg-subtle" />
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="input-base pl-10"
-                  placeholder="you@example.com"
-                  required
-                  autoComplete="email"
-                  disabled={loading}
-                />
-              </div>
+              <Input
+                id="email"
+                label="Email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                leadingIcon={<Mail className="w-5 h-5" />}
+                placeholder="you@example.com"
+                required
+                autoComplete="email"
+                disabled={loading}
+              />
             </div>
 
             <div className="mb-4">
-              <label htmlFor="password" className="block text-sm font-medium text-fg mb-1">
-                Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-fg-subtle" />
-                <input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="input-base pl-10 pr-12"
-                  placeholder="••••••••"
-                  required
-                  autoComplete="current-password"
-                  disabled={loading}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-fg-subtle hover:text-fg transition-colors duration-150"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
+              <Input
+                id="password"
+                label="Password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                leadingIcon={<Lock className="w-5 h-5" />}
+                trailing={
+                  <IconButton
+                    size="sm"
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </IconButton>
+                }
+                placeholder="••••••••"
+                required
+                autoComplete="current-password"
+                disabled={loading}
+              />
             </div>
 
             <div className="mb-6 flex items-center justify-between">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 text-primary border-border rounded focus-visible:ring-2 focus-visible:ring-ring"
-                  disabled={loading}
-                />
-                <span className="text-sm text-fg-muted">Remember me</span>
-              </label>
+              <Checkbox
+                label="Remember me"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                disabled={loading}
+              />
             </div>
 
-            <button type="submit" disabled={loading} className="btn-primary w-full">
+            <Button type="submit" disabled={loading} className="w-full" size="lg">
               {loading ? 'Signing in...' : 'Sign in'}
-            </button>
-          </form>
+            </Button>
 
-          <p className="mt-6 text-center text-sm text-fg-muted">
-            First time?{' '}
-            <a href="/setup" className="text-primary hover:text-primary-hover font-medium">
-              Run setup wizard
-            </a>
-          </p>
-        </div>
+            <p className="mt-6 text-center text-sm text-fg-muted">
+              First time?{' '}
+              <a href="/setup" className="text-primary hover:text-primary-hover font-medium">
+                Run setup wizard
+              </a>
+            </p>
+          </form>
+        </Card>
       </div>
     </div>
   );

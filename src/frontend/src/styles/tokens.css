@@ -1,0 +1,166 @@
+/* Design System Tokens — Web Note (Notion/Linear Minimalist) */
+/* Source: DESIGN.md — every color/size/spacing traces to a token here */
+
+:root {
+  /* Color Tokens — Light Mode */
+  --bg: 255 255 255; /* #ffffff - pure white */
+  --bg-elevated: 250 250 250; /* #fafafa - sidebar, cards */
+  --bg-hover: 245 245 245; /* #f5f5f5 - hover states */
+  --fg: 26 26 26; /* #1a1a1a - near black */
+  --fg-muted: 115 115 115; /* #737373 - secondary text */
+  --fg-subtle: 163 163 163; /* #a3a3a3 - placeholder, disabled */
+  --border: 229 229 229; /* #e5e5e5 - hairline borders */
+  --border-strong: 212 212 212; /* #d4d4d4 - focused borders */
+  --primary: 37 99 235; /* #2563eb - blue-600, restrained */
+  --primary-hover: 29 78 216; /* #1d4ed8 - blue-700 */
+  --primary-fg: 255 255 255; /* white */
+  --ring: 37 99 235; /* focus ring */
+  --destructive: 220 38 38; /* #dc2626 - red-600 */
+  --destructive-hover: 185 28 28; /* #b91c1c - red-700 */
+  --destructive-fg: 255 255 255;
+  --success: 22 163 74; /* #16a34a - green-600 */
+  --success-fg: 255 255 255;
+  --overlay: 0 0 0; /* dialog/drawer scrim */
+
+  /* Typography */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono",
+    monospace;
+  --text-xs: 0.75rem; /* 12px */
+  --text-sm: 0.875rem; /* 14px */
+  --text-base: 1rem; /* 16px */
+  --text-lg: 1.125rem; /* 18px */
+  --text-xl: 1.25rem; /* 20px */
+  --text-2xl: 1.5rem; /* 24px */
+  --text-3xl: 1.875rem; /* 30px */
+  --leading-tight: 1.4;
+  --leading-normal: 1.6;
+  --leading-relaxed: 1.75; /* reading content */
+
+  /* Spacing & Radius */
+  --space-1: 0.25rem; /* 4px */
+  --space-2: 0.5rem; /* 8px */
+  --space-3: 0.75rem; /* 12px */
+  --space-4: 1rem; /* 16px */
+  --space-5: 1.25rem; /* 20px */
+  --space-6: 1.5rem; /* 24px */
+  --space-8: 2rem; /* 32px */
+  --space-10: 2.5rem; /* 40px */
+  --space-12: 3rem; /* 48px */
+  --radius-sm: 0.375rem; /* 6px */
+  --radius-md: 0.5rem; /* 8px */
+  --radius-lg: 0.75rem; /* 12px */
+  --radius-xl: 1rem; /* 16px */
+
+  /* Shadows (Restrained, Border-First) */
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.03);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.03);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.03);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.03);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.05), 0 8px 10px -6px rgb(0 0 0 / 0.03);
+
+  /* Transitions & Motion */
+  --transition-fast: 120ms ease-out;
+  --transition-base: 150ms ease-out;
+  --transition-slow: 200ms ease-out;
+
+  /* Layout Constants */
+  --topbar-h: 3rem; /* 48px */
+  --sidebar-w: 16rem; /* 256px - left */
+  --sidebar-w-collapsed: 3.5rem; /* 56px */
+  --right-sidebar-w: 20rem; /* 320px */
+  --mobile-drawer-w: 18rem; /* 288px */
+  --bottom-nav-h: 3.5rem; /* 56px */
+  --content-max-w: 48rem; /* 768px - reading width */
+  --editor-max-w: 56rem; /* 896px - editing width */
+}
+
+.dark {
+  /* Color Tokens — Dark Mode */
+  --bg: 26 26 26; /* #1a1a1a - Notion dark, not pure black */
+  --bg-elevated: 20 20 20; /* #141414 - sidebar, cards */
+  --bg-hover: 38 38 38; /* #262626 - hover states */
+  --fg: 250 250 250; /* #fafafa - near white */
+  --fg-muted: 163 163 163; /* #a3a3a3 - secondary text */
+  --fg-subtle: 115 115 115; /* #737373 - placeholder, disabled */
+  --border: 51 51 51; /* #333333 - hairline borders */
+  --border-strong: 68 68 68; /* #444444 - focused borders */
+  --primary: 59 130 246; /* #3b82f6 - blue-500 */
+  --primary-hover: 96 165 250; /* #60a5fa - blue-400 */
+  --primary-fg: 26 26 26; /* dark text on primary */
+  --ring: 59 130 246;
+  --destructive: 239 68 68; /* #ef4444 - red-500 */
+  --destructive-hover: 220 38 38; /* #dc2626 - red-600 */
+  --destructive-fg: 255 255 255;
+  --success: 34 197 94; /* #22c55e - green-500 */
+  --success-fg: 26 26 26;
+  --overlay: 0 0 0; /* dialog/drawer scrim */
+
+  /* Shadows — Dark Mode */
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.2);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.2);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.2);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.2);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.3), 0 8px 10px -6px rgb(0 0 0 / 0.2);
+}
+
+/* Reduced Motion — respects user preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Focus Visible — consistent focus rings */
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgb(var(--bg)), 0 0 0 4px rgb(var(--ring));
+}
+
+/* Selection */
+::selection {
+  background-color: rgb(var(--primary) / 0.2);
+  color: rgb(var(--fg));
+}
+
+/* Scrollbar — thin, subtle */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--fg-subtle)) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: rgb(var(--fg-subtle));
+  border-radius: 3px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(var(--fg-muted));
+}
+
+.dark * {
+  scrollbar-color: rgb(var(--fg-subtle)) transparent;
+}
+
+.dark *::-webkit-scrollbar-thumb {
+  background-color: rgb(var(--fg-subtle));
+}
+
+.dark *::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(var(--fg-muted));
+}

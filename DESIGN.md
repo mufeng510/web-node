@@ -26,9 +26,11 @@
   --primary-fg: 255 255 255;   /* white */
   --ring: 37 99 235;           /* focus ring */
   --destructive: 220 38 38;    /* #dc2626 - red-600 */
+  --destructive-hover: 185 28 28; /* #b91c1c - red-700 */
   --destructive-fg: 255 255 255;
   --success: 22 163 74;        /* #16a34a - green-600 */
   --success-fg: 255 255 255;
+  --overlay: 0 0 0;            /* dialog/drawer scrim */
 }
 ```
 
@@ -48,9 +50,11 @@
   --primary-fg: 26 26 26;      /* dark text on primary */
   --ring: 59 130 246;
   --destructive: 239 68 68;    /* #ef4444 - red-500 */
+  --destructive-hover: 220 38 38; /* #dc2626 - red-600 */
   --destructive-fg: 255 255 255;
   --success: 34 197 94;        /* #22c55e - green-500 */
   --success-fg: 26 26 26;
+  --overlay: 0 0 0;            /* dialog/drawer scrim */
 }
 ```
 
@@ -144,7 +148,7 @@
 | Primary | bg-primary text-primary-fg hover:bg-primary-hover | bg-primary text-primary-fg hover:bg-primary-hover | Main CTAs |
 | Secondary | bg-bg-elevated text-fg border border-border hover:bg-bg-hover | bg-bg-elevated text-fg border border-border hover:bg-bg-hover | Secondary actions |
 | Ghost | transparent text-fg-muted hover:bg-bg-hover | transparent text-fg-muted hover:bg-bg-hover | Toolbar, subtle actions |
-| Destructive | bg-destructive text-destructive-fg hover:bg-red-700 | bg-destructive text-destructive-fg hover:bg-red-600 | Dangerous actions |
+| Destructive | bg-destructive text-destructive-fg hover:bg-destructive-hover | bg-destructive text-destructive-fg hover:bg-destructive-hover | Dangerous actions |
 
 - Padding: `px-3 py-1.5` (sm), `px-4 py-2` (md), `px-6 py-3` (lg)
 - Radius: `var(--radius-md)` (8px)
@@ -173,6 +177,22 @@
 - Border: `border-b border-border`
 
 ---
+
+### Overlays
+- Scrim: `bg-overlay/50` (dialogs, mobile drawer)
+- Dialog surface: `bg-bg-elevated border border-border rounded-lg shadow-lg`
+
+### Status Dots
+- `StatusDot` primitive: `bg-success` / `bg-destructive` / `bg-primary` / `bg-fg-subtle` dots with optional token-colored label; never color alone (dot + text)
+
+### Shared Patterns (Section 5 consumers)
+- `PageHeader`: title + optional description + actions row
+- `EmptyState`: centered icon + title + description + actions
+- `Alert`: `bg-destructive/10 border-destructive/20 text-destructive` (error, `role="alert"`), `bg-success/10 border-success/20 text-success` (success)
+- `Tabs`: horizontal bar or vertical nav, active item `bg-primary/10 text-primary`, inactive `text-fg-muted hover:bg-bg-hover hover:text-fg`
+- `SettingRow`: label + description + control, separated by hairline borders
+- `StatCard`: metric title + value + icon + key/value detail rows
+- `TooltipLite`: CSS-only label above the trigger on hover/focus, `bg-fg text-bg` surface, transform/opacity motion only
 
 ## 7. Layout Constants
 
@@ -203,10 +223,8 @@
 
 ## 9. Accepted Debt
 
-- Tiptap editor prose styles (`prose` classes) use Tailwind Typography defaults — will need custom prose theme later for full token alignment
-- Some emoji icons in RightSidebar tabs — should migrate to Lucide icons
 - Mobile drawer animation uses CSS transform — could use View Transitions API for smoother UX
-- Diagnostics page uses inline `DiagnosticCard` — should extract to shared component
+- Markdown preview HTML is rendered without a sanitizer (no DOMPurify-class dep allowed); only author-owned note content is rendered
 
 ---
 

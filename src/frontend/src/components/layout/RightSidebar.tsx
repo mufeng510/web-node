@@ -1,5 +1,8 @@
-import { X } from 'lucide-react';
+import { Bot, FileText, GitBranch, Link2, List, Search, Tag, X } from 'lucide-react';
 import { useState } from 'react';
+import { cn } from '../../lib/utils';
+import { IconButton } from '../ui/IconButton';
+import { Tabs } from '../ui/Tabs';
 
 interface RightSidebarProps {
   isOpen: boolean;
@@ -7,90 +10,68 @@ interface RightSidebarProps {
   className?: string;
 }
 
+type TabId = 'outline' | 'ai' | 'backlinks' | 'properties' | 'search' | 'git' | 'tags';
+
+const tabOptions = [
+  { id: 'outline', label: 'Outline', icon: List },
+  { id: 'ai', label: 'AI', icon: Bot },
+  { id: 'backlinks', label: 'Backlinks', icon: Link2 },
+  { id: 'properties', label: 'Properties', icon: FileText },
+  { id: 'search', label: 'Search', icon: Search },
+  { id: 'git', label: 'Git', icon: GitBranch },
+  { id: 'tags', label: 'Tags', icon: Tag },
+] as const;
+
 export function RightSidebar({ isOpen, onClose, className = '' }: RightSidebarProps) {
-  const [activeTab, setActiveTab] = useState<
-    'outline' | 'ai' | 'backlinks' | 'properties' | 'search' | 'git' | 'tags'
-  >('outline');
+  const [activeTab, setActiveTab] = useState<TabId>('outline');
 
   if (!isOpen) return null;
 
   return (
     <aside
-      className={`${className} w-80 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col`}
+      className={cn(
+        'w-[var(--right-sidebar-w)] bg-bg-elevated border-l border-border flex flex-col',
+        className
+      )}
     >
-      <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700">
-        <h2 className="text-sm font-medium">Right Sidebar</h2>
-        <button
-          type="button"
-          onClick={onClose}
-          className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-        >
+      <div className="flex items-center justify-between px-3 py-2 border-b border-border">
+        <h2 className="text-sm font-medium text-fg">Right Sidebar</h2>
+        <IconButton size="sm" onClick={onClose} aria-label="Close sidebar">
           <X className="w-4 h-4" />
-        </button>
+        </IconButton>
       </div>
 
-      <div className="border-b border-gray-200 dark:border-gray-700 overflow-x-auto px-2">
-        <nav className="flex gap-1 py-1" role="tablist">
-          {[
-            { id: 'outline', label: 'Outline', icon: '📋' },
-            { id: 'ai', label: 'AI', icon: '🤖' },
-            { id: 'backlinks', label: 'Backlinks', icon: '🔗' },
-            { id: 'properties', label: 'Properties', icon: '📋' },
-            { id: 'search', label: 'Search', icon: '🔍' },
-            { id: 'git', label: 'Git', icon: '📦' },
-            { id: 'tags', label: 'Tags', icon: '🏷️' },
-          ].map((tab) => (
-            <button
-              type="button"
-              key={tab.id}
-              role="tab"
-              aria-selected={activeTab === tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
-                activeTab === tab.id
-                  ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-              }`}
-            >
-              {tab.icon} {tab.label}
-            </button>
-          ))}
-        </nav>
+      <div className="border-b border-border px-2">
+        <Tabs
+          options={tabOptions.map((t) => ({ ...t }))}
+          value={activeTab}
+          onChange={setActiveTab}
+          ariaLabel="Right sidebar panels"
+          className="py-1"
+        />
       </div>
 
       <div className="flex-1 overflow-y-auto p-3">
         {activeTab === 'outline' && (
-          <div className="text-sm text-gray-500 dark:text-gray-400">
-            Outline - Table of contents will appear here
-          </div>
+          <div className="text-sm text-fg-muted">Outline - Table of contents will appear here</div>
         )}
         {activeTab === 'ai' && (
-          <div className="text-sm text-gray-500 dark:text-gray-400">
-            AI Agent panel will appear here
-          </div>
+          <div className="text-sm text-fg-muted">AI Agent panel will appear here</div>
         )}
         {activeTab === 'backlinks' && (
-          <div className="text-sm text-gray-500 dark:text-gray-400">Backlinks will appear here</div>
+          <div className="text-sm text-fg-muted">Backlinks will appear here</div>
         )}
         {activeTab === 'properties' && (
-          <div className="text-sm text-gray-500 dark:text-gray-400">
-            Frontmatter properties will appear here
-          </div>
+          <div className="text-sm text-fg-muted">Frontmatter properties will appear here</div>
         )}
         {activeTab === 'search' && (
-          <div className="text-sm text-gray-500 dark:text-gray-400">
-            Search results will appear here
-          </div>
+          <div className="text-sm text-fg-muted">Search results will appear here</div>
         )}
         {activeTab === 'git' && (
-          <div className="text-sm text-gray-500 dark:text-gray-400">
-            Git history will appear here
-          </div>
+          <div className="text-sm text-fg-muted">Git history will appear here</div>
         )}
         {activeTab === 'tags' && (
-          <div className="text-sm text-gray-500 dark:text-gray-400">
-            Tags panel will appear here
-          </div>
+          <div className="text-sm text-fg-muted">Tags panel will appear here</div>
         )}
       </div>
     </aside>

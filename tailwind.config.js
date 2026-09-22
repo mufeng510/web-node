@@ -18,9 +18,11 @@ module.exports = {
         'primary-fg': 'rgb(var(--primary-fg))',
         ring: 'rgb(var(--ring))',
         destructive: 'rgb(var(--destructive))',
+        'destructive-hover': 'rgb(var(--destructive-hover))',
         'destructive-fg': 'rgb(var(--destructive-fg))',
         success: 'rgb(var(--success))',
         'success-fg': 'rgb(var(--success-fg))',
+        overlay: 'rgb(var(--overlay))',
       },
       fontFamily: {
         sans: ['var(--font-sans)'],

@@ -1,5 +1,6 @@
 import { ChevronRight, FileText, Folder } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { cn } from '../../lib/utils';
 
 interface TreeNode {
   id: string;
@@ -20,12 +21,13 @@ interface LeftSidebarProps {
 }
 
 export function LeftSidebar({ library, className = '' }: LeftSidebarProps) {
-  const [tree, _setTree] = useState<TreeNode[]>([]);
+  const [tree, setTree] = useState<TreeNode[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
-  const [_contextMenu, setContextMenu] = useState<{ x: number; y: number; node: TreeNode } | null>(
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; node: TreeNode } | null>(
     null
   );
+  const contextMenuRef = useRef<HTMLDivElement>(null);
 
   const toggleExpand = (path: string) => {
     setExpanded((prev) => {
@@ -43,6 +45,7 @@ export function LeftSidebar({ library, className = '' }: LeftSidebarProps) {
     } else {
       setSelectedPath(node.relativePath);
     }
+    setContextMenu(null);
   };
 
   const handleContextMenu = (e: React.MouseEvent, node: TreeNode) => {
@@ -65,13 +68,19 @@ export function LeftSidebar({ library, className = '' }: LeftSidebarProps) {
     return (
       <div key={node.id} onContextMenu={(e) => handleContextMenu(e, node)}>
         <div
-          className={`flex items-center gap-1 px-2 py-1.5 rounded ${isSelected ? 'bg-blue-50 dark:bg-blue-900/30' : 'hover:bg-gray-100 dark:hover:bg-gray-700'} cursor-pointer`}
+          className={cn(
+            'flex items-center gap-1.5 px-2 py-1.5 rounded-md cursor-pointer transition-colors duration-150',
+            isSelected ? 'bg-primary/10 text-primary' : 'text-fg hover:bg-bg-hover',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg'
+          )}
           style={{ paddingLeft: `${12 + depth * 16}px` }}
           onClick={(e) => handleNodeClick(node, e)}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') handleNodeClick(node, e);
           }}
           role="treeitem"
+          aria-selected={isSelected}
+          aria-expanded={hasChildren ? isExpanded : undefined}
         >
           {hasChildren && (
             <button
@@ -80,20 +89,24 @@ export function LeftSidebar({ library, className = '' }: LeftSidebarProps) {
                 e.stopPropagation();
                 toggleExpand(node.relativePath);
               }}
-              className="p-0.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              className="p-0.5 text-fg-muted hover:text-fg transition-colors duration-150 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label={isExpanded ? 'Collapse' : 'Expand'}
             >
               <ChevronRight
-                className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                className={cn(
+                  'w-4 h-4 transition-transform duration-150',
+                  isExpanded && 'rotate-90'
+                )}
               />
             </button>
           )}
           {!hasChildren && <span className="w-4" />}
           {node.isDir ? (
-            <Folder className="w-4 h-4 text-yellow-500" />
+            <Folder className="w-4 h-4 text-fg-muted flex-shrink-0" aria-hidden="true" />
           ) : (
-            <FileText className="w-4 h-4 text-gray-500" />
+            <FileText className="w-4 h-4 text-fg-muted flex-shrink-0" aria-hidden="true" />
           )}
-          <span className="truncate text-sm flex-1">{node.name}</span>
+          <span className="truncate text-sm flex-1 min-w-0">{node.name}</span>
         </div>
 
         {hasChildren && isExpanded && (
@@ -105,18 +118,17 @@ export function LeftSidebar({ library, className = '' }: LeftSidebarProps) {
 
   return (
     <aside
-      className={`w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col ${className}`}
+      className={cn(
+        'w-[var(--sidebar-w)] bg-bg-elevated border-r border-border flex flex-col',
+        className
+      )}
     >
-      <div className="p-3 border-b border-gray-200 dark:border-gray-700">
-        <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-          Files
-        </h2>
+      <div className="px-3 py-3 border-b border-border">
+        <h2 className="text-xs font-medium text-fg-muted uppercase tracking-wider">Files</h2>
       </div>
       <div className="flex-1 overflow-y-auto p-2">
         {tree.length === 0 ? (
-          <div className="text-center text-gray-500 dark:text-gray-400 py-8 text-sm">
-            No files in this library
-          </div>
+          <div className="text-center text-fg-muted py-8 text-sm">No files in this library</div>
         ) : (
           tree.map((node) => renderNode(node))
         )}
