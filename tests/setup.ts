@@ -1,6 +1,16 @@
 import { JSDOM } from 'jsdom';
 import { afterAll, beforeAll, vi } from 'vitest';
 
+vi.mock('@backend/db/index', () => ({
+  getDb: vi.fn(() => ({})),
+  closeDb: vi.fn(),
+  schema: {},
+}));
+
+vi.mock('drizzle-orm/bun-sqlite', () => ({
+  drizzle: vi.fn(() => ({})),
+}));
+
 const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {
   url: 'http://localhost',
   pretendToBeVisual: true,
