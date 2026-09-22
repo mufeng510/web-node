@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'drizzle-kit';
-import { getEnv } from './src/backend/utils/env.js';
+import { getEnv } from './src/backend/utils/env.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

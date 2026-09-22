@@ -55,6 +55,10 @@ COPY --from=builder --chown=webnote:webnote /app/scripts ./scripts
 COPY --from=builder --chown=webnote:webnote /app/drizzle.config.ts ./
 COPY --from=builder --chown=webnote:webnote /app/src/backend/db/migrations ./src/backend/db/migrations
 
+# Copy entrypoint script
+COPY --from=builder --chown=webnote:webnote /app/docker-entrypoint.sh ./
+RUN chmod +x ./docker-entrypoint.sh
+
 # Set environment
 ENV NODE_ENV=production
 ENV PORT=8080
@@ -73,7 +77,7 @@ USER webnote
 EXPOSE 8080
 
 # Use tini for proper signal handling
-ENTRYPOINT ["/sbin/tini", "--"]
+ENTRYPOINT ["/sbin/tini", "--", "./docker-entrypoint.sh"]
 
 # Start application
 CMD ["bun", "run", "src/backend/index.ts"]
