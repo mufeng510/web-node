@@ -2,7 +2,6 @@
 // 提供与 bun:sqlite 相同的 Database API 表面，测试通过 DI/内存路径使用，
 // 若需真实读写可后续接入 node:sqlite（Node 22+）
 export class Database {
-  constructor(_path?: string) {}
   prepare(_query: string) {
     return {
       run: () => ({ changes: 0, lastInsertRowid: 0 }),
