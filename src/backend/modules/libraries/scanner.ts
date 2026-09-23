@@ -82,7 +82,8 @@ export async function scanLibraryTree(
     };
 
     if (stats.isDirectory()) {
-      node.children = await scanLibraryTree(libraryPath, {
+      // 必须深入子目录扫描；传 libraryPath 会永远重扫根目录导致内容重复嵌套
+      node.children = await scanLibraryTree(join(root, relPath), {
         showHidden,
         showObsidian,
         showGit,
