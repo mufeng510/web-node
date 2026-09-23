@@ -1,3 +1,5 @@
+import { readdir, stat } from 'node:fs/promises';
+import { join, resolve } from 'node:path';
 import { zValidator } from '@hono/zod-validator';
 import { and, eq } from 'drizzle-orm';
 import { Hono } from 'hono';
@@ -14,6 +16,7 @@ import { auditLog } from '../../middleware/audit.js';
 import { authMiddleware } from '../../middleware/auth.middleware.js';
 import { NotFoundError, ValidationError } from '../../utils/errors.js';
 import { createId } from '../../utils/id.js';
+import { getLibraryRoot } from '../../utils/path.js';
 import { checkLibraryAccess, getAccessibleLibraries } from './access.js';
 import { initializeLibraryConfig, readLibraryConfig, writeLibraryConfig } from './config.js';
 import { scanLibraryTree } from './scanner.js';
@@ -112,7 +115,15 @@ libraryRoutes.post(
       aiIndexConfig: data.aiIndex,
     });
 
-    await initializeLibraryConfig(fullPath, data.name, userId);
+    // Preserve existing .webnote/config.json if present; only initialize if missing
+    const existingConfig = await readLibraryConfig(fullPath);
+    if (!existingConfig) {
+      await initializeLibraryConfig(fullPath, data.name, userId);
+    } else if (existingConfig.name !== data.name) {
+      // Optionally update name in existing config
+      existingConfig.name = data.name;
+      await writeLibraryConfig(fullPath, existingConfig);
+    }
 
     if (data.git?.enabled && data.git.remoteUrl) {
       await db.insert(gitConfigs).values({
@@ -148,6 +159,90 @@ libraryRoutes.post(
     });
 
     return c.json({ success: true, data: { id: libraryId, name: data.name, path: fullPath } }, 201);
+  }
+);
+
+libraryRoutes.get(
+  '/discover',
+  zValidator(
+    'query',
+    z.object({
+      path: z.string().optional().default(''),
+    })
+  ),
+  async (c) => {
+    const { path: relPath } = c.req.valid('query');
+    const db = getDb();
+
+    const resolvedPath = getLibraryRoot(relPath);
+    const env = getEnv();
+    const dataRoot = env.DATA_ROOT;
+
+    const currentPath = relPath.replace(/\/+/g, '/').replace(/^\/+/, '').replace(/\/+$/, '');
+
+    let parentPath: string | null = null;
+    if (currentPath) {
+      const parts = currentPath.split('/');
+      if (parts.length > 1) {
+        parentPath = parts.slice(0, -1).join('/');
+      } else {
+        parentPath = '';
+      }
+    }
+
+    const allLibraries = await db.select().from(libraries);
+    const registeredByResolved = new Map(allLibraries.map((l) => [resolve(l.path), l.id] as const));
+
+    let entries: string[] = [];
+    try {
+      entries = await readdir(resolvedPath);
+    } catch {
+      entries = [];
+    }
+
+    const directories: {
+      name: string;
+      path: string;
+      registered: boolean;
+      libraryId: string | null;
+    }[] = [];
+    for (const entry of entries) {
+      if (entry.startsWith('.')) continue;
+
+      const entryAbsPath = join(resolvedPath, entry);
+      let isDir = false;
+
+      try {
+        const stats = await stat(entryAbsPath);
+        isDir = stats.isDirectory();
+      } catch {
+        continue;
+      }
+
+      if (!isDir) continue;
+
+      const entryRelPath = currentPath ? `${currentPath}/${entry}` : entry;
+      const libraryId = registeredByResolved.get(resolve(entryAbsPath)) ?? null;
+
+      directories.push({
+        name: entry,
+        path: entryRelPath,
+        registered: libraryId !== null,
+        libraryId,
+      });
+    }
+
+    directories.sort((a, b) => a.name.localeCompare(b.name));
+
+    return c.json({
+      success: true,
+      data: {
+        currentPath,
+        parentPath,
+        currentRegistered: registeredByResolved.has(resolvedPath),
+        directories,
+      },
+    });
   }
 );
 
