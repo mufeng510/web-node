@@ -106,11 +106,15 @@ interface DialogOverlayProps extends HTMLAttributes<HTMLDivElement> {}
 
 export function DialogOverlay({ className, onClick, ...props }: DialogOverlayProps) {
   const { open, onOpenChange } = useDialogContext();
+  // 回调引用视作非响应式：父组件每次渲染都会产生新的 onOpenChange，
+  // effect 绝不能因此重跑（否则会重复开关 body 滚动 / 抢焦点）
+  const onOpenChangeRef = useRef(onOpenChange);
+  onOpenChangeRef.current = onOpenChange;
 
   useEffect(() => {
     if (!open) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onOpenChange(false);
+      if (e.key === 'Escape') onOpenChangeRef.current(false);
     };
     document.addEventListener('keydown', handleKeyDown);
     document.body.style.overflow = 'hidden';
@@ -118,7 +122,7 @@ export function DialogOverlay({ className, onClick, ...props }: DialogOverlayPro
       document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = '';
     };
-  }, [open, onOpenChange]);
+  }, [open]);
 
   if (!open) return null;
 
@@ -142,16 +146,20 @@ interface DialogContentProps extends HTMLAttributes<HTMLDialogElement> {
 export function DialogContent({ children, className, size = 'md', ...props }: DialogContentProps) {
   const { open, onOpenChange, contentId, titleId, descriptionId } = useDialogContext();
   const contentRef = useRef<HTMLDialogElement>(null);
+  // 同上：聚焦只应在对话框打开时发生一次，父组件重渲染（如输入框打字）
+  // 绝不能再次调用 dialog.focus() 把焦点从输入框抢走
+  const onOpenChangeRef = useRef(onOpenChange);
+  onOpenChangeRef.current = onOpenChange;
 
   useEffect(() => {
     if (!open) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onOpenChange(false);
+      if (e.key === 'Escape') onOpenChangeRef.current(false);
     };
     document.addEventListener('keydown', handleKeyDown);
     contentRef.current?.focus();
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [open, onOpenChange]);
+  }, [open]);
 
   if (!open) return null;
 
