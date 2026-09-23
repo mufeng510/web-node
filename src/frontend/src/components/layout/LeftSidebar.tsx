@@ -1,6 +1,8 @@
 import { ChevronRight, FileText, Folder } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '../../lib/utils';
+import { api } from '../../services/api';
+import { Spinner } from '../ui/Spinner';
 
 interface TreeNode {
   id: string;
@@ -24,10 +26,42 @@ export function LeftSidebar({ library, className = '' }: LeftSidebarProps) {
   const [tree, setTree] = useState<TreeNode[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; node: TreeNode } | null>(
     null
   );
   const contextMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!library?.id) {
+      setTree([]);
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    setTree([]);
+    setExpanded(new Set());
+    setSelectedPath(null);
+    (async () => {
+      try {
+        const response = (await api.get(`/files/${library.id}/tree`)) as unknown as {
+          success: boolean;
+          data: { tree: TreeNode[] };
+        };
+        if (!cancelled && response.success) {
+          setTree(response.data.tree);
+        }
+      } catch (error) {
+        console.error('Failed to load file tree:', error);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [library?.id]);
 
   const toggleExpand = (path: string) => {
     setExpanded((prev) => {
@@ -127,7 +161,11 @@ export function LeftSidebar({ library, className = '' }: LeftSidebarProps) {
         <h2 className="text-xs font-medium text-fg-muted uppercase tracking-wider">Files</h2>
       </div>
       <div className="flex-1 overflow-y-auto p-2">
-        {tree.length === 0 ? (
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <Spinner size="md" label="Loading files" />
+          </div>
+        ) : tree.length === 0 ? (
           <div className="text-center text-fg-muted py-8 text-sm">No files in this library</div>
         ) : (
           tree.map((node) => renderNode(node))
