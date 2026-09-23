@@ -1,3 +1,4 @@
+import { isAxiosError } from 'axios';
 import {
   Bold,
   Code,
@@ -12,16 +13,23 @@ import {
 } from 'lucide-react';
 import { marked } from 'marked';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+import { Spinner } from '../components/ui/Spinner';
 import { StatusDot } from '../components/ui/StatusDot';
 import { Tabs } from '../components/ui/Tabs';
 import { Textarea } from '../components/ui/Textarea';
 import { ToolbarButton } from '../components/ui/ToolbarButton';
 import { cn } from '../lib/utils';
+import { routes } from '../routes';
+import { api } from '../services/api';
 
 type EditorView = 'write' | 'preview' | 'split';
+
+function encodePath(path: string): string {
+  return path.split('/').map(encodeURIComponent).join('/');
+}
 
 const viewOptions = [
   { id: 'write', label: 'Write' },
@@ -30,34 +38,85 @@ const viewOptions = [
 ] as const;
 
 export function Editor() {
-  const { libraryId } = useParams<{ libraryId: string }>();
+  const { libraryId, '*': splat } = useParams<{ libraryId: string; '*': string }>();
+  const navigate = useNavigate();
   const [notePath, setNotePath] = useState<string>('');
   const [content, setContent] = useState('');
   const [view, setView] = useState<EditorView>('split');
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [fileExists, setFileExists] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(true);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    if (libraryId) {
-      loadNote();
-    }
-  }, [libraryId]);
-
-  const loadNote = async () => {
-    try {
+    if (!libraryId) return;
+    if (!splat) {
+      setNotePath('');
       setContent('# Welcome to Web Note\n\nStart writing your notes here...');
+      setFileExists(false);
       setSaved(true);
-    } catch (error) {
-      console.error('Failed to load note:', error);
+      setLoadError(null);
+      return;
     }
-  };
+    let cancelled = false;
+    setLoading(true);
+    setLoadError(null);
+    (async () => {
+      try {
+        const response = (await api.get(`/files/${libraryId}/${encodePath(splat)}`)) as unknown as {
+          success: boolean;
+          data: { content?: string };
+        };
+        if (!cancelled && response.success) {
+          setNotePath(splat);
+          setContent(response.data.content ?? '');
+          setFileExists(true);
+          setSaved(true);
+        }
+      } catch (error) {
+        console.error('Failed to load note:', error);
+        if (!cancelled) {
+          setLoadError(`Failed to load ${splat}`);
+          setNotePath(splat);
+          setContent('');
+          setFileExists(false);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [libraryId, splat]);
 
   const handleSave = async () => {
+    const path = notePath.trim();
+    if (!libraryId || !path || saving) return;
     setSaving(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      // 已有文件走 PATCH； adopted 老库在 files 表可能没有记录，404 时回退到 POST 创建
+      if (fileExists) {
+        try {
+          await api.patch(`/files/${libraryId}/${encodePath(path)}`, { content });
+        } catch (error) {
+          if (isAxiosError(error) && error.response?.status === 404) {
+            await api.post(`/files/${libraryId}/`, { path, content });
+            setFileExists(true);
+          } else {
+            throw error;
+          }
+        }
+      } else {
+        await api.post(`/files/${libraryId}/`, { path, content });
+        setFileExists(true);
+      }
       setSaved(true);
+      if (path !== (splat ?? '')) {
+        navigate(routes.editor(libraryId, path), { replace: true });
+      }
     } catch (error) {
       console.error('Failed to save:', error);
     } finally {
@@ -227,30 +286,43 @@ export function Editor() {
           view === 'split' && 'grid grid-cols-1 lg:grid-cols-2'
         )}
       >
-        {editing && (
-          <div
-            className={cn(
-              'min-h-0 overflow-auto p-4',
-              view === 'split' && 'border-b lg:border-b-0 lg:border-r border-border'
+        {loading ? (
+          <div className="flex-1 flex items-center justify-center">
+            <Spinner size="md" label="Loading note" />
+          </div>
+        ) : (
+          <>
+            {loadError && (
+              <div className="px-4 py-2 text-sm text-destructive" role="alert">
+                {loadError}
+              </div>
             )}
-          >
-            <Textarea
-              ref={textareaRef}
-              aria-label="Markdown source"
-              value={content}
-              onChange={(e) => handleContentChange(e.target.value)}
-              className="h-full min-h-[400px] font-mono text-sm leading-relaxed"
-              spellCheck={false}
-            />
-          </div>
-        )}
-        {view !== 'write' && (
-          <div className="min-h-0 overflow-auto p-4">
-            <div className="md-content max-w-none">
-              {/* biome-ignore lint/security/noDangerouslySetInnerHtml: preview renders author-owned note markdown via marked */}
-              <div dangerouslySetInnerHTML={{ __html: renderedHtml }} />
-            </div>
-          </div>
+            {editing && (
+              <div
+                className={cn(
+                  'min-h-0 overflow-auto p-4',
+                  view === 'split' && 'border-b lg:border-b-0 lg:border-r border-border'
+                )}
+              >
+                <Textarea
+                  ref={textareaRef}
+                  aria-label="Markdown source"
+                  value={content}
+                  onChange={(e) => handleContentChange(e.target.value)}
+                  className="h-full min-h-[400px] font-mono text-sm leading-relaxed"
+                  spellCheck={false}
+                />
+              </div>
+            )}
+            {view !== 'write' && (
+              <div className="min-h-0 overflow-auto p-4">
+                <div className="md-content max-w-none">
+                  {/* biome-ignore lint/security/noDangerouslySetInnerHtml: preview renders author-owned note markdown via marked */}
+                  <div dangerouslySetInnerHTML={{ __html: renderedHtml }} />
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
