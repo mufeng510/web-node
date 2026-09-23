@@ -1,6 +1,8 @@
 import { ChevronRight, FileText, Folder } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '../../lib/utils';
+import { routes } from '../../routes';
 import { api } from '../../services/api';
 import { Spinner } from '../ui/Spinner';
 
@@ -23,6 +25,7 @@ interface LeftSidebarProps {
 }
 
 export function LeftSidebar({ library, className = '' }: LeftSidebarProps) {
+  const navigate = useNavigate();
   const [tree, setTree] = useState<TreeNode[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
@@ -78,6 +81,9 @@ export function LeftSidebar({ library, className = '' }: LeftSidebarProps) {
       toggleExpand(node.relativePath);
     } else {
       setSelectedPath(node.relativePath);
+      if (library?.id) {
+        navigate(routes.editor(library.id, node.relativePath));
+      }
     }
     setContextMenu(null);
   };

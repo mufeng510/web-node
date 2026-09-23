@@ -2,6 +2,7 @@ import { LeftSidebar } from '@/frontend/src/components/layout/LeftSidebar';
 import { api } from '@/frontend/src/services/api';
 import { act, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
@@ -47,7 +48,11 @@ describe('LeftSidebar file tree', () => {
 
     act(() => {
       root = createRoot(container);
-      root.render(<LeftSidebar library={{ id: 'lib-1' }} />);
+      root.render(
+        <MemoryRouter>
+          <LeftSidebar library={{ id: 'lib-1' }} />
+        </MemoryRouter>
+      );
     });
     await act(async () => {
       await new Promise((r) => setTimeout(r, 0));
@@ -74,7 +79,11 @@ describe('LeftSidebar file tree', () => {
 
     act(() => {
       root = createRoot(container);
-      root.render(<Switcher />);
+      root.render(
+        <MemoryRouter>
+          <Switcher />
+        </MemoryRouter>
+      );
     });
     await act(async () => {
       await new Promise((r) => setTimeout(r, 0));
