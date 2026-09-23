@@ -11,6 +11,20 @@ interface Library {
   updatedAt: string;
 }
 
+export interface DiscoverDirectory {
+  name: string;
+  path: string;
+  registered: boolean;
+  libraryId: string | null;
+}
+
+export interface DiscoverResult {
+  currentPath: string;
+  parentPath: string | null;
+  currentRegistered: boolean;
+  directories: DiscoverDirectory[];
+}
+
 interface LibraryContextType {
   libraries: Library[];
   currentLibrary: Library | null;
@@ -20,6 +34,7 @@ interface LibraryContextType {
   createLibrary: (data: any) => Promise<Library>;
   updateLibrary: (id: string, data: any) => Promise<void>;
   deleteLibrary: (id: string) => Promise<void>;
+  discoverLibraryDirs: (path?: string) => Promise<DiscoverResult>;
 }
 
 const LibraryContext = createContext<LibraryContextType | null>(null);
@@ -86,6 +101,20 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const discoverLibraryDirs = async (path?: string): Promise<DiscoverResult> => {
+    const response = (await api.get('/libraries/discover', {
+      params: { path },
+    })) as unknown as {
+      success: boolean;
+      data: DiscoverResult;
+      error?: { message?: string };
+    };
+    if (response.success) {
+      return response.data;
+    }
+    throw new Error(response.error?.message || 'Failed to discover directories');
+  };
+
   useEffect(() => {
     fetchLibraries();
   }, []);
@@ -101,6 +130,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         createLibrary,
         updateLibrary,
         deleteLibrary,
+        discoverLibraryDirs,
       }}
     >
       {children}
