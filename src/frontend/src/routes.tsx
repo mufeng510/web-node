@@ -3,7 +3,9 @@ export const routes = {
   setup: '/setup',
   home: '/',
   editor: (libraryId: string, notePath?: string) =>
-    `/editor/${libraryId}${notePath ? `/${encodeURIComponent(notePath)}` : ''}`,
+    `/editor/${libraryId}${
+      notePath ? `/${notePath.split('/').map(encodeURIComponent).join('/')}` : ''
+    }`,
   settings: '/settings',
   diagnostics: '/diagnostics',
 } as const;

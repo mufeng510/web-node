@@ -80,7 +80,8 @@ export function App() {
           }
         >
           <Route path="/" element={<Dashboard />} />
-          <Route path="/editor/*" element={<Editor />} />
+          <Route path="/editor/:libraryId" element={<Editor />} />
+          <Route path="/editor/:libraryId/*" element={<Editor />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/diagnostics" element={<Diagnostics />} />
         </Route>
