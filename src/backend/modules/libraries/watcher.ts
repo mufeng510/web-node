@@ -15,6 +15,7 @@ interface FileEvent {
 }
 
 const watchers = new Map<string, FSWatcher>();
+const libraryRoots = new Map<string, string>();
 const eventQueue: FileEvent[] = [];
 let flushInterval: ReturnType<typeof setInterval> | null = null;
 const emitter = new EventEmitter();
@@ -45,6 +46,7 @@ export function startLibraryWatcher(libraryId: string, libraryPath: string) {
   watcher.on('error', (error) => console.error(`Watcher error for ${libraryId}:`, error));
 
   watchers.set(libraryId, watcher);
+  libraryRoots.set(libraryId, root);
 
   if (!flushInterval) {
     flushInterval = setInterval(flushEvents, 1000);
@@ -58,6 +60,7 @@ export function stopLibraryWatcher(libraryId: string) {
   if (watcher) {
     watcher.close();
     watchers.delete(libraryId);
+    libraryRoots.delete(libraryId);
     console.log(`[Watcher] Stopped for library ${libraryId}`);
   }
 }
@@ -74,9 +77,9 @@ export function stopAllWatchers() {
 }
 
 function queueEvent(type: FileEvent['type'], path: string, libraryId: string) {
-  const relativePath = path
-    .replace(getLibraryRoot(libraryPathFromId(libraryId)), '')
-    .replace(/^\//, '');
+  const root = libraryRoots.get(libraryId);
+  if (!root) return;
+  const relativePath = path.replace(root, '').replace(/^\//, '');
   if (relativePath.startsWith('.webnote/') || relativePath.startsWith('.git/')) return;
 
   eventQueue.push({ type, path: relativePath, libraryId });
@@ -189,10 +192,6 @@ async function handleDirAdd(libraryId: string, relativePath: string) {
 async function handleDirDelete(libraryId: string, relativePath: string) {
   const db = getDb();
   await db.delete(files).where(eq(files.libraryId, libraryId)).where(eq(files.path, relativePath));
-}
-
-function libraryPathFromId(_libraryId: string): string {
-  return '';
 }
 
 function getMimeType(filename: string): string {
