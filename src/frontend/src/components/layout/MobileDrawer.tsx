@@ -1,5 +1,6 @@
 import { ChevronRight, FolderGit2, Home, Settings, Wrench, X } from 'lucide-react';
 import { useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import { IconButton } from '../ui/IconButton';
 
@@ -82,9 +83,9 @@ export function MobileDrawer({
           ].map((item) => {
             const Icon = item.icon;
             return (
-              <a
+              <Link
                 key={item.href}
-                href={item.href}
+                to={item.href}
                 onClick={onClose}
                 className={cn(
                   'flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors duration-150',
@@ -94,7 +95,7 @@ export function MobileDrawer({
               >
                 <Icon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
                 {item.label}
-              </a>
+              </Link>
             );
           })}
         </nav>

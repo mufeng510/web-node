@@ -1,5 +1,7 @@
 import { FolderGit2, LayoutDashboard, Settings, Wrench } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { cn } from '../../lib/utils';
+import { routes } from '../../routes';
 
 interface BottomNavProps {
   currentLibrary: any;
@@ -14,6 +16,7 @@ const linkStyles = cn(
 );
 
 export function BottomNav({ currentLibrary, onLibraryChange, className = '' }: BottomNavProps) {
+  const navigate = useNavigate();
   return (
     <nav
       aria-label="Primary"
@@ -23,27 +26,34 @@ export function BottomNav({ currentLibrary, onLibraryChange, className = '' }: B
       )}
     >
       <div className="grid grid-cols-4">
-        <a href="/" className={linkStyles}>
+        <Link to="/" className={linkStyles}>
           <LayoutDashboard className="w-6 h-6" aria-hidden="true" />
           <span className="text-xs">Home</span>
-        </a>
-        <a href="/settings" className={linkStyles}>
+        </Link>
+        <Link to="/settings" className={linkStyles}>
           <Settings className="w-6 h-6" aria-hidden="true" />
           <span className="text-xs">Settings</span>
-        </a>
+        </Link>
         <button
           type="button"
-          onClick={() => onLibraryChange(currentLibrary?.id || '')}
+          onClick={() => {
+            if (currentLibrary?.id) {
+              onLibraryChange(currentLibrary.id);
+              navigate(routes.editor(currentLibrary.id));
+            } else {
+              navigate('/');
+            }
+          }}
           className={linkStyles}
           aria-label="Open current library"
         >
           <FolderGit2 className="w-6 h-6" aria-hidden="true" />
           <span className="text-xs">Library</span>
         </button>
-        <a href="/diagnostics" className={linkStyles}>
+        <Link to="/diagnostics" className={linkStyles}>
           <Wrench className="w-6 h-6" aria-hidden="true" />
           <span className="text-xs">Diagnostics</span>
-        </a>
+        </Link>
       </div>
     </nav>
   );
