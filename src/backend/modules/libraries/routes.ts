@@ -119,6 +119,13 @@ libraryRoutes.post(
     const existingConfig = await readLibraryConfig(fullPath);
     if (!existingConfig) {
       await initializeLibraryConfig(fullPath, data.name, userId);
+      const created = await readLibraryConfig(fullPath);
+      if (created) {
+        if (data.attachments) created.attachments = { ...created.attachments, ...data.attachments };
+        if (data.visibility) created.visibility = { ...created.visibility, ...data.visibility };
+        if (data.readOnly !== undefined) created.readOnly = data.readOnly;
+        await writeLibraryConfig(fullPath, created);
+      }
     } else if (existingConfig.name !== data.name) {
       // Optionally update name in existing config
       existingConfig.name = data.name;
