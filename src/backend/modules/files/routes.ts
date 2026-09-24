@@ -40,10 +40,35 @@ fileRoutes.get('/:libraryId/tree', async (c) => {
   return c.json({ success: true, data: { tree } });
 });
 
-fileRoutes.get('/:libraryId/*', async (c) => {
+fileRoutes.get('/:libraryId/references', async (c) => {
   const userId = c.get('userId');
   const libraryId = c.req.param('libraryId');
-  const filePath = c.req.param('*') || '';
+  const filePath = c.req.query('path');
+
+  const { library } = await checkLibraryAccess(userId, libraryId);
+  const db = getDb();
+
+  if (!filePath) {
+    const allFiles = await db.query.files.findMany({ where: eq(files.libraryId, libraryId) });
+    const references = await analyzeReferences(library.path, allFiles);
+    return c.json({ success: true, data: { references } });
+  }
+
+  const targetFile = await db.query.files.findFirst({
+    where: and(eq(files.libraryId, libraryId), eq(files.path, filePath)),
+  });
+  if (!targetFile) throw new NotFoundError('File', filePath);
+
+  const allFiles = await db.query.files.findMany({ where: eq(files.libraryId, libraryId) });
+  const references = await findReferencesToFile(library.path, filePath, allFiles);
+
+  return c.json({ success: true, data: { references } });
+});
+
+fileRoutes.get('/:libraryId/:filePath{.+$}', async (c) => {
+  const userId = c.get('userId');
+  const libraryId = c.req.param('libraryId');
+  const filePath = c.req.param('filePath') || '';
 
   const { library } = await checkLibraryAccess(userId, libraryId);
   const absolutePath = getAbsolutePath(library.path, filePath);
@@ -126,7 +151,7 @@ fileRoutes.post(
 );
 
 fileRoutes.patch(
-  '/:libraryId/*',
+  '/:libraryId/:filePath{.+$}',
   zValidator(
     'json',
     z.object({
@@ -139,7 +164,7 @@ fileRoutes.patch(
   async (c) => {
     const userId = c.get('userId');
     const libraryId = c.req.param('libraryId');
-    const filePath = c.req.param('*') || '';
+    const filePath = c.req.param('filePath') || '';
     const { content, expectedHash, expectedVersion } = c.req.valid('json');
 
     const { library } = await checkLibraryAccess(userId, libraryId);
@@ -327,10 +352,10 @@ fileRoutes.post(
   }
 );
 
-fileRoutes.delete('/:libraryId/*', async (c) => {
+fileRoutes.delete('/:libraryId/:filePath{.+$}', async (c) => {
   const userId = c.get('userId');
   const libraryId = c.req.param('libraryId');
-  const filePath = c.req.param('*') || '';
+  const filePath = c.req.param('filePath') || '';
 
   const { library } = await checkLibraryAccess(userId, libraryId);
   const config = await readLibraryConfig(library.path);
@@ -416,31 +441,6 @@ fileRoutes.post('/:libraryId/upload', async (c) => {
   });
 
   return c.json({ success: true, data: { id: fileId, path: relativeDest } });
-});
-
-fileRoutes.get('/:libraryId/references', async (c) => {
-  const userId = c.get('userId');
-  const libraryId = c.req.param('libraryId');
-  const filePath = c.req.query('path');
-
-  const { library } = await checkLibraryAccess(userId, libraryId);
-  const db = getDb();
-
-  if (!filePath) {
-    const allFiles = await db.query.files.findMany({ where: eq(files.libraryId, libraryId) });
-    const references = await analyzeReferences(library.path, allFiles);
-    return c.json({ success: true, data: { references } });
-  }
-
-  const targetFile = await db.query.files.findFirst({
-    where: and(eq(files.libraryId, libraryId), eq(files.path, filePath)),
-  });
-  if (!targetFile) throw new NotFoundError('File', filePath);
-
-  const allFiles = await db.query.files.findMany({ where: eq(files.libraryId, libraryId) });
-  const references = await findReferencesToFile(library.path, filePath, allFiles);
-
-  return c.json({ success: true, data: { references } });
 });
 
 async function analyzeReferences(_libraryPath: string, _allFiles: any[]) {
