@@ -1,4 +1,4 @@
-import { Brain, ChevronLeft, ChevronRight, FolderGit2, Plus, Search } from 'lucide-react';
+import { ChevronLeft, ChevronRight, FolderGit2, Plus, Search } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '../components/ui/Badge';
@@ -12,7 +12,6 @@ import {
   DialogTitle,
 } from '../components/ui/Dialog';
 import { EmptyState } from '../components/ui/EmptyState';
-import { IconButton } from '../components/ui/IconButton';
 import { Input } from '../components/ui/Input';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Spinner } from '../components/ui/Spinner';
@@ -155,18 +154,10 @@ export function Dashboard() {
             title={currentLibrary.name}
             description={currentLibrary.path}
             actions={
-              <>
-                <IconButton aria-label="Search">
-                  <Search className="w-5 h-5" />
-                </IconButton>
-                <IconButton aria-label="AI Assistant">
-                  <Brain className="w-5 h-5" />
-                </IconButton>
-                <Button size="sm" onClick={() => setShowCreateModal(true)}>
-                  <Plus className="w-4 h-4" aria-hidden="true" />
-                  New Library
-                </Button>
-              </>
+              <Button size="sm" onClick={() => setShowCreateModal(true)}>
+                <Plus className="w-4 h-4" aria-hidden="true" />
+                New Library
+              </Button>
             }
           />
 
@@ -180,7 +171,7 @@ export function Dashboard() {
                   <Plus className="w-5 h-5" aria-hidden="true" />
                   New Note
                 </Button>
-                <Button variant="secondary" size="lg">
+                <Button variant="secondary" size="lg" onClick={handleNewNote}>
                   <Search className="w-5 h-5" aria-hidden="true" />
                   Browse Files
                 </Button>
