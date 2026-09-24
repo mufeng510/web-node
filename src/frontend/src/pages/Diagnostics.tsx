@@ -23,6 +23,7 @@ import {
 import { PageHeader } from '../components/ui/PageHeader';
 import { Spinner } from '../components/ui/Spinner';
 import { StatCard } from '../components/ui/StatCard';
+import { useLibraries } from '../hooks/useLibraries';
 import { api } from '../services/api';
 
 interface HealthCheck {
@@ -41,11 +42,21 @@ interface StatusData {
 }
 
 export function Diagnostics() {
+  const { currentLibrary } = useLibraries();
   const [health, setHealth] = useState<HealthCheck | null>(null);
   const [status, setStatus] = useState<StatusData | null>(null);
   const [loading, setLoading] = useState(true);
   const [exportData, setExportData] = useState<unknown>(null);
   const [showExport, setShowExport] = useState(false);
+  const [gitInfo, setGitInfo] = useState<{
+    branch: string;
+    clean: boolean;
+    changed: number;
+  } | null>(null);
+  const [gitMessage, setGitMessage] = useState<string | null>(null);
+  const [providers, setProviders] = useState<{ id: string; name: string; type: string }[] | null>(
+    null
+  );
 
   const fetchHealth = async () => {
     try {
@@ -71,11 +82,53 @@ export function Diagnostics() {
     }
   };
 
+  const fetchIntegrations = async (libraryId?: string) => {
+    setGitInfo(null);
+    setGitMessage(null);
+    setProviders(null);
+    if (libraryId) {
+      try {
+        const res = (await api.get(`/git/${libraryId}/status`)) as unknown as {
+          success: boolean;
+          data: { status: { current: string | null; files: unknown[] } };
+        };
+        if (res.success) {
+          const files = res.data.status.files || [];
+          setGitInfo({
+            branch: res.data.status.current || 'detached',
+            clean: files.length === 0,
+            changed: files.length,
+          });
+        }
+      } catch {
+        setGitMessage('Not a git repository or git unavailable');
+      }
+    } else {
+      setGitMessage('Select a library to view git status');
+    }
+    try {
+      const res = (await api.get('/ai/providers')) as unknown as {
+        success: boolean;
+        data: { id: string; name: string; type: string }[];
+      };
+      if (res.success) setProviders(res.data);
+    } catch (error) {
+      console.error('Failed to fetch AI providers:', error);
+    }
+  };
+
+  const handleRefresh = () => {
+    setLoading(true);
+    fetchHealth();
+    fetchIntegrations(currentLibrary?.id);
+  };
+
   useEffect(() => {
     fetchHealth();
+    fetchIntegrations(currentLibrary?.id);
     const interval = setInterval(fetchHealth, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [currentLibrary?.id]);
 
   const formatBytes = (bytes: number) => {
     if (bytes === 0) return '0 B';
@@ -107,7 +160,7 @@ export function Diagnostics() {
         title="Diagnostics"
         actions={
           <>
-            <Button variant="secondary" size="sm" onClick={fetchHealth}>
+            <Button variant="secondary" size="sm" onClick={handleRefresh}>
               <RefreshCw className="w-4 h-4" aria-hidden="true" /> Refresh
             </Button>
             <Button
@@ -197,7 +250,26 @@ export function Diagnostics() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-sm text-fg-muted">Git integration status will appear here</div>
+              {gitInfo ? (
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-fg-muted">Branch</span>
+                    <span className="text-fg">{gitInfo.branch}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-fg-muted">Working tree</span>
+                    <Badge variant={gitInfo.clean ? 'success' : 'destructive'}>
+                      {gitInfo.clean ? 'Clean' : `${gitInfo.changed} changed`}
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-fg-muted">Library</span>
+                    <span className="text-fg truncate max-w-[160px]">{currentLibrary?.name}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-sm text-fg-muted">{gitMessage || 'Loading...'}</div>
+              )}
             </CardContent>
           </Card>
 
@@ -208,7 +280,20 @@ export function Diagnostics() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-sm text-fg-muted">AI provider status will appear here</div>
+              {providers === null ? (
+                <div className="text-sm text-fg-muted">Loading...</div>
+              ) : providers.length === 0 ? (
+                <div className="text-sm text-fg-muted">No AI providers configured</div>
+              ) : (
+                <div className="space-y-2 text-sm">
+                  {providers.map((p) => (
+                    <div key={p.id} className="flex justify-between">
+                      <span className="text-fg truncate max-w-[160px]">{p.name}</span>
+                      <Badge variant="success">{p.type}</Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
