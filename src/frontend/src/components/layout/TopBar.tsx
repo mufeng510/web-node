@@ -1,4 +1,4 @@
-import { Check, ChevronDown, Library, LogOut, Menu, PanelRightOpen } from 'lucide-react';
+import { Check, ChevronDown, Library, LogOut, Menu } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '../../lib/utils';
 import { IconButton } from '../ui/IconButton';
@@ -9,7 +9,6 @@ interface TopBarProps {
   currentLibrary: { id: string; name: string } | null;
   onLibraryChange: (libraryId: string) => void;
   onMenuClick: () => void;
-  onRightSidebarClick: () => void;
   onLogout: () => Promise<void>;
 }
 
@@ -19,7 +18,6 @@ export function TopBar({
   currentLibrary,
   onLibraryChange,
   onMenuClick,
-  onRightSidebarClick,
   onLogout,
 }: TopBarProps) {
   const [libraryMenuOpen, setLibraryMenuOpen] = useState(false);
@@ -139,10 +137,6 @@ export function TopBar({
 
       {/* Right side actions */}
       <div className="flex items-center gap-1 lg:gap-2">
-        <IconButton onClick={onRightSidebarClick} aria-label="Open right sidebar">
-          <PanelRightOpen className="w-5 h-5" />
-        </IconButton>
-
         {user && (
           <IconButton onClick={onLogout} aria-label="Log out">
             <LogOut className="w-5 h-5" />
