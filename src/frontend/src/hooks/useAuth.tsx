@@ -50,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (statusResponse.data?.needsSetup) {
         setNeedsSetup(true);
         setLoading(false);
+        setSuppressAuthRedirect(false);
         return;
       }
       setSetupComplete(true);
@@ -58,6 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // This prevents redirecting to /login when the DB query fails
       setNeedsSetup(true);
       setLoading(false);
+      setSuppressAuthRedirect(false);
     }
   }, []);
 
@@ -71,13 +73,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    await api.post('/auth/logout');
-    setUser(null);
+    try {
+      await api.post('/auth/logout');
+    } finally {
+      setUser(null);
+    }
   };
 
   const logoutAll = async () => {
-    await api.post('/auth/logout-all');
-    setUser(null);
+    try {
+      await api.post('/auth/logout-all');
+    } finally {
+      setUser(null);
+    }
   };
 
   const changePassword = async (currentPassword: string, newPassword: string) => {
