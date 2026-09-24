@@ -15,10 +15,10 @@ const editorRoutes = new Hono();
 
 editorRoutes.use('*', authMiddleware());
 
-editorRoutes.get('/:libraryId/*/wikilinks', async (c) => {
+editorRoutes.get('/:libraryId/:filePath{.+$}/wikilinks', async (c) => {
   const userId = c.get('userId');
   const libraryId = c.req.param('libraryId');
-  const _filePath = c.req.param('*') || '';
+  const _filePath = c.req.param('filePath') || '';
   const query = c.req.query('q') || '';
 
   await checkLibraryAccess(userId, libraryId);
@@ -132,10 +132,10 @@ editorRoutes.post(
   }
 );
 
-editorRoutes.get('/:libraryId/*/backlinks', async (c) => {
+editorRoutes.get('/:libraryId/:filePath{.+$}/backlinks', async (c) => {
   const userId = c.get('userId');
   const libraryId = c.req.param('libraryId');
-  const filePath = c.req.param('*') || '';
+  const filePath = c.req.param('filePath') || '';
 
   const { library } = await checkLibraryAccess(userId, libraryId);
   const db = getDb();
