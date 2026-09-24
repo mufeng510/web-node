@@ -1,15 +1,15 @@
 import { Database, Download, Lock, Palette, User, Wrench } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert } from '../components/ui/Alert';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Checkbox } from '../components/ui/Checkbox';
 import { Input } from '../components/ui/Input';
 import { PageHeader } from '../components/ui/PageHeader';
-import { Select } from '../components/ui/Select';
 import { Tabs } from '../components/ui/Tabs';
 import { useAuth } from '../hooks/useAuth';
 import { cn } from '../lib/utils';
+import { api } from '../services/api';
 
 type SettingsTab = 'account' | 'security' | 'appearance' | 'advanced';
 type ThemeChoice = 'light' | 'dark' | 'system';
@@ -36,9 +36,12 @@ export function Settings() {
   const [activeTab, setActiveTab] = useState<SettingsTab>('account');
   const [saving, setSaving] = useState(false);
 
-  // Account tab
-  const [email, setEmail] = useState(user?.email || '');
-  const [username, setUsername] = useState('');
+  // Account tab (display only; users router is admin-only)
+  const [email] = useState(user?.email || '');
+
+  // Advanced tab
+  const [advancedMsg, setAdvancedMsg] = useState('');
+  const [advancedBusy, setAdvancedBusy] = useState(false);
 
   // Security tab
   const [currentPassword, setCurrentPassword] = useState('');
@@ -50,8 +53,28 @@ export function Settings() {
 
   // Appearance tab
   const [theme, setTheme] = useState<ThemeChoice>(() => readStoredTheme());
-  const [fontSize, setFontSize] = useState(14);
-  const [language, setLanguage] = useState<'en' | 'zh-CN'>('en');
+  const [fontSize, setFontSize] = useState(16);
+  const fontSizeSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    document.documentElement.style.fontSize = `${fontSize}px`;
+  }, [fontSize]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = (await api.get('/settings')) as unknown as {
+          success: boolean;
+          data: { user: { fontSize?: number } };
+        };
+        if (res.success && typeof res.data.user.fontSize === 'number') {
+          setFontSize(res.data.user.fontSize);
+        }
+      } catch (error) {
+        console.error('Failed to load settings:', error);
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     try {
@@ -67,6 +90,61 @@ export function Settings() {
     query.addEventListener('change', onChange);
     return () => query.removeEventListener('change', onChange);
   }, [theme]);
+
+  const handleFontSizeChange = (value: number) => {
+    setFontSize(value);
+    if (fontSizeSaveTimer.current) clearTimeout(fontSizeSaveTimer.current);
+    fontSizeSaveTimer.current = setTimeout(async () => {
+      try {
+        await api.patch('/settings', { fontSize: value });
+      } catch (error) {
+        console.error('Failed to save font size:', error);
+      }
+    }, 500);
+  };
+
+  const handleExportConfig = async () => {
+    setAdvancedMsg('');
+    setAdvancedBusy(true);
+    try {
+      const res = (await api.get('/settings')) as unknown as {
+        success: boolean;
+        data: unknown;
+      };
+      if (!res.success) throw new Error('Export failed');
+      const blob = new Blob([JSON.stringify(res.data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'webnote-config.json';
+      a.click();
+      URL.revokeObjectURL(url);
+      setAdvancedMsg('Configuration exported');
+    } catch (error) {
+      console.error('Failed to export config:', error);
+      setAdvancedMsg(error instanceof Error ? error.message : 'Export failed');
+    } finally {
+      setAdvancedBusy(false);
+    }
+  };
+
+  const handleBackupDatabase = async () => {
+    setAdvancedMsg('');
+    setAdvancedBusy(true);
+    try {
+      const res = (await api.post('/backup', {})) as unknown as {
+        success: boolean;
+        data: { size: number };
+      };
+      if (!res.success) throw new Error('Backup failed');
+      setAdvancedMsg(`Database backup completed (${res.data.size} bytes)`);
+    } catch (error) {
+      console.error('Failed to back up database:', error);
+      setAdvancedMsg(error instanceof Error ? error.message : 'Backup failed');
+    } finally {
+      setAdvancedBusy(false);
+    }
+  };
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -128,18 +206,7 @@ export function Settings() {
                 <div>
                   <h2 className="text-lg font-medium text-fg mb-4">Account Information</h2>
                   <div className="space-y-4">
-                    <Input
-                      id="email"
-                      label="Email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                    />
-                    <Input
-                      id="username"
-                      label="Username"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                    />
+                    <Input id="email" label="Email" value={email} disabled />
                     <Input id="role" label="Role" value={user?.role || 'user'} disabled />
                   </div>
                 </div>
@@ -230,23 +297,11 @@ export function Settings() {
                       max="24"
                       value={fontSize}
                       aria-label="Font size"
-                      onChange={(e) => setFontSize(Number(e.target.value))}
+                      onChange={(e) => handleFontSizeChange(Number(e.target.value))}
                       className="flex-1 accent-primary"
                     />
                     <span className="text-sm text-fg-muted w-12">{fontSize}px</span>
                   </div>
-                </div>
-                <div>
-                  <h2 className="text-lg font-medium text-fg mb-4">Language</h2>
-                  <Select
-                    aria-label="Language"
-                    value={language}
-                    onChange={(e) => setLanguage(e.target.value as 'en' | 'zh-CN')}
-                    options={[
-                      { value: 'en', label: 'English' },
-                      { value: 'zh-CN', label: '中文 (简体)' },
-                    ]}
-                  />
                 </div>
               </div>
             )}
@@ -258,27 +313,27 @@ export function Settings() {
                     <CardTitle>Data Management</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    <Button variant="secondary" className="w-full justify-between">
+                    <Button
+                      variant="secondary"
+                      className="w-full justify-between"
+                      onClick={handleExportConfig}
+                      disabled={advancedBusy}
+                    >
                       <span>Export Application Config</span>
                       <Download className="w-4 h-4" aria-hidden="true" />
                     </Button>
-                    <Button variant="secondary" className="w-full justify-between">
+                    <Button
+                      variant="secondary"
+                      className="w-full justify-between"
+                      onClick={handleBackupDatabase}
+                      disabled={advancedBusy}
+                    >
                       <span>Backup Database</span>
                       <Database className="w-4 h-4" aria-hidden="true" />
                     </Button>
-                  </CardContent>
-                </Card>
-                <Card className="border-destructive/20 bg-destructive/5">
-                  <CardHeader>
-                    <CardTitle className="text-destructive">Danger Zone</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <p className="text-sm text-destructive">
-                      These actions are irreversible. Please proceed with caution.
-                    </p>
-                    <Button variant="destructive" className="w-full">
-                      Delete All Data
-                    </Button>
+                    {advancedMsg && (
+                      <output className="block text-sm text-fg-muted">{advancedMsg}</output>
+                    )}
                   </CardContent>
                 </Card>
               </div>
