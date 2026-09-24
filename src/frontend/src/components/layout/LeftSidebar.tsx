@@ -1,5 +1,5 @@
 import { ChevronRight, FileText, Folder } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import { routes } from '../../routes';
@@ -30,10 +30,6 @@ export function LeftSidebar({ library, className = '' }: LeftSidebarProps) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; node: TreeNode } | null>(
-    null
-  );
-  const contextMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!library?.id) {
@@ -85,20 +81,7 @@ export function LeftSidebar({ library, className = '' }: LeftSidebarProps) {
         navigate(routes.editor(library.id, node.relativePath));
       }
     }
-    setContextMenu(null);
   };
-
-  const handleContextMenu = (e: React.MouseEvent, node: TreeNode) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setContextMenu({ x: e.clientX, y: e.clientY, node });
-  };
-
-  useEffect(() => {
-    const handleClick = () => setContextMenu(null);
-    document.addEventListener('click', handleClick);
-    return () => document.removeEventListener('click', handleClick);
-  }, []);
 
   const renderNode = (node: TreeNode, depth = 0): React.ReactElement => {
     const isExpanded = expanded.has(node.relativePath);
@@ -106,7 +89,7 @@ export function LeftSidebar({ library, className = '' }: LeftSidebarProps) {
     const isSelected = selectedPath === node.relativePath;
 
     return (
-      <div key={node.id} onContextMenu={(e) => handleContextMenu(e, node)}>
+      <div key={node.id}>
         <div
           className={cn(
             'flex items-center gap-1.5 px-2 py-1.5 rounded-md cursor-pointer transition-colors duration-150',
