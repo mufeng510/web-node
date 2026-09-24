@@ -1,8 +1,20 @@
 import { and, eq, gt } from 'drizzle-orm';
+import type { Context } from 'hono';
 import { getEnv } from '../config/env.js';
 import { getDb } from '../db/index.js';
 import { sessions } from '../db/schema/sessions.js';
 import { generateSecureToken, hashSecret } from '../utils/crypto.js';
+
+/** Secure flag follows the actual request scheme, not NODE_ENV. */
+export function cookieSecureAttr(c: Context): string {
+  const forwarded = c.req.header('x-forwarded-proto');
+  if (forwarded) return forwarded.split(',')[0]?.trim().toLowerCase() === 'https' ? '; Secure' : '';
+  try {
+    return new URL(c.req.url).protocol === 'https:' ? '; Secure' : '';
+  } catch {
+    return '';
+  }
+}
 
 export async function createSession(userId: string, deviceInfo?: string, ip?: string) {
   const env = getEnv();

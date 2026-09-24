@@ -1,5 +1,6 @@
 import type { Context, Next } from 'hono';
 import { getEnv } from '../../config/env.js';
+import { cookieSecureAttr } from '../../middleware/auth.js';
 import { generateSecureToken, hashSecret } from '../../utils/crypto.js';
 
 export { hashSecret };
@@ -22,7 +23,7 @@ export function verifyCsrfToken(token: string, hash: string): boolean {
 
 export function setCsrfCookie(c: Context, token: string) {
   const env = getEnv();
-  const secure = env.NODE_ENV === 'production' ? '; Secure' : '';
+  const secure = cookieSecureAttr(c);
   c.header(
     'Set-Cookie',
     `${CSRF_COOKIE_NAME}=${hashSecret(token)}; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=${env.SESSION_MAX_AGE_DAYS * 24 * 60 * 60}`

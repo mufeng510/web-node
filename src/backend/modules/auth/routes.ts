@@ -8,6 +8,7 @@ import { sessions } from '../../db/schema/sessions.js';
 import { users } from '../../db/schema/users.js';
 import { auditLog } from '../../middleware/audit.js';
 import {
+  cookieSecureAttr,
   createSession,
   extractTokenFromCookie,
   getUserSessions,
@@ -92,7 +93,7 @@ auth.post('/setup', zValidator('json', setupSchema), async (c) => {
   );
   const csrfToken = generateCsrfToken();
 
-  const secure = getEnv().NODE_ENV === 'production' ? '; Secure' : '';
+  const secure = cookieSecureAttr(c);
   const sessionMaxAge = getEnv().SESSION_MAX_AGE_DAYS * 24 * 60 * 60;
   const sessionCookie = `${getEnv().SESSION_COOKIE_NAME}=${token}; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=${sessionMaxAge}`;
   const csrfCookie = `${getEnv().CSRF_COOKIE_NAME}=${hashSecret(csrfToken)}; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=${sessionMaxAge}`;
@@ -151,7 +152,7 @@ auth.post('/login', zValidator('json', loginSchema), async (c) => {
   );
   const csrfToken = generateCsrfToken();
 
-  const secure = getEnv().NODE_ENV === 'production' ? '; Secure' : '';
+  const secure = cookieSecureAttr(c);
   const sessionCookie = `${getEnv().SESSION_COOKIE_NAME}=${token}; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=${maxAge}`;
   const csrfCookie = `${getEnv().CSRF_COOKIE_NAME}=${hashSecret(csrfToken)}; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=${maxAge}`;
   c.header('Set-Cookie', [sessionCookie, csrfCookie]);
@@ -179,7 +180,7 @@ auth.post('/logout', async (c) => {
     await revokeSession(token);
   }
 
-  const secure = getEnv().NODE_ENV === 'production' ? '; Secure' : '';
+  const secure = cookieSecureAttr(c);
   const sessionClear = `${getEnv().SESSION_COOKIE_NAME}=; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=0`;
   const csrfClear = `${getEnv().CSRF_COOKIE_NAME}=; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=0`;
   c.header('Set-Cookie', [sessionClear, csrfClear]);
@@ -200,7 +201,7 @@ auth.post('/logout-all', async (c) => {
 
   await revokeAllSessions(userId, token);
 
-  const secure = getEnv().NODE_ENV === 'production' ? '; Secure' : '';
+  const secure = cookieSecureAttr(c);
   const sessionClear = `${getEnv().SESSION_COOKIE_NAME}=; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=0`;
   const csrfClear = `${getEnv().CSRF_COOKIE_NAME}=; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=0`;
   c.header('Set-Cookie', [sessionClear, csrfClear]);
@@ -245,7 +246,7 @@ auth.post('/change-password', zValidator('json', changePasswordSchema), async (c
 
   await changePassword(userId, currentPassword, newPassword);
 
-  const secure = getEnv().NODE_ENV === 'production' ? '; Secure' : '';
+  const secure = cookieSecureAttr(c);
   const sessionClear = `${getEnv().SESSION_COOKIE_NAME}=; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=0`;
   const csrfClear = `${getEnv().CSRF_COOKIE_NAME}=; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=0`;
   c.header('Set-Cookie', [sessionClear, csrfClear]);
