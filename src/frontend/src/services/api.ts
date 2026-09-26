@@ -15,6 +15,14 @@ export function setSuppressAuthRedirect(value: boolean) {
   suppressAuthRedirect = value;
 }
 
+export function withSuppressedAuthRedirect<T>(fn: () => Promise<T>): Promise<T> {
+  const prev = suppressAuthRedirect;
+  suppressAuthRedirect = true;
+  return fn().finally(() => {
+    suppressAuthRedirect = prev;
+  });
+}
+
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   if (csrfToken && ['post', 'put', 'patch', 'delete'].includes(config.method || '')) {
     config.headers['x-csrf-token'] = csrfToken;

@@ -15,6 +15,7 @@ import {
   revokeAllSessions,
   revokeSession,
 } from '../../middleware/auth.js';
+import { authMiddleware } from '../../middleware/auth.middleware.js';
 import { AuthenticationError, NotFoundError } from '../../utils/errors.js';
 import { createId } from '../../utils/id.js';
 import { generateCsrfToken, hashSecret } from './csrf.js';
@@ -195,7 +196,7 @@ auth.post('/logout', async (c) => {
   return c.json({ success: true });
 });
 
-auth.post('/logout-all', async (c) => {
+auth.post('/logout-all', authMiddleware(), async (c) => {
   const userId = c.get('userId');
   const token = extractTokenFromCookie(c.req.header('cookie'), getEnv().SESSION_COOKIE_NAME);
 
@@ -216,7 +217,7 @@ auth.post('/logout-all', async (c) => {
   return c.json({ success: true });
 });
 
-auth.get('/me', async (c) => {
+auth.get('/me', authMiddleware(), async (c) => {
   const userId = c.get('userId');
   if (!userId) {
     return c.json(
@@ -240,28 +241,33 @@ auth.get('/me', async (c) => {
   });
 });
 
-auth.post('/change-password', zValidator('json', changePasswordSchema), async (c) => {
-  const userId = c.get('userId');
-  const { currentPassword, newPassword } = c.req.valid('json');
+auth.post(
+  '/change-password',
+  authMiddleware(),
+  zValidator('json', changePasswordSchema),
+  async (c) => {
+    const userId = c.get('userId');
+    const { currentPassword, newPassword } = c.req.valid('json');
 
-  await changePassword(userId, currentPassword, newPassword);
+    await changePassword(userId, currentPassword, newPassword);
 
-  const secure = cookieSecureAttr(c);
-  const sessionClear = `${getEnv().SESSION_COOKIE_NAME}=; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=0`;
-  const csrfClear = `${getEnv().CSRF_COOKIE_NAME}=; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=0`;
-  c.header('Set-Cookie', [sessionClear, csrfClear]);
+    const secure = cookieSecureAttr(c);
+    const sessionClear = `${getEnv().SESSION_COOKIE_NAME}=; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=0`;
+    const csrfClear = `${getEnv().CSRF_COOKIE_NAME}=; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=0`;
+    c.header('Set-Cookie', [sessionClear, csrfClear]);
 
-  auditLog({
-    userId,
-    action: 'auth.password_change',
-    resourceType: 'user',
-    resourceId: userId,
-  });
+    auditLog({
+      userId,
+      action: 'auth.password_change',
+      resourceType: 'user',
+      resourceId: userId,
+    });
 
-  return c.json({ success: true });
-});
+    return c.json({ success: true });
+  }
+);
 
-auth.get('/sessions', async (c) => {
+auth.get('/sessions', authMiddleware(), async (c) => {
   const userId = c.get('userId');
   const sessions = await getUserSessions(userId);
   const currentToken = extractTokenFromCookie(c.req.header('cookie'), getEnv().SESSION_COOKIE_NAME);
@@ -281,9 +287,12 @@ auth.get('/sessions', async (c) => {
   });
 });
 
-auth.delete('/sessions/:id', async (c) => {
+auth.delete('/sessions/:id', authMiddleware(), async (c) => {
   const userId = c.get('userId');
   const sessionId = c.req.param('id');
+  if (!sessionId) {
+    throw new NotFoundError('Session', 'unknown');
+  }
   const db = getDb();
 
   const session = await db.query.sessions.findFirst({

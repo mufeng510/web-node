@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { Layout } from './components/layout/Layout';
 import { useAuth } from './hooks/useAuth';
 import { Dashboard } from './pages/Dashboard';
@@ -51,6 +51,21 @@ function SetupRedirect() {
   return null;
 }
 
+function NotFound() {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-bg px-6 text-center">
+      <p className="text-5xl font-semibold text-fg">404</p>
+      <p className="text-sm text-fg-muted">This page doesn&apos;t exist or was moved.</p>
+      <Link
+        to="/"
+        className="px-4 py-2 rounded-md bg-primary text-primary-fg text-sm font-medium hover:bg-primary-hover transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+      >
+        Back to dashboard
+      </Link>
+    </div>
+  );
+}
+
 export function App() {
   return (
     <BrowserRouter>
@@ -84,6 +99,7 @@ export function App() {
           <Route path="/editor/:libraryId/*" element={<Editor />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/diagnostics" element={<Diagnostics />} />
+          <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
     </BrowserRouter>

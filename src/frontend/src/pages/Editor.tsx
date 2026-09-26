@@ -1,5 +1,6 @@
 import { isAxiosError } from 'axios';
 import {
+  ArrowLeft,
   Bold,
   Code,
   Heading2,
@@ -13,7 +14,7 @@ import {
 } from 'lucide-react';
 import { marked } from 'marked';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Spinner } from '../components/ui/Spinner';
@@ -40,6 +41,7 @@ const viewOptions = [
 export function Editor() {
   const { libraryId, '*': splat } = useParams<{ libraryId: string; '*': string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [notePath, setNotePath] = useState<string>('');
   const [content, setContent] = useState('');
   const [view, setView] = useState<EditorView>('split');
@@ -49,6 +51,16 @@ export function Editor() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(true);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const pathInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const state = location.state as { newNote?: boolean } | null;
+    if (state?.newNote) {
+      pathInputRef.current?.focus();
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!libraryId) return;
@@ -191,8 +203,23 @@ export function Editor() {
   return (
     <div className="flex-1 flex flex-col min-h-0">
       <div className="flex flex-wrap items-center justify-between gap-2 p-3 border-b border-border bg-bg-elevated/50">
-        <div className="flex items-center gap-3 min-w-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <button
+            type="button"
+            onClick={() => navigate(routes.home)}
+            aria-label="Back to dashboard"
+            className="p-1.5 rounded-md text-fg-muted hover:text-fg hover:bg-bg-hover transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg flex-shrink-0"
+          >
+            <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+          </button>
+          <nav
+            aria-label="Breadcrumb"
+            className="hidden md:flex items-center gap-1 text-sm text-fg-muted flex-shrink-0"
+          >
+            <span className="truncate max-w-[120px]">{splat ? notePath || splat : 'New note'}</span>
+          </nav>
           <Input
+            ref={pathInputRef}
             aria-label="Note path"
             value={notePath}
             onChange={(e) => setNotePath(e.target.value)}

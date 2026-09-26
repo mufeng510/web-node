@@ -1,6 +1,15 @@
-import { ChevronRight, FileText, Folder } from 'lucide-react';
+import {
+  ChevronRight,
+  FileText,
+  Folder,
+  FolderGit2,
+  Home,
+  Plus,
+  Settings,
+  Wrench,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import { routes } from '../../routes';
 import { api } from '../../services/api';
@@ -146,8 +155,47 @@ export function LeftSidebar({ library, className = '' }: LeftSidebarProps) {
         className
       )}
     >
-      <div className="px-3 py-3 border-b border-border">
+      <nav className="px-2 py-2 border-b border-border space-y-0.5" aria-label="Primary">
+        {[
+          { to: routes.home, label: 'Dashboard', icon: Home, end: true },
+          ...(library?.id
+            ? [{ to: routes.editor(library.id), label: 'Library', icon: FolderGit2, end: false }]
+            : []),
+          { to: routes.settings, label: 'Settings', icon: Settings, end: false },
+          { to: routes.diagnostics, label: 'Diagnostics', icon: Wrench, end: false },
+        ].map((item) => {
+          const Icon = item.icon;
+          return (
+            <NavLink
+              key={item.label}
+              to={item.to}
+              end={item.end}
+              className={({ isActive }) =>
+                cn(
+                  'flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors duration-150',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
+                  isActive ? 'bg-primary/10 text-primary font-medium' : 'text-fg hover:bg-bg-hover'
+                )
+              }
+            >
+              <Icon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+              {item.label}
+            </NavLink>
+          );
+        })}
+      </nav>
+      <div className="px-3 py-3 border-b border-border flex items-center justify-between">
         <h2 className="text-xs font-medium text-fg-muted uppercase tracking-wider">Files</h2>
+        {library?.id && (
+          <button
+            type="button"
+            onClick={() => navigate(routes.editor(library.id), { state: { newNote: true } })}
+            aria-label="New note"
+            className="p-1 rounded-md text-fg-muted hover:text-fg hover:bg-bg-hover transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+          >
+            <Plus className="w-4 h-4" aria-hidden="true" />
+          </button>
+        )}
       </div>
       <div className="flex-1 overflow-y-auto p-2">
         {loading ? (

@@ -1,4 +1,4 @@
-import { FolderGit2, LayoutDashboard, Settings, Wrench } from 'lucide-react';
+import { FolderGit2, LayoutDashboard, Plus, Settings } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import { routes } from '../../routes';
@@ -30,10 +30,6 @@ export function BottomNav({ currentLibrary, onLibraryChange, className = '' }: B
           <LayoutDashboard className="w-6 h-6" aria-hidden="true" />
           <span className="text-xs">Home</span>
         </Link>
-        <Link to="/settings" className={linkStyles}>
-          <Settings className="w-6 h-6" aria-hidden="true" />
-          <span className="text-xs">Settings</span>
-        </Link>
         <button
           type="button"
           onClick={() => {
@@ -50,9 +46,25 @@ export function BottomNav({ currentLibrary, onLibraryChange, className = '' }: B
           <FolderGit2 className="w-6 h-6" aria-hidden="true" />
           <span className="text-xs">Library</span>
         </button>
-        <Link to="/diagnostics" className={linkStyles}>
-          <Wrench className="w-6 h-6" aria-hidden="true" />
-          <span className="text-xs">Diagnostics</span>
+        <button
+          type="button"
+          onClick={() => {
+            if (currentLibrary?.id) {
+              onLibraryChange(currentLibrary.id);
+              navigate(routes.editor(currentLibrary.id), { state: { newNote: true } });
+            } else {
+              navigate('/');
+            }
+          }}
+          className={linkStyles}
+          aria-label="New note"
+        >
+          <Plus className="w-6 h-6" aria-hidden="true" />
+          <span className="text-xs">New</span>
+        </button>
+        <Link to="/settings" className={linkStyles}>
+          <Settings className="w-6 h-6" aria-hidden="true" />
+          <span className="text-xs">Settings</span>
         </Link>
       </div>
     </nav>

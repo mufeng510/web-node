@@ -14,14 +14,6 @@ export function Layout() {
   const { user, logout } = useAuth();
   const { libraries, currentLibrary, setCurrentLibrary, loading: libLoading } = useLibraries();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 1024);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
 
   useEffect(() => {
     if (currentLibrary && libraries.length > 0) {
@@ -69,9 +61,9 @@ export function Layout() {
           onLibraryChange={handleLibraryChange}
         />
 
-        <LeftSidebar library={currentLibrary} className={isMobile ? 'hidden lg:block' : ''} />
+        <LeftSidebar library={currentLibrary} className="hidden lg:flex" />
 
-        <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <main className="flex-1 flex flex-col min-w-0 overflow-hidden pb-[var(--bottom-nav-h)] lg:pb-0">
           <Outlet />
         </main>
       </div>

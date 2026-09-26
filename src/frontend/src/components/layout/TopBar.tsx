@@ -1,6 +1,8 @@
-import { Check, ChevronDown, Library, LogOut, Menu } from 'lucide-react';
+import { Check, ChevronDown, Library, LogOut, Menu, NotebookPen, Settings } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { cn } from '../../lib/utils';
+import { routes } from '../../routes';
 import { IconButton } from '../ui/IconButton';
 
 interface TopBarProps {
@@ -23,6 +25,7 @@ export function TopBar({
   const [libraryMenuOpen, setLibraryMenuOpen] = useState(false);
   const libraryMenuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!libraryMenuOpen) return;
@@ -56,6 +59,16 @@ export function TopBar({
       <IconButton onClick={onMenuClick} aria-label="Open menu" className="lg:hidden">
         <Menu className="w-5 h-5" />
       </IconButton>
+
+      {/* Logo → dashboard (desktop primary nav anchor) */}
+      <Link
+        to="/"
+        aria-label="Web Note home"
+        className="hidden sm:flex items-center gap-2 mr-2 flex-shrink-0 rounded-md px-1 py-1 text-fg transition-colors duration-150 hover:bg-bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+      >
+        <NotebookPen className="w-5 h-5 text-primary" aria-hidden="true" />
+        <span className="text-sm font-semibold tracking-tight">Web Note</span>
+      </Link>
 
       {/* Library switcher - visible on all screen sizes */}
       <div className="flex items-center gap-3 flex-1 lg:max-w-xs">
@@ -137,6 +150,21 @@ export function TopBar({
 
       {/* Right side actions */}
       <div className="flex items-center gap-1 lg:gap-2">
+        {currentLibrary && (
+          <IconButton
+            onClick={() => navigate(routes.editor(currentLibrary.id), { state: { newNote: true } })}
+            aria-label="New note"
+          >
+            <NotebookPen className="w-5 h-5" />
+          </IconButton>
+        )}
+        <Link
+          to={routes.settings}
+          aria-label="Settings"
+          className="inline-flex items-center justify-center rounded-md p-2 text-fg-muted transition-colors duration-150 hover:text-fg hover:bg-bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg [&_svg]:w-5 [&_svg]:h-5"
+        >
+          <Settings className="w-5 h-5" aria-hidden="true" />
+        </Link>
         {user && (
           <IconButton onClick={onLogout} aria-label="Log out">
             <LogOut className="w-5 h-5" />

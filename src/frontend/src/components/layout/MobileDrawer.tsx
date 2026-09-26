@@ -78,6 +78,15 @@ export function MobileDrawer({
         <nav className="flex-1 px-3 py-3 space-y-1 overflow-y-auto" aria-label="Primary">
           {[
             { href: '/', label: 'Dashboard', icon: Home },
+            ...(currentLibrary?.id
+              ? [
+                  {
+                    href: `/editor/${currentLibrary.id}`,
+                    label: 'Library',
+                    icon: FolderGit2,
+                  },
+                ]
+              : []),
             { href: '/settings', label: 'Settings', icon: Settings },
             { href: '/diagnostics', label: 'Diagnostics', icon: Wrench },
           ].map((item) => {

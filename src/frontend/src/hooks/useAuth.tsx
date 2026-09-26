@@ -1,5 +1,5 @@
 import { type ReactNode, createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { api, setSuppressAuthRedirect } from '../services/api';
+import { api, setSuppressAuthRedirect, withSuppressedAuthRedirect } from '../services/api';
 
 interface User {
   id: string;
@@ -31,7 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const response = await api.get('/auth/me');
       if (response.success) {
-        setUser(response.data.user);
+        setUser(response.data.user ?? response.data);
       } else {
         setUser(null);
       }
@@ -64,12 +64,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string, rememberMe = false) => {
-    const response = await api.post('/auth/login', { email, password, rememberMe });
-    if (response.success) {
-      setUser(response.data.user);
-    } else {
-      throw new Error(response.error?.message || 'Login failed');
-    }
+    await withSuppressedAuthRedirect(async () => {
+      const response = await api.post('/auth/login', { email, password, rememberMe });
+      if (response.success) {
+        setUser(response.data.user);
+      } else {
+        throw new Error(response.error?.message || 'Login failed');
+      }
+    });
   };
 
   const logout = async () => {
@@ -89,10 +91,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const changePassword = async (currentPassword: string, newPassword: string) => {
-    const response = await api.post('/auth/change-password', { currentPassword, newPassword });
-    if (!response.success) {
-      throw new Error(response.error?.message || 'Failed to change password');
-    }
+    await withSuppressedAuthRedirect(async () => {
+      const response = await api.post('/auth/change-password', { currentPassword, newPassword });
+      if (!response.success) {
+        throw new Error(response.error?.message || 'Failed to change password');
+      }
+    });
   };
 
   const setup = async (email: string, password: string) => {
