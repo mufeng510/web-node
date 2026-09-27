@@ -66,7 +66,7 @@ libraryRoutes.post(
       aiIndex: z
         .object({
           enabled: z.boolean().default(true),
-          providerId: z.string().uuid().optional(),
+          providerId: z.string().min(1).optional(),
           embedModel: z.string().optional(),
           chunkSize: z.number().int().positive().default(512),
           chunkOverlap: z.number().int().nonnegative().default(50),
@@ -289,7 +289,7 @@ libraryRoutes.patch(
       aiIndex: z
         .object({
           enabled: z.boolean().optional(),
-          providerId: z.string().uuid().optional(),
+          providerId: z.string().min(1).optional(),
           embedModel: z.string().optional(),
           chunkSize: z.number().int().positive().optional(),
           chunkOverlap: z.number().int().nonnegative().optional(),
@@ -428,7 +428,7 @@ libraryRoutes.post(
   zValidator(
     'json',
     z.object({
-      userId: z.string().uuid(),
+      userId: z.string().min(1),
       permission: z.enum(['read', 'write', 'admin']).default('write'),
     })
   ),
@@ -496,7 +496,7 @@ libraryRoutes.post(
   zValidator(
     'json',
     z.object({
-      newOwnerId: z.string().uuid(),
+      newOwnerId: z.string().min(1),
     })
   ),
   async (c) => {

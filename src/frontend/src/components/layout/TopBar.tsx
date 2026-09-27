@@ -1,8 +1,19 @@
-import { Check, ChevronDown, Library, LogOut, Menu, NotebookPen, Settings } from 'lucide-react';
+import {
+  Bell,
+  Check,
+  ChevronDown,
+  Library,
+  LogOut,
+  Menu,
+  NotebookPen,
+  Search,
+  Settings,
+} from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import { routes } from '../../routes';
+import { api } from '../../services/api';
 import { IconButton } from '../ui/IconButton';
 
 interface TopBarProps {
@@ -26,6 +37,8 @@ export function TopBar({
   const libraryMenuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const navigate = useNavigate();
+  const [searchInput, setSearchInput] = useState('');
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     if (!libraryMenuOpen) return;
@@ -52,6 +65,28 @@ export function TopBar({
       document.removeEventListener('keydown', handleEscape);
     };
   }, [libraryMenuOpen]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchUnread = async () => {
+      try {
+        const res = (await api.get('/notifications', {
+          params: { limit: '1', unreadOnly: true },
+        })) as unknown as { success: boolean; data: { items: unknown[]; hasMore: boolean } };
+        if (!cancelled && res.success) {
+          setUnreadCount(res.data.hasMore ? 2 : res.data.items.length > 0 ? 1 : 0);
+        }
+      } catch {
+        // notifications unavailable: hide badge
+      }
+    };
+    fetchUnread();
+    const timer = setInterval(fetchUnread, 60000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, []);
 
   return (
     <header className="h-[var(--topbar-h)] bg-bg/80 backdrop-blur-sm border-b border-border flex items-center justify-between px-4 lg:px-6">
@@ -150,6 +185,48 @@ export function TopBar({
 
       {/* Right side actions */}
       <div className="flex items-center gap-1 lg:gap-2">
+        <form
+          className="hidden md:flex items-center"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (searchInput.trim()) {
+              navigate(`${routes.search}?q=${encodeURIComponent(searchInput.trim())}`);
+              setSearchInput('');
+            }
+          }}
+        >
+          <div className="relative">
+            <Search
+              className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-fg-subtle pointer-events-none"
+              aria-hidden="true"
+            />
+            <input
+              type="search"
+              aria-label="Search notes"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Search…"
+              className="w-40 lg:w-52 bg-bg-elevated border border-border rounded-md pl-8 pr-2 py-1.5 text-sm text-fg placeholder-fg-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+          </div>
+        </form>
+        <Link
+          to={routes.notifications}
+          aria-label={
+            unreadCount > 0
+              ? `Notifications, ${unreadCount > 1 ? 'multiple' : 'one'} unread`
+              : 'Notifications'
+          }
+          className="relative inline-flex items-center justify-center rounded-md p-2 text-fg-muted transition-colors duration-150 hover:text-fg hover:bg-bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg [&_svg]:w-5 [&_svg]:h-5"
+        >
+          <Bell className="w-5 h-5" aria-hidden="true" />
+          {unreadCount > 0 && (
+            <span
+              className="absolute top-1 right-1 w-2 h-2 rounded-full bg-destructive"
+              aria-hidden="true"
+            />
+          )}
+        </Link>
         {currentLibrary && (
           <IconButton
             onClick={() => navigate(routes.editor(currentLibrary.id), { state: { newNote: true } })}

@@ -19,10 +19,10 @@ agentRoutes.post(
   zValidator(
     'json',
     z.object({
-      conversationId: z.string().uuid(),
+      conversationId: z.string().min(1),
       goal: z.string().min(1).max(5000),
-      libraryId: z.string().uuid(),
-      providerId: z.string().uuid().optional(),
+      libraryId: z.string().min(1),
+      providerId: z.string().min(1).optional(),
       model: z.string().optional(),
       parameters: z
         .object({
@@ -91,7 +91,7 @@ agentRoutes.get(
   zValidator(
     'query',
     z.object({
-      libraryId: z.string().uuid().optional(),
+      libraryId: z.string().min(1).optional(),
       status: z.string().optional(),
       limit: z.coerce.number().int().positive().max(100).default(20),
       cursor: z.string().optional(),
@@ -102,22 +102,27 @@ agentRoutes.get(
     const { libraryId, status, limit, cursor } = c.req.valid('query');
     const db = getDb();
 
-    let query = db.select().from(tasks).where(eq(tasks.userId, userId));
+    const conditions = [eq(tasks.userId, userId)];
 
     if (libraryId) {
       await checkLibraryAccess(userId, libraryId);
-      query = query.where(eq(tasks.libraryId, libraryId));
+      conditions.push(eq(tasks.libraryId, libraryId));
     }
 
     if (status) {
-      query = query.where(eq(tasks.status, status));
+      conditions.push(eq(tasks.status, status));
     }
 
     if (cursor) {
-      query = query.where(gt(tasks.createdAt, new Date(cursor)));
+      conditions.push(gt(tasks.createdAt, new Date(cursor)));
     }
 
-    query = query.orderBy(desc(tasks.createdAt)).limit(limit + 1);
+    const query = db
+      .select()
+      .from(tasks)
+      .where(and(...conditions))
+      .orderBy(desc(tasks.createdAt))
+      .limit(limit + 1);
 
     const results = await query.execute();
     const hasMore = results.length > limit;

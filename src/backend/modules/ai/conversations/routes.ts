@@ -1,5 +1,5 @@
 import { zValidator } from '@hono/zod-validator';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, gt } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { getDb } from '../../../db/index.js';
@@ -17,7 +17,7 @@ conversationRoutes.get(
   zValidator(
     'query',
     z.object({
-      libraryId: z.string().uuid().optional(),
+      libraryId: z.string().min(1).optional(),
       limit: z.coerce.number().int().positive().max(100).default(20),
       cursor: z.string().optional(),
     })
@@ -27,21 +27,23 @@ conversationRoutes.get(
     const { libraryId, limit, cursor } = c.req.valid('query');
     const db = getDb();
 
-    let query = db
-      .select()
-      .from(conversations)
-      .where(and(eq(conversations.userId, userId), eq(conversations.isDeleted, false)));
+    const conditions = [and(eq(conversations.userId, userId), eq(conversations.isDeleted, false))];
 
     if (libraryId) {
       await checkLibraryAccess(userId, libraryId);
-      query = query.where(eq(conversations.libraryId, libraryId));
+      conditions.push(eq(conversations.libraryId, libraryId));
     }
 
     if (cursor) {
-      query = query.where(gt(conversations.updatedAt, new Date(cursor)));
+      conditions.push(gt(conversations.updatedAt, new Date(cursor)));
     }
 
-    query = query.orderBy(desc(conversations.updatedAt)).limit(limit + 1);
+    const query = db
+      .select()
+      .from(conversations)
+      .where(and(...conditions))
+      .orderBy(desc(conversations.updatedAt))
+      .limit(limit + 1);
 
     const results = await query.execute();
     const hasMore = results.length > limit;
@@ -121,9 +123,5 @@ conversationRoutes.delete('/:id', async (c) => {
 
   return c.json({ success: true });
 });
-
-function gt(column: string, value: Date | string | number) {
-  return { gt: [column, value] };
-}
 
 export default conversationRoutes;

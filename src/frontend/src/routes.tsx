@@ -8,4 +8,11 @@ export const routes = {
     }`,
   settings: '/settings',
   diagnostics: '/diagnostics',
+  search: '/search',
+  notifications: '/notifications',
+  tasks: '/tasks',
+  users: '/users',
+  audit: '/audit',
+  ai: '/ai',
+  mcp: '/mcp',
 } as const;

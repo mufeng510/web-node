@@ -1,5 +1,5 @@
 import { zValidator } from '@hono/zod-validator';
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq, gte, like, lt, lte } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { getDb } from '../../db/index.js';
@@ -15,8 +15,8 @@ auditRoutes.get(
   zValidator(
     'query',
     z.object({
-      userId: z.string().uuid().optional(),
-      libraryId: z.string().uuid().optional(),
+      userId: z.string().min(1).optional(),
+      libraryId: z.string().min(1).optional(),
       action: z.string().optional(),
       resourceType: z.string().optional(),
       startDate: z.string().datetime().optional(),
@@ -30,17 +30,22 @@ auditRoutes.get(
       c.req.valid('query');
     const db = getDb();
 
-    let query = db.select().from(auditLogs);
+    const conditions = [];
 
-    if (userId) query = query.where(eq(auditLogs.userId, userId));
-    if (libraryId) query = query.where(eq(auditLogs.libraryId, libraryId));
-    if (action) query = query.where(like(auditLogs.action, `%${action}%`));
-    if (resourceType) query = query.where(eq(auditLogs.resourceType, resourceType));
-    if (startDate) query = query.where(gte(auditLogs.createdAt, new Date(startDate)));
-    if (endDate) query = query.where(lte(auditLogs.createdAt, new Date(endDate)));
-    if (cursor) query = query.where(gt(auditLogs.createdAt, new Date(cursor)));
+    if (userId) conditions.push(eq(auditLogs.userId, userId));
+    if (libraryId) conditions.push(eq(auditLogs.libraryId, libraryId));
+    if (action) conditions.push(like(auditLogs.action, `%${action}%`));
+    if (resourceType) conditions.push(eq(auditLogs.resourceType, resourceType));
+    if (startDate) conditions.push(gte(auditLogs.createdAt, new Date(startDate)));
+    if (endDate) conditions.push(lte(auditLogs.createdAt, new Date(endDate)));
+    if (cursor) conditions.push(lt(auditLogs.createdAt, new Date(cursor)));
 
-    query = query.orderBy(desc(auditLogs.createdAt)).limit(limit + 1);
+    const query = db
+      .select()
+      .from(auditLogs)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(desc(auditLogs.createdAt))
+      .limit(limit + 1);
 
     const results = await query.execute();
     const hasMore = results.length > limit;
@@ -50,21 +55,5 @@ auditRoutes.get(
     return c.json({ success: true, data: { items, nextCursor, hasMore } });
   }
 );
-
-function like(column: string, pattern: string) {
-  return { like: [column, pattern] };
-}
-
-function gte(column: string, value: Date | string | number) {
-  return { gte: [column, value] };
-}
-
-function lte(column: string, value: Date | string | number) {
-  return { lte: [column, value] };
-}
-
-function gt(column: string, value: Date | string | number) {
-  return { gt: [column, value] };
-}
 
 export default auditRoutes;

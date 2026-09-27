@@ -1,4 +1,4 @@
-import { FolderGit2, LayoutDashboard, Plus, Settings } from 'lucide-react';
+import { FolderGit2, LayoutDashboard, Plus, Search, Settings } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import { routes } from '../../routes';
@@ -25,10 +25,14 @@ export function BottomNav({ currentLibrary, onLibraryChange, className = '' }: B
         className
       )}
     >
-      <div className="grid grid-cols-4">
+      <div className="grid grid-cols-5">
         <Link to="/" className={linkStyles}>
           <LayoutDashboard className="w-6 h-6" aria-hidden="true" />
           <span className="text-xs">Home</span>
+        </Link>
+        <Link to="/search" className={linkStyles}>
+          <Search className="w-6 h-6" aria-hidden="true" />
+          <span className="text-xs">Search</span>
         </Link>
         <button
           type="button"

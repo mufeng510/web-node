@@ -1,5 +1,5 @@
 import { zValidator } from '@hono/zod-validator';
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq, lt } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { getDb } from '../../db/index.js';
@@ -16,8 +16,8 @@ taskRoutes.get(
   zValidator(
     'query',
     z.object({
-      userId: z.string().uuid().optional(),
-      libraryId: z.string().uuid().optional(),
+      userId: z.string().min(1).optional(),
+      libraryId: z.string().min(1).optional(),
       status: z.string().optional(),
       limit: z.coerce.number().int().positive().max(100).default(20),
       cursor: z.string().optional(),
@@ -29,27 +29,32 @@ taskRoutes.get(
     const { userId: targetUserId, libraryId, status, limit, cursor } = c.req.valid('query');
     const db = getDb();
 
-    let query = db.select().from(tasks);
+    const conditions = [];
 
     if (userRole === 'admin' && targetUserId) {
-      query = query.where(eq(tasks.userId, targetUserId));
+      conditions.push(eq(tasks.userId, targetUserId));
     } else {
-      query = query.where(eq(tasks.userId, userId));
+      conditions.push(eq(tasks.userId, userId));
     }
 
     if (libraryId) {
-      query = query.where(eq(tasks.libraryId, libraryId));
+      conditions.push(eq(tasks.libraryId, libraryId));
     }
 
     if (status) {
-      query = query.where(eq(tasks.status, status as any));
+      conditions.push(eq(tasks.status, status as any));
     }
 
     if (cursor) {
-      query = query.where(gt(tasks.createdAt, new Date(cursor)));
+      conditions.push(lt(tasks.createdAt, new Date(cursor)));
     }
 
-    query = query.orderBy(desc(tasks.createdAt)).limit(limit + 1);
+    const query = db
+      .select()
+      .from(tasks)
+      .where(and(...conditions))
+      .orderBy(desc(tasks.createdAt))
+      .limit(limit + 1);
 
     const results = await query.execute();
     const hasMore = results.length > limit;

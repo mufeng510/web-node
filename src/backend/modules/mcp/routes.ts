@@ -1,5 +1,5 @@
 import { zValidator } from '@hono/zod-validator';
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq, inArray } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { getDb } from '../../db/index.js';
@@ -10,7 +10,7 @@ import { authMiddleware } from '../../middleware/auth.middleware.js';
 import { generateApiKey, hashSecret } from '../../utils/crypto.js';
 import { NotFoundError } from '../../utils/errors.js';
 import { createId } from '../../utils/id.js';
-import { checkLibraryAccess } from '../libraries/access.js';
+import { checkLibraryAccess, getAccessibleLibraries } from '../libraries/access.js';
 
 const mcpRoutes = new Hono();
 
@@ -21,7 +21,7 @@ mcpRoutes.get(
   zValidator(
     'query',
     z.object({
-      libraryId: z.string().uuid().optional(),
+      libraryId: z.string().min(1).optional(),
     })
   ),
   async (c) => {
@@ -29,20 +29,25 @@ mcpRoutes.get(
     const { libraryId } = c.req.valid('query');
     const db = getDb();
 
-    let query = db.select().from(mcpTokens).where(eq(mcpTokens.libraryId, libraryId!));
+    const conditions = [];
 
     if (libraryId) {
       await checkLibraryAccess(userId, libraryId);
-      query = query.where(eq(mcpTokens.libraryId, libraryId));
+      conditions.push(eq(mcpTokens.libraryId, libraryId));
     } else {
-      const { libraryMembers } = await import('../db/schema/libraries.js');
-      const { eq, and } = await import('drizzle-orm');
       const accessible = await getAccessibleLibraries(userId, c.get('userRole'));
       const ids = accessible.map((l) => l.id);
-      query = query.where(inArray(mcpTokens.libraryId, ids));
+      if (ids.length === 0) {
+        return c.json({ success: true, data: [] });
+      }
+      conditions.push(inArray(mcpTokens.libraryId, ids));
     }
 
-    query = query.orderBy(desc(mcpTokens.createdAt));
+    const query = db
+      .select()
+      .from(mcpTokens)
+      .where(and(...conditions))
+      .orderBy(desc(mcpTokens.createdAt));
 
     const tokens = await query.execute();
 
@@ -68,7 +73,7 @@ mcpRoutes.post(
     'json',
     z.object({
       name: z.string().min(1).max(100),
-      libraryId: z.string().uuid(),
+      libraryId: z.string().min(1),
       permissions: z.object({
         read: z.boolean().default(true),
         write: z.boolean().default(false),
@@ -186,22 +191,5 @@ mcpRoutes.get('/:tokenId/manifest', async (c) => {
     ],
   });
 });
-
-async function getAccessibleLibraries(userId: string, userRole: string) {
-  const db = getDb();
-  if (userRole === 'admin') return db.query.libraries.findMany();
-  const { libraryMembers } = await import('../db/schema/libraries.js');
-  const { eq, and } = await import('drizzle-orm');
-  const owned = await db.query.libraries.findMany({ where: eq(libraries.ownerId, userId) });
-  const memberships = await db.query.libraryMembers.findMany({
-    where: eq(libraryMembers.userId, userId),
-    with: { library: true },
-  });
-  return [...owned, ...memberships.map((m) => m.library).filter(Boolean)];
-}
-
-function inArray(column: any, values: any[]) {
-  return { in: [column, values] };
-}
 
 export default mcpRoutes;

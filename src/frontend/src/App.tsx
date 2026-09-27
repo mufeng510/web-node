@@ -1,12 +1,19 @@
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { Layout } from './components/layout/Layout';
 import { useAuth } from './hooks/useAuth';
+import { AI } from './pages/AI';
+import { Audit } from './pages/Audit';
 import { Dashboard } from './pages/Dashboard';
 import { Diagnostics } from './pages/Diagnostics';
 import { Editor } from './pages/Editor';
 import { Login } from './pages/Login';
+import { MCP } from './pages/MCP';
+import { Notifications } from './pages/Notifications';
+import { Search } from './pages/Search';
 import { Settings } from './pages/Settings';
 import { Setup } from './pages/Setup';
+import { Tasks } from './pages/Tasks';
+import { Users } from './pages/Users';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading, needsSetup } = useAuth();
@@ -21,6 +28,20 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
+}
+
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
+
+  if (user?.role !== 'admin') {
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;
@@ -97,8 +118,29 @@ export function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/editor/:libraryId" element={<Editor />} />
           <Route path="/editor/:libraryId/*" element={<Editor />} />
+          <Route path="/search" element={<Search />} />
+          <Route path="/notifications" element={<Notifications />} />
+          <Route path="/tasks" element={<Tasks />} />
+          <Route path="/ai" element={<AI />} />
+          <Route path="/mcp" element={<MCP />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/diagnostics" element={<Diagnostics />} />
+          <Route
+            path="/users"
+            element={
+              <AdminRoute>
+                <Users />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/audit"
+            element={
+              <AdminRoute>
+                <Audit />
+              </AdminRoute>
+            }
+          />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>

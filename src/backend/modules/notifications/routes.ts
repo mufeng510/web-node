@@ -1,5 +1,5 @@
 import { zValidator } from '@hono/zod-validator';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, lt } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { getDb } from '../../db/index.js';
@@ -25,17 +25,22 @@ notificationRoutes.get(
     const { limit, cursor, unreadOnly } = c.req.valid('query');
     const db = getDb();
 
-    let query = db.select().from(notifications).where(eq(notifications.userId, userId));
+    const conditions = [eq(notifications.userId, userId)];
 
     if (unreadOnly) {
-      query = query.where(eq(notifications.read, false));
+      conditions.push(eq(notifications.read, false));
     }
 
     if (cursor) {
-      query = query.where(gt(notifications.createdAt, new Date(cursor)));
+      conditions.push(lt(notifications.createdAt, new Date(cursor)));
     }
 
-    query = query.orderBy(desc(notifications.createdAt)).limit(limit + 1);
+    const query = db
+      .select()
+      .from(notifications)
+      .where(and(...conditions))
+      .orderBy(desc(notifications.createdAt))
+      .limit(limit + 1);
 
     const results = await query.execute();
     const hasMore = results.length > limit;
@@ -72,9 +77,5 @@ notificationRoutes.post('/read-all', async (c) => {
 
   return c.json({ success: true });
 });
-
-function gt(column: any, value: any) {
-  return { gt: [column, value] };
-}
 
 export default notificationRoutes;

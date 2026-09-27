@@ -11,6 +11,10 @@ vi.mock('@/frontend/src/services/api', () => ({
   api: { get: vi.fn() },
 }));
 
+vi.mock('@/frontend/src/hooks/useAuth', () => ({
+  useAuth: () => ({ user: { id: 'u1', email: 'admin@example.com', role: 'admin' } }),
+}));
+
 const mockedGet = api.get as unknown as ReturnType<typeof vi.fn>;
 
 const treeData = [

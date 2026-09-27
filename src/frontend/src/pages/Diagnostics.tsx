@@ -16,15 +16,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '../components/ui/Dialog';
+import { Input } from '../components/ui/Input';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Spinner } from '../components/ui/Spinner';
 import { StatCard } from '../components/ui/StatCard';
 import { useLibraries } from '../hooks/useLibraries';
 import { api } from '../services/api';
+import { formatDistanceToNow } from '../utils/format';
 
 interface HealthCheck {
   healthy: boolean;
@@ -57,6 +60,14 @@ export function Diagnostics() {
   const [providers, setProviders] = useState<{ id: string; name: string; type: string }[] | null>(
     null
   );
+  const [gitBusy, setGitBusy] = useState(false);
+  const [gitNotice, setGitNotice] = useState('');
+  const [showCommit, setShowCommit] = useState(false);
+  const [commitMessage, setCommitMessage] = useState('');
+  const [backups, setBackups] = useState<
+    { id: string; size: number; createdAt: string; status: string }[] | null
+  >(null);
+  const [migrations, setMigrations] = useState<unknown[] | null>(null);
 
   const fetchHealth = async () => {
     try {
@@ -86,6 +97,7 @@ export function Diagnostics() {
     setGitInfo(null);
     setGitMessage(null);
     setProviders(null);
+    setGitNotice('');
     if (libraryId) {
       try {
         const res = (await api.get(`/git/${libraryId}/status`)) as unknown as {
@@ -126,9 +138,57 @@ export function Diagnostics() {
   useEffect(() => {
     fetchHealth();
     fetchIntegrations(currentLibrary?.id);
+    fetchOps();
     const interval = setInterval(fetchHealth, 30000);
     return () => clearInterval(interval);
   }, [currentLibrary?.id]);
+
+  const fetchOps = async () => {
+    try {
+      const res = (await api.get('/backup', { params: { limit: '5' } })) as unknown as {
+        success: boolean;
+        data: { items: { id: string; size: number; createdAt: string; status: string }[] };
+      };
+      if (res.success) setBackups(res.data.items);
+    } catch (error) {
+      console.error('Failed to load backups:', error);
+    }
+    try {
+      const res = (await api.get('/migration/status')) as unknown as {
+        success: boolean;
+        data: { migrations: unknown[] };
+      };
+      if (res.success) setMigrations(res.data.migrations);
+    } catch (error) {
+      console.error('Failed to load migration status:', error);
+    }
+  };
+
+  const runGitOp = async (op: 'commit' | 'push' | 'pull', body: Record<string, unknown> = {}) => {
+    if (!currentLibrary?.id || gitBusy) return;
+    setGitBusy(true);
+    setGitNotice('');
+    try {
+      const res = (await api.post(`/git/${currentLibrary.id}/${op}`, body)) as unknown as {
+        success: boolean;
+        error?: { message?: string };
+      };
+      if (res.success) {
+        setGitNotice(
+          `${op === 'commit' ? 'Committed' : op === 'push' ? 'Pushed' : 'Pulled'} successfully.`
+        );
+        setShowCommit(false);
+        setCommitMessage('');
+        fetchIntegrations(currentLibrary.id);
+      } else {
+        setGitNotice(res.error?.message || `${op} failed`);
+      }
+    } catch (error) {
+      setGitNotice(error instanceof Error ? error.message : `${op} failed`);
+    } finally {
+      setGitBusy(false);
+    }
+  };
 
   const formatBytes = (bytes: number) => {
     if (bytes === 0) return '0 B';
@@ -266,6 +326,35 @@ export function Diagnostics() {
                     <span className="text-fg-muted">Library</span>
                     <span className="text-fg truncate max-w-[160px]">{currentLibrary?.name}</span>
                   </div>
+                  <div className="flex gap-2 pt-1 flex-wrap">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setShowCommit(true)}
+                      disabled={gitBusy || !currentLibrary}
+                    >
+                      Commit
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => runGitOp('push')}
+                      disabled={gitBusy || !currentLibrary}
+                    >
+                      {gitBusy ? 'Working…' : 'Push'}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => runGitOp('pull')}
+                      disabled={gitBusy || !currentLibrary}
+                    >
+                      {gitBusy ? 'Working…' : 'Pull'}
+                    </Button>
+                  </div>
+                  {gitNotice && (
+                    <output className="block text-sm text-fg-muted">{gitNotice}</output>
+                  )}
                 </div>
               ) : (
                 <div className="text-sm text-fg-muted">{gitMessage || 'Loading...'}</div>
@@ -296,8 +385,87 @@ export function Diagnostics() {
               )}
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Database className="w-5 h-5 text-fg-muted" aria-hidden="true" /> Backups
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {backups === null ? (
+                <div className="text-sm text-fg-muted">Loading...</div>
+              ) : backups.length === 0 ? (
+                <div className="text-sm text-fg-muted">
+                  No backups yet. Create one from Settings → Advanced.
+                </div>
+              ) : (
+                <ul className="space-y-1.5 text-sm">
+                  {backups.map((b) => (
+                    <li key={b.id} className="flex justify-between gap-2">
+                      <span className="text-fg-muted truncate">
+                        {formatDistanceToNow(b.createdAt)}
+                      </span>
+                      <span className="text-fg flex-shrink-0">
+                        {formatBytes(b.size)} · {b.status}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Server className="w-5 h-5 text-fg-muted" aria-hidden="true" /> Migrations
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {migrations === null ? (
+                <div className="text-sm text-fg-muted">Loading...</div>
+              ) : (
+                <div className="text-sm text-fg-muted">
+                  {migrations.length} applied migration{migrations.length === 1 ? '' : 's'}. Schema
+                  upgrades run via CLI.
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
+
+      <Dialog open={showCommit} onOpenChange={setShowCommit}>
+        <DialogContent size="sm">
+          <DialogHeader>
+            <DialogTitle>Commit changes</DialogTitle>
+            <DialogDescription>
+              Commit all current changes in {currentLibrary?.name}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="p-6">
+            <Input
+              aria-label="Commit message"
+              label="Message"
+              value={commitMessage}
+              onChange={(e) => setCommitMessage(e.target.value)}
+              placeholder="Describe your changes"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setShowCommit(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => runGitOp('commit', { message: commitMessage.trim() })}
+              disabled={gitBusy || !commitMessage.trim()}
+            >
+              {gitBusy ? 'Committing…' : 'Commit'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={showExport} onOpenChange={setShowExport}>
         <DialogContent size="lg">

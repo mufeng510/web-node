@@ -1,5 +1,5 @@
 import { zValidator } from '@hono/zod-validator';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq, gt } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { getDb } from '../../../db/index.js';
@@ -19,7 +19,7 @@ chatRoutes.post(
   zValidator(
     'json',
     z.object({
-      libraryId: z.string().uuid(),
+      libraryId: z.string().min(1),
       title: z.string().max(255).optional(),
       initialMessage: z.string().optional(),
     })
@@ -77,7 +77,7 @@ chatRoutes.get(
   zValidator(
     'query',
     z.object({
-      libraryId: z.string().uuid().optional(),
+      libraryId: z.string().min(1).optional(),
       limit: z.coerce.number().int().positive().max(100).default(20),
       cursor: z.string().optional(),
     })
@@ -87,20 +87,22 @@ chatRoutes.get(
     const { libraryId, limit, cursor } = c.req.valid('query');
     const db = getDb();
 
-    let query = db
-      .select()
-      .from(conversations)
-      .where(and(eq(conversations.userId, userId), eq(conversations.isDeleted, false)));
+    const conditions = [and(eq(conversations.userId, userId), eq(conversations.isDeleted, false))];
 
     if (libraryId) {
-      query = query.where(eq(conversations.libraryId, libraryId));
+      conditions.push(eq(conversations.libraryId, libraryId));
     }
 
     if (cursor) {
-      query = query.where(gt(conversations.updatedAt, new Date(cursor)));
+      conditions.push(gt(conversations.updatedAt, new Date(cursor)));
     }
 
-    query = query.orderBy(desc(conversations.updatedAt)).limit(limit + 1);
+    const query = db
+      .select()
+      .from(conversations)
+      .where(and(...conditions))
+      .orderBy(desc(conversations.updatedAt))
+      .limit(limit + 1);
 
     const results = await query.execute();
     const hasMore = results.length > limit;
@@ -265,13 +267,18 @@ chatRoutes.get(
 
     if (!conversation) throw new NotFoundError('Conversation', conversationId);
 
-    let query = db.select().from(messages).where(eq(messages.conversationId, conversationId));
+    const conditions = [eq(messages.conversationId, conversationId)];
 
     if (cursor) {
-      query = query.where(gt(messages.createdAt, new Date(cursor)));
+      conditions.push(gt(messages.createdAt, new Date(cursor)));
     }
 
-    query = query.orderBy(asc(messages.createdAt)).limit(limit + 1);
+    const query = db
+      .select()
+      .from(messages)
+      .where(and(...conditions))
+      .orderBy(asc(messages.createdAt))
+      .limit(limit + 1);
 
     const results = await query.execute();
     const hasMore = results.length > limit;
@@ -281,13 +288,5 @@ chatRoutes.get(
     return c.json({ success: true, data: { items, nextCursor, hasMore } });
   }
 );
-
-function asc<T>(_fn: (t: T) => unknown) {
-  return { asc: true };
-}
-
-function gt(column: string, value: Date | string | number) {
-  return { gt: [column, value] };
-}
 
 export default chatRoutes;

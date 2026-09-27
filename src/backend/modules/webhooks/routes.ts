@@ -1,5 +1,5 @@
 import { zValidator } from '@hono/zod-validator';
-import { desc, eq } from 'drizzle-orm';
+import { desc, eq, gt } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { getDb } from '../../db/index.js';
@@ -90,9 +90,5 @@ webhookRoutes.delete('/:id', async (c) => {
 
   return c.json({ success: true });
 });
-
-function gt(column: unknown, value: Date) {
-  return { gt: [column, value] };
-}
 
 export default webhookRoutes;

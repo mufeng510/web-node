@@ -1,15 +1,23 @@
 import {
+  Bell,
+  Bot,
   ChevronRight,
+  ClipboardList,
   FileText,
   Folder,
   FolderGit2,
   Home,
+  KeyRound,
   Plus,
+  ScrollText,
+  Search,
   Settings,
+  Users,
   Wrench,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 import { cn } from '../../lib/utils';
 import { routes } from '../../routes';
 import { api } from '../../services/api';
@@ -35,6 +43,8 @@ interface LeftSidebarProps {
 
 export function LeftSidebar({ library, className = '' }: LeftSidebarProps) {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [tree, setTree] = useState<TreeNode[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
@@ -155,14 +165,28 @@ export function LeftSidebar({ library, className = '' }: LeftSidebarProps) {
         className
       )}
     >
-      <nav className="px-2 py-2 border-b border-border space-y-0.5" aria-label="Primary">
+      <nav
+        className="px-2 py-2 border-b border-border space-y-0.5 overflow-y-auto"
+        aria-label="Primary"
+      >
         {[
           { to: routes.home, label: 'Dashboard', icon: Home, end: true },
           ...(library?.id
             ? [{ to: routes.editor(library.id), label: 'Library', icon: FolderGit2, end: false }]
             : []),
+          { to: routes.search, label: 'Search', icon: Search, end: false },
+          { to: routes.notifications, label: 'Notifications', icon: Bell, end: false },
+          { to: routes.tasks, label: 'Tasks', icon: ClipboardList, end: false },
+          { to: routes.ai, label: 'AI Assistant', icon: Bot, end: false },
+          { to: routes.mcp, label: 'MCP Tokens', icon: KeyRound, end: false },
           { to: routes.settings, label: 'Settings', icon: Settings, end: false },
           { to: routes.diagnostics, label: 'Diagnostics', icon: Wrench, end: false },
+          ...(isAdmin
+            ? [
+                { to: routes.users, label: 'Users', icon: Users, end: false },
+                { to: routes.audit, label: 'Audit Log', icon: ScrollText, end: false },
+              ]
+            : []),
         ].map((item) => {
           const Icon = item.icon;
           return (

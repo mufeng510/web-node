@@ -53,9 +53,11 @@
 | 7 | `isMobile` JS 断点与 `lg:` 双重控制 | Layout 监听 resize 再传 className | 纯 CSS 断点（`hidden lg:flex`），内容区加底栏避让 `pb-[bottom-nav] lg:pb-0` | Layout |
 | 8 | Editor 无返回、丢上下文 | 只有路径框 + 保存 | 顶栏加返回按钮 + 面包屑（库名 / 路径 / New note） | Editor |
 
-## 4. 有意不做的事（后端有、前端暂无入口）
+## 4. 有意不做的事（后端缺失，UI 无法纸糊）
 
-全局搜索、tasks、notifications、webhooks、mcp、migration、audit、用户管理、AI chat/agent/conversations——后端已注册但前端零入口。本次不补（避免 scope 爆炸），待后续按相同规范逐个归位；`tokens.css` 中 `--right-sidebar-w` / `--sidebar-w-collapsed` 为已删除右栏/折叠的残留令牌，待右栏（AI）真正回归时再启用，不在此次删除以免与 DESIGN.md 脱节。
+> 第一阶段结束后本节收窄：有后端能力的入口规划见 §7。此处仅保留后端侧缺失、前端无法实现的事项。
+
+webhook 派发/测试发送（无派发器）、MCP 协议端点（无 tools/list·call）、AI 真实推理（无 completion/SSE/执行器/embedding worker）、git `init`/branch/stash、`users` 密码重置、`settings system` 键管理；`tokens.css` 中 `--right-sidebar-w` / `--sidebar-w-collapsed` 为已删除右栏/折叠的残留令牌，待右栏（AI）真正回归时再启用。
 
 ## 5. 回归约束（重构不得破坏）
 
@@ -71,3 +73,24 @@
 - 移动视口（390×844）目检：底栏恰为 Home/Library/New/Settings 四项（Diagnostics 已移出）、汉堡抽屉含库列表（当前高亮）+ Dashboard/Library/Settings/Diagnostics 同序导航；空态文案改为“sidebar menu”以同时覆盖桌面左栏与移动抽屉。
 - 附带修复（会话鉴权，二层叠 bug，均已验证）：① `src/backend/modules/auth/routes.ts` 从未挂载 `authMiddleware`，`GET /me`、`POST /logout-all`、`POST /change-password`、`GET/DELETE /sessions*` 的 `c.get('userId')` 恒空——已给 5 个端点逐个挂载（`POST /logout` 故意保持开放以兼容过期会话退出；另给 `DELETE /sessions/:id` 补 `sessionId` 空守卫）。② `useAuth.fetchUser` 取 `response.data.user`，而 `/me` 直接返回用户对象——已改为 `?? response.data` 兼容。验证：登录→`/me` 200；`logout-all` 后旧 cookie `/me` 401；整页刷新停留在 `/settings`（此前必跳 `/login`）。
 - 错误语义修复（已验证）：`errorHandler` 无视 `AppError.statusCode` 一律 500——已加 `AppError` 分支按自带码返回（`ContentfulStatusCode` 收窄；`POST /logout` 保持开放）。另给 `login`/`changePassword` 包 `withSuppressedAuthRedirect`（`services/api.ts` 新增，保存/恢复旧值），防止凭据错误 401 触发全局跳登录。验证：错密码登录→401 + 行内错误、无跳转；未鉴权 `/me`→401；改密错密码走到真实校验；新鲜隔离库 e2e 4/4；单测 14/14、`biome` 干净、改动文件类型报错与基线一致。
+- 第二阶段（缺失入口归位，已验证）：7 新页（Search/Notifications/Tasks/Users/Audit/AI/MCP）+ AdminRoute 门控 + 左栏/抽屉/底栏/顶栏入口；Editor Links 对话框；Diagnostics（git 操作/备份/迁移卡）与 Settings（主题语言落库）扩展。前置后端修复：列表过滤合并、`search/global` 前移、通知越权收敛、content 磁盘扫描、`uuid()`→`min(1)`（33 处，ID 为自定义格式）、cursor 改 `lt`。验证：`lint` 干净、单测 14/14（含左栏 `useAuth` mock 修复）、改动文件类型报错与基线同类、新鲜库 e2e 4/4、桌面 8 页 + 移动 2 视图截图目检通过。
+
+## 7. 缺失功能入口规划（第二阶段：后端零入口模块归位）
+
+> 背景：`search/tasks/notifications/users/audit/backup/migration/settings/editor/git/mcp/ai` 有后端无前端。
+> 前置已修（本轮）：列表 `.where()` 覆盖→`and()` 合并 10 文件；`gt/inArray/like/gte/lte/asc` plain-object stub→真 drizzle；`search/global` 路由前移（原不可达）；`search` 补缺失 `getAccessibleLibraries` import；`notifications unreadOnly` 越权收敛；`content` 搜索改磁盘扫描（`files` 表无 content 列）；`desc+cursor` 改 `lt`（原翻页恒空）；`mcp` 错误 import 路径删除。全部经真服务 curl 逐端点验证。
+
+| 路由 | 页面 | 左栏分区/角色 | 说明 |
+|---|---|---|---|
+| `/search?q=&scope=` | `pages/Search.tsx`（新建）+ 顶栏搜索框（回车跳页） | 工作区，全员 | 用 `GET /search/global`（无库时）/`GET /search/:id`（有当前库时）；scope 只给 all/filename/content；cursor 分辨率到秒，同秒并列为已知边界 |
+| `/notifications` | `pages/Notifications.tsx`（新建）+ 顶栏铃铛（未读数徽标） | 工作区，全员 | `GET /` + `POST /:id/read` + `/read-all`；未读徽标轮询 60s |
+| `/tasks` | `pages/Tasks.tsx`（新建，通用任务 + agent 任务二 Tab） | 工作区，全员 | 通用 `GET /tasks`/`/:id`/`/:id/logs`；agent 只读展示（无执行器，不给创建/审批入口） |
+| `/users` | `pages/Users.tsx`（新建） | 管理（`role==='admin'` 才渲染导航） | `GET/POST/PATCH/DELETE` + unlock + sessions 查看/清空；删最后 admin 后端 400，透出错误 |
+| `/audit` | `pages/Audit.tsx`（新建） | 管理 | `GET /audit` 过滤（action/resourceType/日期）+ limit；cursor 暂不用 |
+| `/ai` | `pages/AI.tsx`（新建，三 Tab：会话/Provider/索引） | 工作区（Provider Tab 仅 admin） | 会话走 `ai/chat`（消息只存不回——空态明示）；Provider CRUD + test；索引 status + rebuild；不做 agent 创建页 |
+| 编辑器内 | Editor 工具条 `Links` 按钮 → Dialog | — | `backlinks` 列表 + `wikilinks?q` 补全；`rename-ref` 暂不挂 |
+| `/mcp` | `pages/MCP.tsx`（新建，用当前库） | 工作区 | token 列表/创建/吊销（恒传 `libraryId`）；manifest 不给入口（后端问题） |
+| Diagnostics 扩展 | Git 卡加 commit/push/pull/restore + 备份列表卡 + 迁移状态卡 | 现有页 | commit 需 message 弹窗；migration 只读；备份复用 Settings 创建按钮 |
+| Settings 扩展 | Appearance 主题/语言落库 | 现有页 | 接 `PATCH /settings` 的 theme/language（现只存 localStorage） |
+
+有意不做（后端缺失，UI 无法纸糊）：webhook 派发/测试发送、MCP 协议端点、AI 真实推理、git `init`/branch/stash、`users` 密码重置、`settings system` 键管理。

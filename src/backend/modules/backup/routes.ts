@@ -1,6 +1,6 @@
 import { copyFile } from 'node:fs/promises';
 import { zValidator } from '@hono/zod-validator';
-import { desc, eq } from 'drizzle-orm';
+import { desc, eq, lt } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { getEnv } from '../../config/env.js';
@@ -30,7 +30,7 @@ backupRoutes.get(
     let query = db.select().from(dbBackups);
 
     if (cursor) {
-      query = query.where(gt(dbBackups.createdAt, new Date(cursor)));
+      query = query.where(lt(dbBackups.createdAt, new Date(cursor)));
     }
 
     query = query.orderBy(desc(dbBackups.createdAt)).limit(limit + 1);
@@ -77,9 +77,5 @@ backupRoutes.get('/:id', async (c) => {
 
   return c.json({ success: true, data: backup });
 });
-
-function gt(column: string, value: Date | string | number) {
-  return { gt: [column, value] };
-}
 
 export default backupRoutes;

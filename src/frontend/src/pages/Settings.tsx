@@ -61,7 +61,25 @@ export function Settings() {
   // Appearance tab
   const [theme, setTheme] = useState<ThemeChoice>(() => readStoredTheme());
   const [fontSize, setFontSize] = useState(16);
+  const [language, setLanguage] = useState('en');
   const fontSizeSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const appearanceSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const saveAppearance = (patch: Record<string, unknown>) => {
+    if (appearanceSaveTimer.current) clearTimeout(appearanceSaveTimer.current);
+    appearanceSaveTimer.current = setTimeout(async () => {
+      try {
+        await api.patch('/settings', patch);
+      } catch (error) {
+        console.error('Failed to save appearance:', error);
+      }
+    }, 500);
+  };
+
+  const handleThemeChange = (t: ThemeChoice) => {
+    setTheme(t);
+    saveAppearance({ theme: t });
+  };
 
   useEffect(() => {
     document.documentElement.style.fontSize = `${fontSize}px`;
@@ -72,10 +90,22 @@ export function Settings() {
       try {
         const res = (await api.get('/settings')) as unknown as {
           success: boolean;
-          data: { user: { fontSize?: number } };
+          data: { user: { fontSize?: number; theme?: ThemeChoice; language?: string } };
         };
-        if (res.success && typeof res.data.user.fontSize === 'number') {
-          setFontSize(res.data.user.fontSize);
+        if (res.success) {
+          if (typeof res.data.user.fontSize === 'number') {
+            setFontSize(res.data.user.fontSize);
+          }
+          if (
+            res.data.user.theme === 'light' ||
+            res.data.user.theme === 'dark' ||
+            res.data.user.theme === 'system'
+          ) {
+            setTheme(res.data.user.theme);
+          }
+          if (typeof res.data.user.language === 'string') {
+            setLanguage(res.data.user.language);
+          }
         }
       } catch (error) {
         console.error('Failed to load settings:', error);
@@ -319,7 +349,7 @@ export function Settings() {
                         <button
                           key={t}
                           type="button"
-                          onClick={() => setTheme(t)}
+                          onClick={() => handleThemeChange(t)}
                           aria-pressed={theme === t}
                           className={cn(
                             'p-3 rounded-md border-2 text-center text-sm transition-colors duration-150',
@@ -348,6 +378,36 @@ export function Settings() {
                       className="flex-1 accent-primary"
                     />
                     <span className="text-sm text-fg-muted w-12">{fontSize}px</span>
+                  </div>
+                </div>
+                <div>
+                  <h2 className="text-lg font-medium text-fg mb-4">Language</h2>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(
+                      [
+                        { id: 'en', label: 'English' },
+                        { id: 'zh-CN', label: '简体中文' },
+                      ] as const
+                    ).map((l) => (
+                      <button
+                        key={l.id}
+                        type="button"
+                        onClick={() => {
+                          setLanguage(l.id);
+                          saveAppearance({ language: l.id });
+                        }}
+                        aria-pressed={language === l.id}
+                        className={cn(
+                          'p-3 rounded-md border-2 text-center text-sm transition-colors duration-150',
+                          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
+                          language === l.id
+                            ? 'border-primary bg-primary/5 text-fg'
+                            : 'border-border hover:border-border-strong text-fg-muted'
+                        )}
+                      >
+                        {l.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>

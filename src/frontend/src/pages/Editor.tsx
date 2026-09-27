@@ -8,6 +8,7 @@ import {
   Link2,
   List,
   ListOrdered,
+  Network,
   Quote,
   Save,
   Strikethrough,
@@ -16,6 +17,13 @@ import { marked } from 'marked';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '../components/ui/Dialog';
 import { Input } from '../components/ui/Input';
 import { Spinner } from '../components/ui/Spinner';
 import { StatusDot } from '../components/ui/StatusDot';
@@ -52,6 +60,15 @@ export function Editor() {
   const [saved, setSaved] = useState(true);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const pathInputRef = useRef<HTMLInputElement>(null);
+  const [showLinks, setShowLinks] = useState(false);
+  const [backlinks, setBacklinks] = useState<
+    { sourcePath: string; sourceName: string; type: string; target: string }[]
+  >([]);
+  const [linksLoading, setLinksLoading] = useState(false);
+  const [linkQuery, setLinkQuery] = useState('');
+  const [suggestions, setSuggestions] = useState<
+    { path: string; name: string; displayName: string }[]
+  >([]);
 
   useEffect(() => {
     const state = location.state as { newNote?: boolean } | null;
@@ -200,6 +217,46 @@ export function Editor() {
   const renderedHtml = useMemo(() => marked.parse(content) as string, [content]);
   const editing = view !== 'preview';
 
+  const openLinks = async () => {
+    setShowLinks(true);
+    if (!libraryId || !splat) return;
+    setLinksLoading(true);
+    try {
+      const res = (await api.get(
+        `/editor/${libraryId}/${encodePath(splat)}/backlinks`
+      )) as unknown as {
+        success: boolean;
+        data: {
+          backlinks: { sourcePath: string; sourceName: string; type: string; target: string }[];
+        };
+      };
+      if (res.success) setBacklinks(res.data.backlinks);
+    } catch (error) {
+      console.error('Failed to load backlinks:', error);
+    } finally {
+      setLinksLoading(false);
+    }
+  };
+
+  const searchWikilinks = async (q: string) => {
+    setLinkQuery(q);
+    if (!libraryId || !splat || !q.trim()) {
+      setSuggestions([]);
+      return;
+    }
+    try {
+      const res = (await api.get(`/editor/${libraryId}/${encodePath(splat)}/wikilinks`, {
+        params: { q: q.trim() },
+      })) as unknown as {
+        success: boolean;
+        data: { suggestions: { path: string; name: string; displayName: string }[] };
+      };
+      if (res.success) setSuggestions(res.data.suggestions);
+    } catch (error) {
+      console.error('Failed to search wikilinks:', error);
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col min-h-0">
       <div className="flex flex-wrap items-center justify-between gap-2 p-3 border-b border-border bg-bg-elevated/50">
@@ -304,6 +361,12 @@ export function Editor() {
             icon={<Quote className="w-4 h-4" aria-hidden="true" />}
             onClick={() => prefixLines('> ')}
           />
+          <ToolbarButton
+            label="Links"
+            tip="Backlinks and wikilinks"
+            icon={<Network className="w-4 h-4" aria-hidden="true" />}
+            onClick={openLinks}
+          />
         </div>
       )}
 
@@ -352,6 +415,74 @@ export function Editor() {
           </>
         )}
       </div>
+
+      <Dialog open={showLinks} onOpenChange={setShowLinks}>
+        <DialogContent size="md">
+          <DialogHeader>
+            <DialogTitle>Links</DialogTitle>
+            <DialogDescription>
+              {splat ? `Pages linking to ${splat}` : 'Save the note first to see backlinks.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="p-6 space-y-5 max-h-[60vh] overflow-y-auto">
+            <div>
+              <Input
+                aria-label="Search notes to link"
+                value={linkQuery}
+                onChange={(e) => searchWikilinks(e.target.value)}
+                placeholder="Type to find a note, e.g. [[my-note]]"
+              />
+              {suggestions.length > 0 && (
+                <ul className="mt-2 border border-border rounded-md divide-y divide-border max-h-48 overflow-y-auto">
+                  {suggestions.map((s) => (
+                    <li key={s.path}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (libraryId) navigate(routes.editor(libraryId, s.path));
+                          setShowLinks(false);
+                        }}
+                        className="w-full px-3 py-2 text-left text-sm text-fg hover:bg-bg-hover transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                      >
+                        <span className="font-medium">{s.displayName}</span>
+                        <span className="block text-xs text-fg-muted truncate">{s.path}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-fg mb-2">Backlinks</h3>
+              {linksLoading ? (
+                <Spinner size="sm" label="Loading backlinks" />
+              ) : backlinks.length === 0 ? (
+                <p className="text-sm text-fg-muted">No pages link here yet.</p>
+              ) : (
+                <ul className="space-y-1.5">
+                  {backlinks.map((b, i) => (
+                    <li key={`${b.sourcePath}-${i}`}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (libraryId) navigate(routes.editor(libraryId, b.sourcePath));
+                          setShowLinks(false);
+                        }}
+                        className="w-full px-3 py-2 text-left text-sm border border-border rounded-md hover:bg-bg-hover transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <span className="font-medium text-fg">{b.sourceName}</span>
+                        <span className="block text-xs text-fg-muted truncate">
+                          {b.type} · {b.target}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

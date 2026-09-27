@@ -1,6 +1,21 @@
-import { ChevronRight, FolderGit2, Home, Settings, Wrench, X } from 'lucide-react';
+import {
+  Bell,
+  Bot,
+  ChevronRight,
+  ClipboardList,
+  FolderGit2,
+  Home,
+  KeyRound,
+  ScrollText,
+  Search,
+  Settings,
+  Users,
+  Wrench,
+  X,
+} from 'lucide-react';
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 import { cn } from '../../lib/utils';
 import { IconButton } from '../ui/IconButton';
 
@@ -27,6 +42,9 @@ export function MobileDrawer({
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
   }, [isOpen, onClose]);
+
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
 
   if (!isOpen) return null;
 
@@ -87,8 +105,19 @@ export function MobileDrawer({
                   },
                 ]
               : []),
+            { href: '/search', label: 'Search', icon: Search },
+            { href: '/notifications', label: 'Notifications', icon: Bell },
+            { href: '/tasks', label: 'Tasks', icon: ClipboardList },
+            { href: '/ai', label: 'AI Assistant', icon: Bot },
+            { href: '/mcp', label: 'MCP Tokens', icon: KeyRound },
             { href: '/settings', label: 'Settings', icon: Settings },
             { href: '/diagnostics', label: 'Diagnostics', icon: Wrench },
+            ...(isAdmin
+              ? [
+                  { href: '/users', label: 'Users', icon: Users },
+                  { href: '/audit', label: 'Audit Log', icon: ScrollText },
+                ]
+              : []),
           ].map((item) => {
             const Icon = item.icon;
             return (

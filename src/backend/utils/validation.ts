@@ -61,7 +61,7 @@ export const CreateLibrarySchema = z.object({
   aiIndex: z
     .object({
       enabled: z.boolean().default(true),
-      providerId: z.string().uuid().optional(),
+      providerId: z.string().min(1).optional(),
       embedModel: z.string().optional(),
       chunkSize: z.number().int().positive().default(512),
       chunkOverlap: z.number().int().nonnegative().default(50),
@@ -89,12 +89,12 @@ export const CreateLibrarySchema = z.object({
 export const UpdateLibrarySchema = CreateLibrarySchema.partial().omit({ path: true });
 
 export const LibraryShareSchema = z.object({
-  userId: z.string().uuid(),
+  userId: z.string().min(1),
   permission: z.enum(['read', 'write', 'admin']).default('write'),
 });
 
 export const TransferOwnershipSchema = z.object({
-  newOwnerId: z.string().uuid(),
+  newOwnerId: z.string().min(1),
 });
 
 // File schemas
@@ -148,7 +148,7 @@ export const BatchRenameFilesSchema = z.object({
 });
 
 export const UploadAttachmentSchema = z.object({
-  libraryId: z.string().uuid(),
+  libraryId: z.string().min(1),
   targetDir: z.string().optional(),
   overwrite: z.boolean().default(false),
 });
@@ -156,7 +156,7 @@ export const UploadAttachmentSchema = z.object({
 // Search schemas
 export const SearchQuerySchema = z.object({
   q: z.string().min(1),
-  libraryId: z.string().uuid().optional(),
+  libraryId: z.string().min(1).optional(),
   scope: z.enum(['all', 'filename', 'content', 'frontmatter', 'tags', 'wikilinks']).default('all'),
   type: z.enum(['exact', 'fuzzy']).default('fuzzy'),
   path: z.string().optional(),
@@ -228,13 +228,13 @@ export const CreateProviderSchema = z.object({
 export const UpdateProviderSchema = CreateProviderSchema.partial().omit({ type: true });
 
 export const TestProviderSchema = z.object({
-  providerId: z.string().uuid().optional(),
+  providerId: z.string().min(1).optional(),
   config: CreateProviderSchema.optional(),
 });
 
 // Conversation schemas
 export const CreateConversationSchema = z.object({
-  libraryId: z.string().uuid(),
+  libraryId: z.string().min(1),
   title: z.string().max(255).optional(),
   initialMessage: z.string().optional(),
 });
@@ -254,10 +254,10 @@ export const SendMessageSchema = z.object({
 
 // Agent schemas
 export const CreateAgentTaskSchema = z.object({
-  conversationId: z.string().uuid(),
+  conversationId: z.string().min(1),
   goal: z.string().min(1).max(5000),
-  libraryId: z.string().uuid(),
-  providerId: z.string().uuid().optional(),
+  libraryId: z.string().min(1),
+  providerId: z.string().min(1).optional(),
   model: z.string().optional(),
   parameters: z
     .object({
@@ -281,7 +281,7 @@ export const CreateAgentTaskSchema = z.object({
 });
 
 export const AgentTaskActionSchema = z.object({
-  taskId: z.string().uuid(),
+  taskId: z.string().min(1),
   action: z.enum(['approve', 'reject', 'cancel', 'rerun']),
   stepIndex: z.number().int().nonnegative().optional(),
   reason: z.string().optional(),
@@ -290,7 +290,7 @@ export const AgentTaskActionSchema = z.object({
 // MCP schemas
 export const CreateMcpTokenSchema = z.object({
   name: z.string().min(1).max(100),
-  libraryId: z.string().uuid(),
+  libraryId: z.string().min(1),
   permissions: z.object({
     read: z.boolean().default(true),
     write: z.boolean().default(false),
@@ -312,7 +312,7 @@ export const UpdateSettingsSchema = z.object({
 });
 
 export const UpdateAiSettingsSchema = z.object({
-  defaultProviderId: z.string().uuid().optional(),
+  defaultProviderId: z.string().min(1).optional(),
   defaultChatModel: z.string().optional(),
   defaultEmbedModel: z.string().optional(),
   defaultTemperature: z.number().min(0).max(2).optional(),
@@ -346,13 +346,13 @@ export const ApiResponseSchema = <T extends z.ZodTypeAny>(dataSchema: T) =>
         code: z.string(),
         message: z.string(),
         details: z.unknown().optional(),
-        requestId: z.string().uuid(),
+        requestId: z.string().min(1),
         retryable: z.boolean().default(false),
       })
       .optional(),
     meta: z
       .object({
-        requestId: z.string().uuid(),
+        requestId: z.string().min(1),
         timestamp: z.string().datetime(),
         duration: z.number().optional(),
       })
