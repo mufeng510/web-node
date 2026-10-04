@@ -16,6 +16,12 @@ permissions:
   packages: write
   id-token: write
 
+# Serialize releases on the same ref: concurrent pushes must not publish
+# `latest` / the same computed version tag at the same time.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   release:
     name: Release
@@ -70,9 +76,20 @@ jobs:
             # Auto-calculate from conventional commits
             VERSION=$(bun run scripts/calculate-version.ts)
           fi
+          # Normalize to vX.Y.Z so branch pushes, tags and manual inputs share one format
+          VERSION="${VERSION#v}"
+          VERSION="v${VERSION}"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+          # Branch pushes with no feat/fix resolve to an already-released tag: skip publish
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" != refs/tags/* ]]; then
+            if git rev-parse "$VERSION" >/dev/null 2>&1; then
+              echo "skip=true" >> $GITHUB_OUTPUT
+              echo "Version $VERSION already released, skipping publish"
+            fi
+          fi
 
       - name: Build and push Docker image
+        if: steps.version.outputs.skip != 'true'
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -89,6 +106,7 @@ jobs:
             org.opencontainers.image.licenses=GPL-3.0
 
       - name: Create GitHub Release
+        if: steps.version.outputs.skip != 'true'
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.version.outputs.version }}
