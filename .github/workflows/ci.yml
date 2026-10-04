@@ -53,8 +53,10 @@ jobs:
           NODE_ENV: production
 
   # Docker build verified working with the current Dockerfile (multi-stage oven/bun build).
-  docker-build:
-    name: Docker Build
+  # Build and smoke test share one job: each job runs on a fresh runner, so an image
+  # built with load:true is only visible to steps in the same job.
+  docker:
+    name: Docker Build & Smoke Test
     runs-on: ubuntu-latest
     needs: [lint, unit-test, build]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -69,12 +71,6 @@ jobs:
           push: false
           tags: web-note:test
           load: true
-
-  docker-smoke-test:
-    name: Docker Smoke Test
-    runs-on: ubuntu-latest
-    needs: docker-build
-    steps:
       - name: Run container
         run: |
           docker run -d --name webnote-test \
