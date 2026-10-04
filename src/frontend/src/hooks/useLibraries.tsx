@@ -1,5 +1,6 @@
-import { type ReactNode, createContext, useContext, useEffect, useState } from 'react';
+import { type ReactNode, createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { api } from '../services/api';
+import { useAuth } from './useAuth';
 
 interface Library {
   id: string;
@@ -40,6 +41,7 @@ interface LibraryContextType {
 const LibraryContext = createContext<LibraryContextType | null>(null);
 
 export function LibraryProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const [libraries, setLibraries] = useState<Library[]>([]);
   const [currentLibrary, setCurrentLibraryState] = useState<Library | null>(null);
   const [loading, setLoading] = useState(false);
@@ -53,7 +55,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const fetchLibraries = async () => {
+  const fetchLibraries = useCallback(async () => {
     setLoading(true);
     try {
       const response = await api.get('/libraries');
@@ -72,7 +74,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const createLibrary = async (data: any) => {
     const response = await api.post('/libraries', data);
@@ -116,8 +118,13 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    fetchLibraries();
-  }, []);
+    if (user) {
+      fetchLibraries();
+    } else {
+      setLibraries([]);
+      setCurrentLibraryState(null);
+    }
+  }, [user, fetchLibraries]);
 
   return (
     <LibraryContext.Provider

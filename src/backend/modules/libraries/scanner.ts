@@ -24,6 +24,7 @@ export async function scanLibraryTree(
     showGit?: boolean;
     maxDepth?: number;
     currentDepth?: number;
+    baseRoot?: string;
   } = {}
 ): Promise<TreeNode[]> {
   const {
@@ -32,11 +33,14 @@ export async function scanLibraryTree(
     showGit = false,
     maxDepth = 10,
     currentDepth = 0,
+    baseRoot,
   } = options;
 
   if (currentDepth > maxDepth) return [];
 
   const root = getLibraryRoot(libraryPath);
+  // relativePath 必须始终相对库根目录，而非当前扫描的子目录
+  const base = baseRoot ?? root;
   const entries = await readdir(root, { withFileTypes: true });
 
   const nodes: TreeNode[] = [];
@@ -44,7 +48,7 @@ export async function scanLibraryTree(
   for (const entry of entries) {
     const name = entry.name;
     const fullPath = join(root, name);
-    const relPath = relative(root, fullPath);
+    const relPath = relative(base, fullPath);
 
     if (shouldHideDir(name, showHidden, showObsidian, showGit)) continue;
     if (!entry.isDirectory() && shouldHideFile(name, showHidden)) continue;
@@ -83,12 +87,13 @@ export async function scanLibraryTree(
 
     if (stats.isDirectory()) {
       // 必须深入子目录扫描；传 libraryPath 会永远重扫根目录导致内容重复嵌套
-      node.children = await scanLibraryTree(join(root, relPath), {
+      node.children = await scanLibraryTree(fullPath, {
         showHidden,
         showObsidian,
         showGit,
         maxDepth,
         currentDepth: currentDepth + 1,
+        baseRoot: base,
       });
     }
 
