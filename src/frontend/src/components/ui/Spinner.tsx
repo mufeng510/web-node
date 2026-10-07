@@ -1,7 +1,7 @@
 import { type HTMLAttributes, forwardRef } from 'react';
 import { cn } from '../../lib/utils';
 
-export interface SpinnerProps extends HTMLAttributes<HTMLDivElement> {
+export interface SpinnerProps extends HTMLAttributes<HTMLOutputElement> {
   size?: 'sm' | 'md' | 'lg';
   label?: string;
 }

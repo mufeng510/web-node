@@ -1,5 +1,5 @@
 import { type ReactNode, createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { api } from '../services/api';
+import { type ApiResult, api } from '../services/api';
 import { useAuth } from './useAuth';
 
 interface Library {
@@ -10,6 +10,13 @@ interface Library {
   config: any;
   createdAt: string;
   updatedAt: string;
+}
+
+/** `POST /libraries` echoes back only the identity fields, not the full record. */
+export interface CreatedLibrary {
+  id: string;
+  name: string;
+  path: string;
 }
 
 export interface DiscoverDirectory {
@@ -32,7 +39,7 @@ interface LibraryContextType {
   loading: boolean;
   fetchLibraries: () => Promise<void>;
   setCurrentLibrary: (library: Library | null) => void;
-  createLibrary: (data: any) => Promise<Library>;
+  createLibrary: (data: any) => Promise<CreatedLibrary>;
   updateLibrary: (id: string, data: any) => Promise<void>;
   deleteLibrary: (id: string) => Promise<void>;
   discoverLibraryDirs: (path?: string) => Promise<DiscoverResult>;
@@ -58,15 +65,15 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   const fetchLibraries = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await api.get('/libraries');
+      const response = (await api.get('/libraries')) as unknown as ApiResult<Library[]>;
       if (response.success) {
         setLibraries(response.data);
         const saved = localStorage.getItem('currentLibraryId');
         if (saved) {
-          const lib = response.data.find((l: Library) => l.id === saved);
+          const lib = response.data.find((l) => l.id === saved);
           if (lib) setCurrentLibrary(lib);
         } else if (response.data.length > 0) {
-          setCurrentLibrary(response.data[0]);
+          setCurrentLibrary(response.data[0] ?? null);
         }
       }
     } catch (error) {
@@ -77,7 +84,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const createLibrary = async (data: any) => {
-    const response = await api.post('/libraries', data);
+    const response = (await api.post('/libraries', data)) as unknown as ApiResult<CreatedLibrary>;
     if (response.success) {
       await fetchLibraries();
       return response.data;
@@ -86,7 +93,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   };
 
   const updateLibrary = async (id: string, data: any) => {
-    const response = await api.patch(`/libraries/${id}`, data);
+    const response = (await api.patch(`/libraries/${id}`, data)) as unknown as ApiResult<void>;
     if (response.success) {
       await fetchLibraries();
     } else {
@@ -95,7 +102,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   };
 
   const deleteLibrary = async (id: string) => {
-    const response = await api.delete(`/libraries/${id}`);
+    const response = (await api.delete(`/libraries/${id}`)) as unknown as ApiResult<void>;
     if (response.success) {
       await fetchLibraries();
     } else {
@@ -106,11 +113,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   const discoverLibraryDirs = async (path?: string): Promise<DiscoverResult> => {
     const response = (await api.get('/libraries/discover', {
       params: { path },
-    })) as unknown as {
-      success: boolean;
-      data: DiscoverResult;
-      error?: { message?: string };
-    };
+    })) as unknown as ApiResult<DiscoverResult>;
     if (response.success) {
       return response.data;
     }

@@ -1,11 +1,24 @@
 import { type ReactNode, createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { api, setSuppressAuthRedirect, withSuppressedAuthRedirect } from '../services/api';
+import {
+  type ApiResult,
+  api,
+  setSuppressAuthRedirect,
+  withSuppressedAuthRedirect,
+} from '../services/api';
 
 interface User {
   id: string;
   email: string;
   role: 'admin' | 'user';
 }
+
+interface SessionPayload {
+  user: User;
+  expiresAt: string;
+}
+
+/** `GET /auth/me` returns the user flat; older payloads nest it under `user`. */
+type MePayload = User & { user?: User };
 
 interface AuthContextType {
   user: User | null;
@@ -29,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUser = async () => {
     try {
-      const response = await api.get('/auth/me');
+      const response = (await api.get('/auth/me')) as unknown as ApiResult<MePayload>;
       if (response.success) {
         setUser(response.data.user ?? response.data);
       } else {
@@ -46,7 +59,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const checkSetup = useCallback(async () => {
     setSuppressAuthRedirect(true);
     try {
-      const statusResponse = await api.get('/auth/setup-status');
+      const statusResponse = (await api.get('/auth/setup-status')) as unknown as ApiResult<{
+        needsSetup: boolean;
+      }>;
       if (statusResponse.data?.needsSetup) {
         setNeedsSetup(true);
         setLoading(false);
@@ -65,7 +80,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string, rememberMe = false) => {
     await withSuppressedAuthRedirect(async () => {
-      const response = await api.post('/auth/login', { email, password, rememberMe });
+      const response = (await api.post('/auth/login', {
+        email,
+        password,
+        rememberMe,
+      })) as unknown as ApiResult<SessionPayload>;
       if (response.success) {
         setUser(response.data.user);
       } else {
@@ -92,7 +111,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const changePassword = async (currentPassword: string, newPassword: string) => {
     await withSuppressedAuthRedirect(async () => {
-      const response = await api.post('/auth/change-password', { currentPassword, newPassword });
+      const response = (await api.post('/auth/change-password', {
+        currentPassword,
+        newPassword,
+      })) as unknown as ApiResult<void>;
       if (!response.success) {
         throw new Error(response.error?.message || 'Failed to change password');
       }
@@ -100,7 +122,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const setup = async (email: string, password: string) => {
-    const response = await api.post('/auth/setup', { email, password, confirmPassword: password });
+    const response = (await api.post('/auth/setup', {
+      email,
+      password,
+      confirmPassword: password,
+    })) as unknown as ApiResult<SessionPayload>;
     if (response.success) {
       setUser(response.data.user);
       setNeedsSetup(false);

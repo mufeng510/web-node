@@ -11,6 +11,14 @@ const api = axios.create({
 let csrfToken: string | null = null;
 let suppressAuthRedirect = true;
 
+/**
+ * Envelope the response interceptor below hands to callers. Must stay a
+ * discriminated union: `data?: T` would leave the payload optional everywhere.
+ */
+export type ApiResult<T> =
+  | { success: true; data: T; error?: undefined }
+  | { success: false; data?: undefined; error?: { code: string; message: string } };
+
 export function setSuppressAuthRedirect(value: boolean) {
   suppressAuthRedirect = value;
 }
