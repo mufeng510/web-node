@@ -1,6 +1,7 @@
-import { Bell, FilePlus, Menu, NotebookPen, Search } from 'lucide-react';
+import { Bell, FilePlus, Menu, Moon, NotebookPen, Search, Sun } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTheme } from '../../hooks/useTheme';
 import { routes } from '../../routes';
 import { api } from '../../services/api';
 import { Breadcrumb, type BreadcrumbItem } from '../ui/Breadcrumb';
@@ -13,6 +14,8 @@ interface TopBarProps {
   breadcrumb?: BreadcrumbItem[];
   onOpenPalette: () => void;
   onMenuClick: () => void;
+  /** Drives aria-expanded on the drawer trigger. */
+  menuOpen?: boolean;
   onLogout: () => Promise<void>;
 }
 
@@ -22,10 +25,12 @@ export function TopBar({
   breadcrumb,
   onOpenPalette,
   onMenuClick,
+  menuOpen = false,
   onLogout,
 }: TopBarProps) {
   const navigate = useNavigate();
   const [unreadCount, setUnreadCount] = useState(0);
+  const { isDark, setTheme } = useTheme();
 
   useEffect(() => {
     let cancelled = false;
@@ -54,7 +59,13 @@ export function TopBar({
       {/* Left group: menu, identity, and where you are. The breadcrumb is the
           header's answer to "where am I"; the library used to sit here and read
           as a centred page title. */}
-      <IconButton onClick={onMenuClick} aria-label="Open menu" className="lg:hidden">
+      <IconButton
+        onClick={onMenuClick}
+        aria-label="Open menu"
+        aria-expanded={menuOpen}
+        aria-controls="mobile-menu-drawer"
+        className="lg:hidden"
+      >
         <Menu className="w-5 h-5" />
       </IconButton>
 
@@ -110,6 +121,14 @@ export function TopBar({
             <FilePlus className="w-5 h-5" />
           </IconButton>
         )}
+        <IconButton
+          onClick={() => setTheme(isDark ? 'light' : 'dark')}
+          aria-pressed={isDark}
+          aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+          title={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+        >
+          {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+        </IconButton>
         <UserMenu user={user} onLogout={onLogout} />
       </div>
     </header>
