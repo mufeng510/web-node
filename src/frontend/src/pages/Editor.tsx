@@ -26,11 +26,13 @@ import {
   DialogTitle,
 } from '../components/ui/Dialog';
 import { Input } from '../components/ui/Input';
+import { Resizable } from '../components/ui/Resizable';
 import { Spinner } from '../components/ui/Spinner';
 import { StatusDot } from '../components/ui/StatusDot';
 import { Tabs } from '../components/ui/Tabs';
 import { Textarea } from '../components/ui/Textarea';
 import { ToolbarButton } from '../components/ui/ToolbarButton';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import { cn } from '../lib/utils';
 import { routes } from '../routes';
 import { api } from '../services/api';
@@ -54,6 +56,22 @@ export function Editor() {
   const [notePath, setNotePath] = useState<string>('');
   const [content, setContent] = useState('');
   const [view, setView] = useState<EditorView>('split');
+  // The panes stack on narrow screens and drag apart on wide ones, which needs
+  // the breakpoint in JS instead of utility classes alone.
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
+  const splitRef = useRef<HTMLDivElement>(null);
+  const [splitSize, setSplitSize] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!isDesktop) {
+      setSplitSize(null);
+      return;
+    }
+    const el = splitRef.current;
+    // Seed 50/50 once; after that the user's own drag wins, so their split
+    // survives window resizes the way the sidebar width does.
+    if (el) setSplitSize((current) => current ?? Math.round(el.clientWidth / 2));
+  }, [isDesktop]);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [fileExists, setFileExists] = useState(false);
@@ -258,6 +276,39 @@ export function Editor() {
     }
   };
 
+  const draggableSplit = view === 'split' && isDesktop && splitSize !== null;
+
+  const editorPane = editing ? (
+    <div
+      className={cn(
+        'min-h-0 overflow-auto p-4',
+        view === 'split' &&
+          (draggableSplit
+            ? 'border-r border-border'
+            : 'border-b lg:border-b-0 lg:border-r border-border')
+      )}
+    >
+      <Textarea
+        ref={textareaRef}
+        aria-label="Markdown source"
+        value={content}
+        onChange={(e) => handleContentChange(e.target.value)}
+        className="h-full min-h-[400px] font-mono text-sm leading-relaxed"
+        spellCheck={false}
+      />
+    </div>
+  ) : null;
+
+  const previewPane =
+    view !== 'write' ? (
+      <div className="min-h-0 overflow-auto p-4">
+        <div className="md-content max-w-none">
+          {/* biome-ignore lint/security/noDangerouslySetInnerHtml: preview renders author-owned note markdown via marked */}
+          <div dangerouslySetInnerHTML={{ __html: renderedHtml }} />
+        </div>
+      </div>
+    ) : null;
+
   return (
     <div className="flex-1 flex flex-col min-h-0">
       <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 border-b border-border">
@@ -386,49 +437,33 @@ export function Editor() {
         </div>
       )}
 
-      <div
-        className={cn(
-          'flex-1 min-h-0 overflow-hidden',
-          view === 'split' && 'grid grid-cols-1 lg:grid-cols-2'
-        )}
-      >
+      {loadError && (
+        <div className="px-4 py-2 text-sm text-destructive" role="alert">
+          {loadError}
+        </div>
+      )}
+
+      <div ref={splitRef} className="flex-1 min-h-0 overflow-hidden">
         {loading ? (
           <div className="flex-1 flex items-center justify-center">
             <Spinner size="md" label="Loading note" />
           </div>
+        ) : draggableSplit ? (
+          <Resizable
+            orientation="horizontal"
+            size={splitSize ?? 0}
+            onSizeChange={setSplitSize}
+            min={280}
+            firstLabel="Resize editor panes"
+            className="h-full"
+            first={editorPane}
+            second={previewPane}
+          />
         ) : (
-          <>
-            {loadError && (
-              <div className="px-4 py-2 text-sm text-destructive" role="alert">
-                {loadError}
-              </div>
-            )}
-            {editing && (
-              <div
-                className={cn(
-                  'min-h-0 overflow-auto p-4',
-                  view === 'split' && 'border-b lg:border-b-0 lg:border-r border-border'
-                )}
-              >
-                <Textarea
-                  ref={textareaRef}
-                  aria-label="Markdown source"
-                  value={content}
-                  onChange={(e) => handleContentChange(e.target.value)}
-                  className="h-full min-h-[400px] font-mono text-sm leading-relaxed"
-                  spellCheck={false}
-                />
-              </div>
-            )}
-            {view !== 'write' && (
-              <div className="min-h-0 overflow-auto p-4">
-                <div className="md-content max-w-none">
-                  {/* biome-ignore lint/security/noDangerouslySetInnerHtml: preview renders author-owned note markdown via marked */}
-                  <div dangerouslySetInnerHTML={{ __html: renderedHtml }} />
-                </div>
-              </div>
-            )}
-          </>
+          <div className={cn('h-full', view === 'split' && 'grid grid-cols-1 lg:grid-cols-2')}>
+            {editorPane}
+            {previewPane}
+          </div>
         )}
       </div>
 
