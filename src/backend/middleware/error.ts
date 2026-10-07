@@ -2,8 +2,9 @@ import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { AppError, getErrorResponse } from '../utils/errors.js';
+import type { Env } from './env.js';
 
-export function errorHandler(err: Error, c: Context) {
+export function errorHandler(err: Error, c: Context<Env>) {
   const requestId = c.get('requestId') || createId();
 
   if (err instanceof HTTPException) {

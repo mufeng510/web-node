@@ -8,6 +8,7 @@ import { logger } from 'hono/logger';
 import { getEnv } from './config/env.js';
 import { getDb } from './db/index.js';
 import { auditMiddleware } from './middleware/audit.js';
+import type { Env } from './middleware/env.js';
 import { errorHandler } from './middleware/error.js';
 import aiAgentRoutes from './modules/ai/agent/routes.js';
 import aiChatRoutes from './modules/ai/chat/routes.js';
@@ -33,7 +34,7 @@ import webhookRoutes from './modules/webhooks/routes.js';
 
 export function createApp() {
   const env = getEnv();
-  const app = new Hono();
+  const app = new Hono<Env>();
 
   app.use('*', logger());
   app.use('*', async (c: Context, next: Next) => {

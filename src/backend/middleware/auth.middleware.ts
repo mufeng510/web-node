@@ -2,9 +2,10 @@ import type { Context, Next } from 'hono';
 import { getEnv } from '../config/env.js';
 import { AuthenticationError, AuthorizationError } from '../utils/errors.js';
 import { extractTokenFromCookie, validateSession } from './auth.js';
+import type { Env } from './env.js';
 
 export function authMiddleware(allowedRoles?: string[]) {
-  return async (c: Context, next: Next) => {
+  return async (c: Context<Env>, next: Next) => {
     const env = getEnv();
     const token = extractTokenFromCookie(c.req.header('cookie'), env.SESSION_COOKIE_NAME);
 
@@ -30,7 +31,7 @@ export function authMiddleware(allowedRoles?: string[]) {
 }
 
 export function optionalAuthMiddleware() {
-  return async (c: Context, next: Next) => {
+  return async (c: Context<Env>, next: Next) => {
     const env = getEnv();
     const token = extractTokenFromCookie(c.req.header('cookie'), env.SESSION_COOKIE_NAME);
 
