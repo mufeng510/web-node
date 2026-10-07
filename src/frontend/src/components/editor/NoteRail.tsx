@@ -1,5 +1,6 @@
 import type { OutlineEntry } from '../../lib/markdownOutline';
 import { Spinner } from '../ui/Spinner';
+import { AiRailPanel } from './AiRailPanel';
 import { OutlinePanel } from './OutlinePanel';
 
 export interface Backlink {
@@ -10,6 +11,7 @@ export interface Backlink {
 }
 
 export interface NoteRailProps {
+  libraryId: string;
   notePath: string;
   entries: OutlineEntry[];
   backlinks: Backlink[];
@@ -40,9 +42,16 @@ function Section({ title, children }: { title: string; children: React.ReactNode
  * Both sections read from state the editor already owns, so the rail never
  * fetches on its own and cannot show a note's data while the note is loading.
  */
-export function NoteRail({ notePath, entries, backlinks, loading, onOpenNote }: NoteRailProps) {
+export function NoteRail({
+  libraryId,
+  notePath,
+  entries,
+  backlinks,
+  loading,
+  onOpenNote,
+}: NoteRailProps) {
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto">
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
       <Section title="大纲">
         <OutlinePanel entries={entries} />
       </Section>
@@ -77,6 +86,15 @@ export function NoteRail({ notePath, entries, backlinks, loading, onOpenNote }: 
           <p className="px-4 pb-4 text-sm text-fg-muted">先保存笔记才能显示反链。</p>
         )}
       </Section>
+
+      {notePath !== '' && (
+        <section className="flex min-h-0 flex-1 flex-col border-t border-border">
+          <h2 className="shrink-0 px-4 pt-4 pb-2 text-xs font-medium uppercase tracking-wider text-fg-muted">
+            提问
+          </h2>
+          <AiRailPanel libraryId={libraryId} notePath={notePath} />
+        </section>
+      )}
     </div>
   );
 }

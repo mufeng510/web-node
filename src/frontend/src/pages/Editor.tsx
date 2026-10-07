@@ -246,6 +246,7 @@ export function Editor() {
   const railNode = useMemo(
     () => (
       <NoteRail
+        libraryId={libraryId ?? ''}
         notePath={splat ?? ''}
         entries={outline}
         backlinks={backlinks}
