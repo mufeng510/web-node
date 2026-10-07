@@ -128,7 +128,7 @@ export function DialogOverlay({ className, onClick, ...props }: DialogOverlayPro
 
   return (
     <div
-      className={cn('fixed inset-0 bg-overlay/50 z-50 animate-in fade-in-0', className)}
+      className={cn('fixed inset-0 bg-overlay/50 z-[var(--z-modal)]', className)}
       onClick={(e) => {
         onClick?.(e);
         onOpenChange(false);
@@ -182,7 +182,7 @@ export function DialogContent({ children, className, size = 'md', ...props }: Di
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
         className={cn(
-          'fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full m-0 p-0 animate-in zoom-in-95 fade-in-0',
+          'fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[var(--z-modal)] w-full m-0 p-0',
           'bg-bg-elevated border border-border rounded-lg shadow-lg text-fg',
           sizeStyles[size],
           className
