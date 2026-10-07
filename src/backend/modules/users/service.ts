@@ -21,7 +21,7 @@ export async function getUserById(id: string) {
 }
 
 export async function createUserAdmin(email: string, password: string, role: 'admin' | 'user') {
-  const { hashPassword } = await import('./password.js');
+  const { hashPassword } = await import('../auth/password.js');
   const passwordHash = await hashPassword(password);
 
   const db = getDb();

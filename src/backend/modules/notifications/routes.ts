@@ -5,8 +5,10 @@ import { z } from 'zod';
 import { getDb } from '../../db/index.js';
 import { notifications } from '../../db/schema/notifications.js';
 import { authMiddleware } from '../../middleware/auth.middleware.js';
+import type { Env } from '../../middleware/env.js';
+import { NotFoundError } from '../../utils/errors.js';
 
-const notificationRoutes = new Hono();
+const notificationRoutes = new Hono<Env>();
 
 notificationRoutes.use('*', authMiddleware());
 

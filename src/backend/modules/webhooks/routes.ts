@@ -6,11 +6,12 @@ import { getDb } from '../../db/index.js';
 import { webhooks } from '../../db/schema/webhooks.js';
 import { auditLog } from '../../middleware/audit.js';
 import { authMiddleware } from '../../middleware/auth.middleware.js';
+import type { Env } from '../../middleware/env.js';
 import { encrypt } from '../../utils/crypto.js';
 import { NotFoundError } from '../../utils/errors.js';
 import { createId } from '../../utils/id.js';
 
-const webhookRoutes = new Hono();
+const webhookRoutes = new Hono<Env>();
 
 webhookRoutes.use('*', authMiddleware(['admin']));
 
@@ -27,15 +28,13 @@ webhookRoutes.get(
     const { limit, cursor } = c.req.valid('query');
     const db = getDb();
 
-    let query = db.select().from(webhooks);
-
-    if (cursor) {
-      query = query.where(gt(webhooks.createdAt, new Date(cursor)));
-    }
-
-    query = query.orderBy(desc(webhooks.createdAt)).limit(limit + 1);
-
-    const results = await query.execute();
+    const results = await db
+      .select()
+      .from(webhooks)
+      .where(cursor ? gt(webhooks.createdAt, new Date(cursor)) : undefined)
+      .orderBy(desc(webhooks.createdAt))
+      .limit(limit + 1)
+      .execute();
     const hasMore = results.length > limit;
     const items = hasMore ? results.slice(0, limit) : results;
     const nextCursor = hasMore ? items[items.length - 1]?.createdAt.toISOString() : undefined;

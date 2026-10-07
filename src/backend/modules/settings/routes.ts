@@ -5,8 +5,9 @@ import { z } from 'zod';
 import { getDb } from '../../db/index.js';
 import { settings } from '../../db/schema/settings.js';
 import { authMiddleware } from '../../middleware/auth.middleware.js';
+import type { Env } from '../../middleware/env.js';
 
-const settingsRoutes = new Hono();
+const settingsRoutes = new Hono<Env>();
 
 settingsRoutes.use('*', authMiddleware());
 

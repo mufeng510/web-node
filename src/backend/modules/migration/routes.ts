@@ -1,8 +1,9 @@
 import { Hono } from 'hono';
 import { getDb } from '../../db/index.js';
 import { authMiddleware } from '../../middleware/auth.middleware.js';
+import type { Env } from '../../middleware/env.js';
 
-const migrationRoutes = new Hono();
+const migrationRoutes = new Hono<Env>();
 
 migrationRoutes.use('*', authMiddleware(['admin']));
 

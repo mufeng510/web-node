@@ -7,10 +7,11 @@ import { getEnv } from '../../config/env.js';
 import { getDb } from '../../db/index.js';
 import { dbBackups } from '../../db/schema/settings.js';
 import { authMiddleware } from '../../middleware/auth.middleware.js';
+import type { Env } from '../../middleware/env.js';
 import { NotFoundError } from '../../utils/errors.js';
 import { createId } from '../../utils/id.js';
 
-const backupRoutes = new Hono();
+const backupRoutes = new Hono<Env>();
 
 backupRoutes.use('*', authMiddleware(['admin']));
 
@@ -27,15 +28,13 @@ backupRoutes.get(
     const { limit, cursor } = c.req.valid('query');
     const db = getDb();
 
-    let query = db.select().from(dbBackups);
-
-    if (cursor) {
-      query = query.where(lt(dbBackups.createdAt, new Date(cursor)));
-    }
-
-    query = query.orderBy(desc(dbBackups.createdAt)).limit(limit + 1);
-
-    const results = await query.execute();
+    const results = await db
+      .select()
+      .from(dbBackups)
+      .where(cursor ? lt(dbBackups.createdAt, new Date(cursor)) : undefined)
+      .orderBy(desc(dbBackups.createdAt))
+      .limit(limit + 1)
+      .execute();
     const hasMore = results.length > limit;
     const items = hasMore ? results.slice(0, limit) : results;
     const nextCursor = hasMore ? items[items.length - 1]?.createdAt.toISOString() : undefined;

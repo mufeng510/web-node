@@ -2,8 +2,9 @@ import { Hono } from 'hono';
 import { getEnv } from '../../config/env.js';
 import { getDb } from '../../db/index.js';
 import { authMiddleware } from '../../middleware/auth.middleware.js';
+import type { Env } from '../../middleware/env.js';
 
-const diagnosticsRoutes = new Hono();
+const diagnosticsRoutes = new Hono<Env>();
 
 diagnosticsRoutes.use('*', authMiddleware(['admin']));
 
@@ -118,8 +119,9 @@ diagnosticsRoutes.get('/export', async (c) => {
 
   for (const table of tables) {
     try {
-      const rows = db.$client.prepare(`SELECT * FROM ${table}`).all();
-      exportData[table] = rows.map((row: Record<string, unknown>) => {
+      // `[]` is bun:sqlite's ParamsType: no bindings are passed for this statement.
+      const rows = db.$client.prepare<Record<string, unknown>, []>(`SELECT * FROM ${table}`).all();
+      exportData[table] = rows.map((row) => {
         const sanitized = { ...row };
         sanitized.passwordHash = undefined;
         sanitized.tokenHash = undefined;

@@ -172,7 +172,7 @@ export class AiProviderError extends AppError {
   constructor(
     public readonly providerId: string,
     message: string,
-    public readonly statusCode: number = 502,
+    public override readonly statusCode: number = 502,
     retryable = true
   ) {
     super(

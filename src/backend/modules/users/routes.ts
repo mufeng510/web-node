@@ -7,11 +7,12 @@ import { users } from '../../db/schema/users.js';
 import { auditLog } from '../../middleware/audit.js';
 import { getUserSessions, revokeAllSessions } from '../../middleware/auth.js';
 import { authMiddleware } from '../../middleware/auth.middleware.js';
+import type { Env } from '../../middleware/env.js';
 import { NotFoundError, ValidationError } from '../../utils/errors.js';
 import { createId } from '../../utils/id.js';
 import { hashPassword } from '../auth/password.js';
 
-const usersRouter = new Hono();
+const usersRouter = new Hono<Env>();
 
 usersRouter.use('*', authMiddleware(['admin']));
 

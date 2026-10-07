@@ -5,9 +5,10 @@ import { z } from 'zod';
 import { getDb } from '../../db/index.js';
 import { tasks } from '../../db/schema/tasks.js';
 import { authMiddleware } from '../../middleware/auth.middleware.js';
+import type { Env } from '../../middleware/env.js';
 import { NotFoundError } from '../../utils/errors.js';
 
-const taskRoutes = new Hono();
+const taskRoutes = new Hono<Env>();
 
 taskRoutes.use('*', authMiddleware());
 
@@ -94,7 +95,7 @@ taskRoutes.get('/:id/logs', async (c) => {
     throw new NotFoundError('Task', taskId);
   }
 
-  const { taskSteps } = await import('../db/schema/tasks.js');
+  const { taskSteps } = await import('../../db/schema/tasks.js');
   const { asc } = await import('drizzle-orm');
 
   const steps = await db.query.taskSteps.findMany({

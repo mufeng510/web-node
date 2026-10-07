@@ -5,8 +5,9 @@ import { z } from 'zod';
 import { getDb } from '../../db/index.js';
 import { auditLogs } from '../../db/schema/audit.js';
 import { authMiddleware } from '../../middleware/auth.middleware.js';
+import type { Env } from '../../middleware/env.js';
 
-const auditRoutes = new Hono();
+const auditRoutes = new Hono<Env>();
 
 auditRoutes.use('*', authMiddleware(['admin']));
 
