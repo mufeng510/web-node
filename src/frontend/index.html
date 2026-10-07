@@ -7,6 +7,21 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.json" />
     <title>Web Note</title>
+    <script>
+      // Applied before first paint so a dark-theme user never sees a white flash.
+      // Must stay in sync with readStoredTheme/applyTheme in pages/Settings.tsx.
+      (function () {
+        var stored = 'system';
+        try {
+          var v = localStorage.getItem('theme');
+          if (v === 'light' || v === 'dark' || v === 'system') stored = v;
+        } catch (e) {}
+        var dark =
+          stored === 'dark' ||
+          (stored === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.classList.toggle('dark', dark);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
