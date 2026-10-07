@@ -1,16 +1,17 @@
 import { zValidator } from '@hono/zod-validator';
-import { and, asc, desc, eq, gt } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { getDb } from '../../../db/index.js';
 import { conversations, messages } from '../../../db/schema/conversations.js';
 import { auditLog } from '../../../middleware/audit.js';
 import { authMiddleware } from '../../../middleware/auth.middleware.js';
+import type { Env } from '../../../middleware/env.js';
 import { NotFoundError } from '../../../utils/errors.js';
 import { createId } from '../../../utils/id.js';
 import { checkLibraryAccess } from '../../libraries/access.js';
 
-const chatRoutes = new Hono();
+const chatRoutes = new Hono<Env>();
 
 chatRoutes.use('*', authMiddleware());
 
@@ -239,7 +240,7 @@ chatRoutes.post(
 
     await db
       .update(conversations)
-      .set({ messageCount: { increment: 1 }, updatedAt: new Date() })
+      .set({ messageCount: sql`${conversations.messageCount} + 1`, updatedAt: new Date() })
       .where(eq(conversations.id, conversationId));
 
     return c.json({ success: true, data: { id: messageId } });

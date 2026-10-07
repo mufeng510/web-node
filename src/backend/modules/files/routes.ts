@@ -1,20 +1,26 @@
 import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
 import { dirname, join, relative } from 'node:path';
 import { zValidator } from '@hono/zod-validator';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { getDb } from '../../db/index.js';
 import { files } from '../../db/schema/files.js';
 import { auditLog } from '../../middleware/audit.js';
 import { authMiddleware } from '../../middleware/auth.middleware.js';
-import { ConcurrencyError, NotFoundError, ValidationError } from '../../utils/errors.js';
+import type { Env } from '../../middleware/env.js';
+import {
+  AuthorizationError,
+  ConcurrencyError,
+  NotFoundError,
+  ValidationError,
+} from '../../utils/errors.js';
 import { createId } from '../../utils/id.js';
 import { getAbsolutePath, getLibraryRoot } from '../../utils/path.js';
 import { checkLibraryAccess } from '../libraries/access.js';
 import { readLibraryConfig } from '../libraries/config.js';
 
-const fileRoutes = new Hono();
+const fileRoutes = new Hono<Env>();
 
 fileRoutes.use('*', authMiddleware());
 
@@ -203,7 +209,7 @@ fileRoutes.patch(
     const stats = await stat(absolutePath);
     await db
       .update(files)
-      .set({ size: stats.size, mtime: stats.mtime, version: { increment: 1 } })
+      .set({ size: stats.size, mtime: stats.mtime, version: sql`${files.version} + 1` })
       .where(eq(files.id, existing.id));
 
     auditLog({

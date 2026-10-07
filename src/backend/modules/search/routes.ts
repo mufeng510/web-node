@@ -6,10 +6,11 @@ import { z } from 'zod';
 import { getDb } from '../../db/index.js';
 import { files } from '../../db/schema/files.js';
 import { authMiddleware } from '../../middleware/auth.middleware.js';
+import type { Env } from '../../middleware/env.js';
 import { getAbsolutePath } from '../../utils/path.js';
 import { checkLibraryAccess, getAccessibleLibraries } from '../libraries/access.js';
 
-const searchRoutes = new Hono();
+const searchRoutes = new Hono<Env>();
 
 searchRoutes.use('*', authMiddleware());
 

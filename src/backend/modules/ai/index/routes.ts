@@ -5,10 +5,11 @@ import { aiIndexes } from '../../../db/schema/ai_index.js';
 import { providers } from '../../../db/schema/providers.js';
 import { auditLog } from '../../../middleware/audit.js';
 import { authMiddleware } from '../../../middleware/auth.middleware.js';
+import type { Env } from '../../../middleware/env.js';
 import { NotFoundError } from '../../../utils/errors.js';
 import { checkLibraryAccess } from '../../libraries/access.js';
 
-const indexRoutes = new Hono();
+const indexRoutes = new Hono<Env>();
 
 indexRoutes.use('*', authMiddleware());
 
@@ -50,6 +51,7 @@ indexRoutes.post('/:libraryId/rebuild', async (c) => {
       status: 'indexing',
     });
     index = await db.query.aiIndexes.findFirst({ where: eq(aiIndexes.id, indexId) });
+    if (!index) throw new NotFoundError('AI index', indexId);
   } else {
     await db
       .update(aiIndexes)

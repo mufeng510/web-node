@@ -7,11 +7,12 @@ import { providers } from '../../../db/schema/providers.js';
 import { tasks } from '../../../db/schema/tasks.js';
 import { auditLog } from '../../../middleware/audit.js';
 import { authMiddleware } from '../../../middleware/auth.middleware.js';
+import type { Env } from '../../../middleware/env.js';
 import { decrypt, encrypt } from '../../../utils/crypto.js';
 import { NotFoundError, ValidationError } from '../../../utils/errors.js';
 import { createId } from '../../../utils/id.js';
 
-const providerRoutes = new Hono();
+const providerRoutes = new Hono<Env>();
 
 providerRoutes.use('*', authMiddleware(['admin']));
 

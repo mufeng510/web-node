@@ -6,11 +6,12 @@ import { getDb } from '../../../db/index.js';
 import { taskSteps, tasks } from '../../../db/schema/tasks.js';
 import { auditLog } from '../../../middleware/audit.js';
 import { authMiddleware } from '../../../middleware/auth.middleware.js';
+import type { Env } from '../../../middleware/env.js';
 import { NotFoundError, ValidationError } from '../../../utils/errors.js';
 import { createId } from '../../../utils/id.js';
 import { checkLibraryAccess } from '../../libraries/access.js';
 
-const agentRoutes = new Hono();
+const agentRoutes = new Hono<Env>();
 
 agentRoutes.use('*', authMiddleware());
 
@@ -92,7 +93,18 @@ agentRoutes.get(
     'query',
     z.object({
       libraryId: z.string().min(1).optional(),
-      status: z.string().optional(),
+      status: z
+        .enum([
+          'pending',
+          'running',
+          'waiting',
+          'paused',
+          'completed',
+          'failed',
+          'cancelled',
+          'interrupted',
+        ])
+        .optional(),
       limit: z.coerce.number().int().positive().max(100).default(20),
       cursor: z.string().optional(),
     })

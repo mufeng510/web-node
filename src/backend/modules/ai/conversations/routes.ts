@@ -5,10 +5,11 @@ import { z } from 'zod';
 import { getDb } from '../../../db/index.js';
 import { conversations } from '../../../db/schema/conversations.js';
 import { authMiddleware } from '../../../middleware/auth.middleware.js';
+import type { Env } from '../../../middleware/env.js';
 import { NotFoundError } from '../../../utils/errors.js';
 import { checkLibraryAccess } from '../../libraries/access.js';
 
-const conversationRoutes = new Hono();
+const conversationRoutes = new Hono<Env>();
 
 conversationRoutes.use('*', authMiddleware());
 

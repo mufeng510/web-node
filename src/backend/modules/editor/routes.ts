@@ -6,12 +6,13 @@ import { z } from 'zod';
 import { getDb } from '../../db/index.js';
 import { files } from '../../db/schema/files.js';
 import { authMiddleware } from '../../middleware/auth.middleware.js';
+import type { Env } from '../../middleware/env.js';
 import { AuthorizationError } from '../../utils/errors.js';
 import { getAbsolutePath } from '../../utils/path.js';
 import { checkLibraryAccess } from '../libraries/access.js';
 import { readLibraryConfig } from '../libraries/config.js';
 
-const editorRoutes = new Hono();
+const editorRoutes = new Hono<Env>();
 
 editorRoutes.use('*', authMiddleware());
 
