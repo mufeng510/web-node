@@ -1,19 +1,33 @@
-import { Database, Download, Lock, LogOut, Palette, Trash2, User, Wrench } from 'lucide-react';
+import { Database, Download, Lock, LogOut, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Alert } from '../components/ui/Alert';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Checkbox } from '../components/ui/Checkbox';
+import { ContentShell } from '../components/ui/ContentShell';
 import { Input } from '../components/ui/Input';
-import { PageHeader } from '../components/ui/PageHeader';
-import { Tabs } from '../components/ui/Tabs';
+import { PageContextBar } from '../components/ui/PageContextBar';
+import { ScrollArea } from '../components/ui/ScrollArea';
 import { useAuth } from '../hooks/useAuth';
 import { useLibraries } from '../hooks/useLibraries';
 import { cn } from '../lib/utils';
 import { api } from '../services/api';
 
-type SettingsTab = 'account' | 'security' | 'appearance' | 'advanced';
+import { SettingsSectionNav } from './settings/SettingsSectionNav';
+import AuditSection from './settings/sections/AuditSection';
+import DiagnosticsSection from './settings/sections/DiagnosticsSection';
+import McpSection from './settings/sections/McpSection';
+import UsersSection from './settings/sections/UsersSection';
+import {
+  ADMIN_ONLY_TABS,
+  DEFAULT_SETTINGS_TAB,
+  PERSONAL_TABS,
+  SYSTEM_TABS,
+  type SettingsTab,
+  resolveSettingsTab,
+} from './settings/settingsTabs';
+
 type ThemeChoice = 'light' | 'dark' | 'system';
 
 function readStoredTheme(): ThemeChoice {
@@ -35,9 +49,17 @@ function applyTheme(theme: ThemeChoice) {
 
 export function Settings() {
   const { user, changePassword, logoutAll } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const { libraries, currentLibrary, setCurrentLibrary, deleteLibrary } = useLibraries();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<SettingsTab>('account');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedTab = resolveSettingsTab(searchParams.get('tab'));
+  // A non-admin following /settings?tab=users must not land on an empty panel.
+  const activeTab =
+    !isAdmin && ADMIN_ONLY_TABS.includes(requestedTab) ? DEFAULT_SETTINGS_TAB : requestedTab;
+  const setActiveTab = (tab: SettingsTab) => {
+    setSearchParams(tab === 'account' ? {} : { tab }, { replace: true });
+  };
   const [saving, setSaving] = useState(false);
   const [signingOutAll, setSigningOutAll] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -242,255 +264,262 @@ export function Settings() {
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      <PageHeader title="Settings" />
+      <PageContextBar title="Settings" />
 
-      <div className="flex-1 overflow-y-auto">
+      <ScrollArea>
         <div className="flex flex-col sm:flex-row">
           <nav
             className="w-full sm:w-48 shrink-0 border-b sm:border-b-0 sm:border-r border-border py-2 sm:py-4 bg-bg-elevated/50"
             aria-label="Settings sections"
           >
-            <Tabs
-              options={[
-                { id: 'account', label: 'Account', icon: User },
-                { id: 'security', label: 'Security', icon: Lock },
-                { id: 'appearance', label: 'Appearance', icon: Palette },
-                { id: 'advanced', label: 'Advanced', icon: Wrench },
+            <SettingsSectionNav
+              groups={[
+                { id: 'personal', label: '个人', tabs: PERSONAL_TABS },
+                {
+                  id: 'system',
+                  label: '系统',
+                  tabs: isAdmin
+                    ? SYSTEM_TABS
+                    : SYSTEM_TABS.filter((t) => !ADMIN_ONLY_TABS.includes(t)),
+                },
               ]}
-              value={activeTab}
+              activeTab={activeTab}
               onChange={setActiveTab}
-              orientation="vertical"
-              ariaLabel="Settings sections"
-              className="px-2"
             />
           </nav>
 
           <div className="flex-1 min-w-0 p-4 sm:p-6">
-            {activeTab === 'account' && (
-              <div className="max-w-md space-y-6">
-                <div>
-                  <h2 className="text-lg font-medium text-fg mb-4">Account Information</h2>
-                  <div className="space-y-4">
-                    <Input id="email" label="Email" value={email} disabled />
-                    <Input id="role" label="Role" value={user?.role || 'user'} disabled />
+            <ContentShell>
+              {activeTab === 'diagnostics' && <DiagnosticsSection />}
+              {activeTab === 'mcp' && <McpSection />}
+              {activeTab === 'users' && isAdmin && <UsersSection />}
+              {activeTab === 'audit' && isAdmin && <AuditSection />}
+              {activeTab === 'account' && (
+                <div className="max-w-md space-y-6">
+                  <div>
+                    <h2 className="text-lg font-medium text-fg mb-4">Account Information</h2>
+                    <div className="space-y-4">
+                      <Input id="email" label="Email" value={email} disabled />
+                      <Input id="role" label="Role" value={user?.role || 'user'} disabled />
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {activeTab === 'security' && (
-              <div className="max-w-md space-y-6">
-                <div>
-                  <h2 className="text-lg font-medium text-fg mb-4">Change Password</h2>
-                  <form onSubmit={handlePasswordChange} className="space-y-4">
-                    {passwordError && <Alert>{passwordError}</Alert>}
-                    {passwordSuccess && (
-                      <Alert variant="success">Password changed successfully</Alert>
-                    )}
-                    <Input
-                      id="currentPassword"
-                      label="Current Password"
-                      type={showPasswords ? 'text' : 'password'}
-                      value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
-                      leadingIcon={<Lock className="w-5 h-5" />}
-                      placeholder="••••••••"
-                    />
-                    <Input
-                      id="newPassword"
-                      label="New Password"
-                      type={showPasswords ? 'text' : 'password'}
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      leadingIcon={<Lock className="w-5 h-5" />}
-                      placeholder="••••••••"
-                    />
-                    <Input
-                      id="confirmPassword"
-                      label="Confirm New Password"
-                      type={showPasswords ? 'text' : 'password'}
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      leadingIcon={<Lock className="w-5 h-5" />}
-                      placeholder="••••••••"
-                    />
-                    <Checkbox
-                      label="Show passwords"
-                      checked={showPasswords}
-                      onChange={(e) => setShowPasswords(e.target.checked)}
-                    />
-                    <Button type="submit" disabled={saving} className="w-full">
-                      {saving ? 'Saving...' : 'Change Password'}
+              {activeTab === 'security' && (
+                <div className="max-w-md space-y-6">
+                  <div>
+                    <h2 className="text-lg font-medium text-fg mb-4">Change Password</h2>
+                    <form onSubmit={handlePasswordChange} className="space-y-4">
+                      {passwordError && <Alert>{passwordError}</Alert>}
+                      {passwordSuccess && (
+                        <Alert variant="success">Password changed successfully</Alert>
+                      )}
+                      <Input
+                        id="currentPassword"
+                        label="Current Password"
+                        type={showPasswords ? 'text' : 'password'}
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        leadingIcon={<Lock className="w-5 h-5" />}
+                        placeholder="••••••••"
+                      />
+                      <Input
+                        id="newPassword"
+                        label="New Password"
+                        type={showPasswords ? 'text' : 'password'}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        leadingIcon={<Lock className="w-5 h-5" />}
+                        placeholder="••••••••"
+                      />
+                      <Input
+                        id="confirmPassword"
+                        label="Confirm New Password"
+                        type={showPasswords ? 'text' : 'password'}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        leadingIcon={<Lock className="w-5 h-5" />}
+                        placeholder="••••••••"
+                      />
+                      <Checkbox
+                        label="Show passwords"
+                        checked={showPasswords}
+                        onChange={(e) => setShowPasswords(e.target.checked)}
+                      />
+                      <Button type="submit" disabled={saving} className="w-full">
+                        {saving ? 'Saving...' : 'Change Password'}
+                      </Button>
+                    </form>
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-medium text-fg mb-4">Sessions</h2>
+                    <Button
+                      variant="secondary"
+                      className="w-full justify-between"
+                      onClick={handleSignOutAll}
+                      disabled={signingOutAll}
+                    >
+                      <span>{signingOutAll ? 'Signing out...' : 'Sign out of all devices'}</span>
+                      <LogOut className="w-4 h-4" aria-hidden="true" />
                     </Button>
-                  </form>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-lg font-medium text-fg mb-4">Sessions</h2>
-                  <Button
-                    variant="secondary"
-                    className="w-full justify-between"
-                    onClick={handleSignOutAll}
-                    disabled={signingOutAll}
-                  >
-                    <span>{signingOutAll ? 'Signing out...' : 'Sign out of all devices'}</span>
-                    <LogOut className="w-4 h-4" aria-hidden="true" />
-                  </Button>
-                </div>
-              </div>
-            )}
+              )}
 
-            {activeTab === 'appearance' && (
-              <div className="max-w-md space-y-6">
-                <div>
-                  <fieldset>
-                    <legend className="text-lg font-medium text-fg mb-4 px-0">Theme</legend>
-                    <div className="grid grid-cols-3 gap-2">
-                      {(['light', 'dark', 'system'] as const).map((t) => (
+              {activeTab === 'appearance' && (
+                <div className="max-w-md space-y-6">
+                  <div>
+                    <fieldset>
+                      <legend className="text-lg font-medium text-fg mb-4 px-0">Theme</legend>
+                      <div className="grid grid-cols-3 gap-2">
+                        {(['light', 'dark', 'system'] as const).map((t) => (
+                          <button
+                            key={t}
+                            type="button"
+                            onClick={() => handleThemeChange(t)}
+                            aria-pressed={theme === t}
+                            className={cn(
+                              'p-3 rounded-md border-2 text-center text-sm transition-colors duration-150',
+                              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
+                              theme === t
+                                ? 'border-primary bg-primary/5 text-fg'
+                                : 'border-border hover:border-border-strong text-fg-muted'
+                            )}
+                          >
+                            <span className="capitalize">{t}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </fieldset>
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-medium text-fg mb-4">Font Size</h2>
+                    <div className="flex items-center gap-4">
+                      <input
+                        type="range"
+                        min="12"
+                        max="24"
+                        value={fontSize}
+                        aria-label="Font size"
+                        onChange={(e) => handleFontSizeChange(Number(e.target.value))}
+                        className="flex-1 accent-primary"
+                      />
+                      <span className="text-sm text-fg-muted w-12">{fontSize}px</span>
+                    </div>
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-medium text-fg mb-4">Language</h2>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(
+                        [
+                          { id: 'en', label: 'English' },
+                          { id: 'zh-CN', label: '简体中文' },
+                        ] as const
+                      ).map((l) => (
                         <button
-                          key={t}
+                          key={l.id}
                           type="button"
-                          onClick={() => handleThemeChange(t)}
-                          aria-pressed={theme === t}
+                          onClick={() => {
+                            setLanguage(l.id);
+                            saveAppearance({ language: l.id });
+                          }}
+                          aria-pressed={language === l.id}
                           className={cn(
                             'p-3 rounded-md border-2 text-center text-sm transition-colors duration-150',
                             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
-                            theme === t
+                            language === l.id
                               ? 'border-primary bg-primary/5 text-fg'
                               : 'border-border hover:border-border-strong text-fg-muted'
                           )}
                         >
-                          <span className="capitalize">{t}</span>
+                          {l.label}
                         </button>
                       ))}
                     </div>
-                  </fieldset>
-                </div>
-                <div>
-                  <h2 className="text-lg font-medium text-fg mb-4">Font Size</h2>
-                  <div className="flex items-center gap-4">
-                    <input
-                      type="range"
-                      min="12"
-                      max="24"
-                      value={fontSize}
-                      aria-label="Font size"
-                      onChange={(e) => handleFontSizeChange(Number(e.target.value))}
-                      className="flex-1 accent-primary"
-                    />
-                    <span className="text-sm text-fg-muted w-12">{fontSize}px</span>
                   </div>
                 </div>
-                <div>
-                  <h2 className="text-lg font-medium text-fg mb-4">Language</h2>
-                  <div className="grid grid-cols-2 gap-2">
-                    {(
-                      [
-                        { id: 'en', label: 'English' },
-                        { id: 'zh-CN', label: '简体中文' },
-                      ] as const
-                    ).map((l) => (
-                      <button
-                        key={l.id}
-                        type="button"
-                        onClick={() => {
-                          setLanguage(l.id);
-                          saveAppearance({ language: l.id });
-                        }}
-                        aria-pressed={language === l.id}
-                        className={cn(
-                          'p-3 rounded-md border-2 text-center text-sm transition-colors duration-150',
-                          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
-                          language === l.id
-                            ? 'border-primary bg-primary/5 text-fg'
-                            : 'border-border hover:border-border-strong text-fg-muted'
-                        )}
-                      >
-                        {l.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
+              )}
 
-            {activeTab === 'advanced' && (
-              <div className="max-w-md space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Data Management</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <Button
-                      variant="secondary"
-                      className="w-full justify-between"
-                      onClick={handleExportConfig}
-                      disabled={advancedBusy}
-                    >
-                      <span>Export Application Config</span>
-                      <Download className="w-4 h-4" aria-hidden="true" />
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      className="w-full justify-between"
-                      onClick={handleBackupDatabase}
-                      disabled={advancedBusy}
-                    >
-                      <span>Backup Database</span>
-                      <Database className="w-4 h-4" aria-hidden="true" />
-                    </Button>
-                    {advancedMsg && (
-                      <output className="block text-sm text-fg-muted">{advancedMsg}</output>
-                    )}
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Libraries</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    {libraries.length === 0 ? (
-                      <p className="text-sm text-fg-muted">No libraries yet.</p>
-                    ) : (
-                      libraries.map((lib) => (
-                        <div
-                          key={lib.id}
-                          className="flex items-center gap-3 px-3 py-2 border border-border rounded-md"
-                        >
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-fg truncate">
-                              {lib.name}
-                              {currentLibrary?.id === lib.id && (
-                                <span className="ml-2 text-xs font-normal text-primary">
-                                  Current
-                                </span>
-                              )}
-                            </p>
-                            <p className="text-xs text-fg-muted truncate">{lib.path}</p>
-                          </div>
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => handleDeleteLibrary(lib.id)}
-                            disabled={libraryBusyId === lib.id}
-                            aria-label={
-                              confirmDeleteId === lib.id
-                                ? `Confirm delete ${lib.name}`
-                                : `Delete ${lib.name}`
-                            }
+              {activeTab === 'advanced' && (
+                <div className="max-w-md space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Data Management</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <Button
+                        variant="secondary"
+                        className="w-full justify-between"
+                        onClick={handleExportConfig}
+                        disabled={advancedBusy}
+                      >
+                        <span>Export Application Config</span>
+                        <Download className="w-4 h-4" aria-hidden="true" />
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        className="w-full justify-between"
+                        onClick={handleBackupDatabase}
+                        disabled={advancedBusy}
+                      >
+                        <span>Backup Database</span>
+                        <Database className="w-4 h-4" aria-hidden="true" />
+                      </Button>
+                      {advancedMsg && (
+                        <output className="block text-sm text-fg-muted">{advancedMsg}</output>
+                      )}
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Libraries</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {libraries.length === 0 ? (
+                        <p className="text-sm text-fg-muted">No libraries yet.</p>
+                      ) : (
+                        libraries.map((lib) => (
+                          <div
+                            key={lib.id}
+                            className="flex items-center gap-3 px-3 py-2 border border-border rounded-md"
                           >
-                            <Trash2 className="w-4 h-4" aria-hidden="true" />
-                            {confirmDeleteId === lib.id ? 'Confirm?' : 'Delete'}
-                          </Button>
-                        </div>
-                      ))
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-fg truncate">
+                                {lib.name}
+                                {currentLibrary?.id === lib.id && (
+                                  <span className="ml-2 text-xs font-normal text-primary">
+                                    Current
+                                  </span>
+                                )}
+                              </p>
+                              <p className="text-xs text-fg-muted truncate">{lib.path}</p>
+                            </div>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => handleDeleteLibrary(lib.id)}
+                              disabled={libraryBusyId === lib.id}
+                              aria-label={
+                                confirmDeleteId === lib.id
+                                  ? `Confirm delete ${lib.name}`
+                                  : `Delete ${lib.name}`
+                              }
+                            >
+                              <Trash2 className="w-4 h-4" aria-hidden="true" />
+                              {confirmDeleteId === lib.id ? 'Confirm?' : 'Delete'}
+                            </Button>
+                          </div>
+                        ))
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+            </ContentShell>
           </div>
         </div>
-      </div>
+      </ScrollArea>
     </div>
   );
 }
