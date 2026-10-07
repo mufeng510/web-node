@@ -14,9 +14,9 @@ import {
   Strikethrough,
 } from 'lucide-react';
 import { marked } from 'marked';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { OutlinePanel } from '../components/editor/OutlinePanel';
+import { NoteRail } from '../components/editor/NoteRail';
 import { useRegisterRail } from '../components/layout/RightRail';
 import { Breadcrumb } from '../components/ui/Breadcrumb';
 import { Button } from '../components/ui/Button';
@@ -243,11 +243,23 @@ export function Editor() {
   );
   const editing = view !== 'preview';
 
-  const outlineNode = useMemo(() => <OutlinePanel entries={outline} />, [outline]);
-  useRegisterRail(splat ? `outline:${splat}` : null, outlineNode);
+  const railNode = useMemo(
+    () => (
+      <NoteRail
+        notePath={splat ?? ''}
+        entries={outline}
+        backlinks={backlinks}
+        loading={linksLoading}
+        onOpenNote={(path) => libraryId && navigate(routes.editor(libraryId, path))}
+      />
+    ),
+    [splat, libraryId, outline, backlinks, linksLoading, navigate]
+  );
+  useRegisterRail(splat ? `note:${splat}` : null, railNode);
 
-  const openLinks = async () => {
-    setShowLinks(true);
+  // Stable identity: the load-on-open effect below depends on it, and a fresh
+  // function each render would refetch forever.
+  const fetchBacklinks = useCallback(async () => {
     if (!libraryId || !splat) return;
     setLinksLoading(true);
     try {
@@ -259,13 +271,26 @@ export function Editor() {
           backlinks: { sourcePath: string; sourceName: string; type: string; target: string }[];
         };
       };
-      if (res.success) setBacklinks(res.data.backlinks);
+      // A response without the array would otherwise leave the rail and the
+      // dialog reading a non-list and crash on .length.
+      if (res.success && Array.isArray(res.data.backlinks)) setBacklinks(res.data.backlinks);
     } catch (error) {
       console.error('Failed to load backlinks:', error);
     } finally {
       setLinksLoading(false);
     }
+  }, [libraryId, splat]);
+
+  const openLinks = () => {
+    setShowLinks(true);
+    void fetchBacklinks();
   };
+
+  // The rail shows backlinks for the whole time a note is open, so they load
+  // with the note rather than only when the dialog is opened.
+  useEffect(() => {
+    void fetchBacklinks();
+  }, [fetchBacklinks, splat]);
 
   const searchWikilinks = async (q: string) => {
     setLinkQuery(q);

@@ -133,6 +133,32 @@ editorRoutes.post(
   }
 );
 
+/**
+ * A note can be named by its full path or by its bare filename, so `[[ideas]]`
+ * and `notes/ideas.md` must resolve to the same note.
+ */
+function referenceKeys(filePath: string): string[] {
+  const base = filePath.split('/').pop() ?? filePath;
+  return [...new Set([filePath, base].flatMap((key) => [key, key.replace(/\.md$/i, '')]))].map(
+    (key) => key.toLowerCase()
+  );
+}
+
+function linkKey(raw: string): string {
+  let value = raw.trim();
+  try {
+    value = decodeURIComponent(value);
+  } catch {
+    // not percent-encoded
+  }
+  return value
+    .replace(/\s+["'(].*$/, '')
+    .replace(/^\.\//, '')
+    .replace(/#.*$/, '')
+    .replace(/\.md$/i, '')
+    .toLowerCase();
+}
+
 editorRoutes.get('/:libraryId/:filePath{.+}/backlinks', async (c) => {
   const userId = c.get('userId');
   const libraryId = c.req.param('libraryId');
@@ -144,6 +170,9 @@ editorRoutes.get('/:libraryId/:filePath{.+}/backlinks', async (c) => {
   const allFiles = await db.query.files.findMany({
     where: and(eq(files.libraryId, libraryId), eq(files.isDir, false)),
   });
+
+  const wanted = new Set(referenceKeys(filePath));
+  const pointsAt = (raw: string) => wanted.has(linkKey(raw));
 
   const backlinks: Record<string, unknown>[] = [];
 
@@ -158,7 +187,7 @@ editorRoutes.get('/:libraryId/:filePath{.+}/backlinks', async (c) => {
 
       for (const match of content.matchAll(wikilinkRegex)) {
         const target = match[1];
-        if (target === filePath || target === filePath.replace(/\.md$/, '')) {
+        if (target && pointsAt(target)) {
           backlinks.push({
             sourcePath: file.path,
             sourceName: file.name,
@@ -173,7 +202,7 @@ editorRoutes.get('/:libraryId/:filePath{.+}/backlinks', async (c) => {
 
       for (const match of content.matchAll(embedRegex)) {
         const target = match[1];
-        if (target === filePath || target === filePath.replace(/\.md$/, '')) {
+        if (target && pointsAt(target)) {
           backlinks.push({
             sourcePath: file.path,
             sourceName: file.name,
@@ -188,7 +217,7 @@ editorRoutes.get('/:libraryId/:filePath{.+}/backlinks', async (c) => {
 
       for (const match of content.matchAll(linkRegex)) {
         const url = match[2];
-        if (url === filePath || url === `./${filePath}`) {
+        if (url && pointsAt(url)) {
           backlinks.push({
             sourcePath: file.path,
             sourceName: file.name,
