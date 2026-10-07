@@ -62,7 +62,14 @@ export const PageContextBar = forwardRef<HTMLDivElement, PageContextBarProps>(
               <Breadcrumb items={breadcrumb} className="mb-1" />
             )}
             <div className="flex items-center gap-2 min-w-0">
-              <h1 className="text-lg font-semibold text-fg truncate">{title}</h1>
+              {/* tabIndex -1 so useRouteFocus can move focus here on navigation;
+                  a heading is not focusable by default. */}
+              <h1
+                tabIndex={-1}
+                className="text-lg font-semibold text-fg truncate focus:outline-none"
+              >
+                {title}
+              </h1>
               {detail && (
                 <button
                   type="button"
