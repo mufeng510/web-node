@@ -73,7 +73,10 @@ export function TreeNodeItem({
       </button>
 
       {isFolder ? (
-        <Folder className="w-4 h-4 text-fg-muted flex-shrink-0" aria-hidden="true" />
+        <Folder
+          className={cn('w-4 h-4 flex-shrink-0', selected ? 'text-primary' : 'text-fg-muted')}
+          aria-hidden="true"
+        />
       ) : (
         <FileText
           className={cn('w-4 h-4 flex-shrink-0', selected ? 'text-primary' : 'text-fg-muted')}
