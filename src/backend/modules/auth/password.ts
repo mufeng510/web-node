@@ -1,6 +1,8 @@
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
+import { getEnv } from '../../config/env.js';
 import { getDb } from '../../db/index.js';
 import { users } from '../../db/schema/users.js';
+import { revokeAllSessions } from '../../middleware/auth.js';
 import { AuthenticationError, NotFoundError, ValidationError } from '../../utils/errors.js';
 import { createId } from '../../utils/id.js';
 
@@ -88,7 +90,7 @@ async function incrementFailedAttempts(email: string) {
   await db
     .update(users)
     .set({
-      failedLoginAttempts: { increment: 1 },
+      failedLoginAttempts: sql`${users.failedLoginAttempts} + 1`,
       lockedUntil: new Date(Date.now() + 15 * 60 * 1000),
     })
     .where(eq(users.email, email));

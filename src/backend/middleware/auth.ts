@@ -2,7 +2,9 @@ import { and, eq, gt } from 'drizzle-orm';
 import type { Context } from 'hono';
 import { getEnv } from '../config/env.js';
 import { getDb } from '../db/index.js';
+import type { Session } from '../db/schema/sessions.js';
 import { sessions } from '../db/schema/sessions.js';
+import type { User } from '../db/schema/users.js';
 import { generateSecureToken, hashSecret } from '../utils/crypto.js';
 
 /** Secure flag follows the actual request scheme, not NODE_ENV. */
@@ -36,24 +38,31 @@ export async function createSession(userId: string, deviceInfo?: string, ip?: st
   return { token, expiresAt };
 }
 
-export async function validateSession(token: string) {
+type ValidatedSession = Session & { user: User };
+
+/** Drizzle types the joined `user` relation as `any`, so the row is re-checked here. */
+function isUserRecord(value: unknown): value is User {
+  return typeof value === 'object' && value !== null && 'isActive' in value;
+}
+
+export async function validateSession(token: string): Promise<ValidatedSession | null> {
   const tokenHash = hashSecret(token);
   const db = getDb();
 
-  const session = await db.query.sessions.findFirst({
+  const session: (Session & { user: unknown }) | undefined = await db.query.sessions.findFirst({
     where: and(eq(sessions.tokenHash, tokenHash), gt(sessions.expiresAt, new Date())),
     with: {
       user: true,
     },
   });
 
-  if (!session || !session.user || !session.user.isActive) {
+  if (!session || !isUserRecord(session.user) || !session.user.isActive) {
     return null;
   }
 
   await db.update(sessions).set({ lastActivityAt: new Date() }).where(eq(sessions.id, session.id));
 
-  return session;
+  return { ...session, user: session.user };
 }
 
 export async function revokeSession(token: string) {
@@ -94,7 +103,7 @@ export function extractTokenFromCookie(
   for (const cookie of cookies) {
     const [name, value] = cookie.split('=');
     if (name === cookieName) {
-      return value;
+      return value ?? null;
     }
   }
   return null;
