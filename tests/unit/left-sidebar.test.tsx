@@ -1,6 +1,7 @@
 import { LeftSidebar } from '@/frontend/src/components/layout/LeftSidebar';
 import { api } from '@/frontend/src/services/api';
-import { act, useState } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { type ReactNode, act, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -9,10 +10,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/frontend/src/services/api', () => ({
   api: { get: vi.fn() },
-}));
-
-vi.mock('@/frontend/src/hooks/useAuth', () => ({
-  useAuth: () => ({ user: { id: 'u1', email: 'admin@example.com', role: 'admin' } }),
 }));
 
 const mockedGet = api.get as unknown as ReturnType<typeof vi.fn>;
@@ -25,9 +22,29 @@ const treeData = [
     relativePath: 'readme.md',
     isDir: false,
     size: 10,
-    mtime: new Date(),
+    mtime: new Date().toISOString(),
   },
 ];
+
+function withProviders(ui: ReactNode) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return (
+    <QueryClientProvider client={client}>
+      <MemoryRouter>{ui}</MemoryRouter>
+    </QueryClientProvider>
+  );
+}
+
+/** react-query resolves across several ticks, so poll instead of a single flush. */
+async function waitFor(predicate: () => boolean, timeoutMs = 2000) {
+  const deadline = Date.now() + timeoutMs;
+  while (!predicate()) {
+    if (Date.now() > deadline) throw new Error('waitFor timed out');
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 10));
+    });
+  }
+}
 
 describe('LeftSidebar file tree', () => {
   let container: HTMLDivElement;
@@ -53,14 +70,16 @@ describe('LeftSidebar file tree', () => {
     act(() => {
       root = createRoot(container);
       root.render(
-        <MemoryRouter>
-          <LeftSidebar library={{ id: 'lib-1' }} />
-        </MemoryRouter>
+        withProviders(
+          <LeftSidebar
+            libraries={[{ id: 'lib-1', name: 'Notes' }]}
+            currentLibrary={{ id: 'lib-1', name: 'Notes' }}
+            onLibraryChange={() => undefined}
+          />
+        )
       );
     });
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 0));
-    });
+    await waitFor(() => container.textContent?.includes('readme.md') ?? false);
 
     expect(mockedGet).toHaveBeenCalledWith('/files/lib-1/tree');
     expect(container.textContent).toContain('readme.md');
@@ -76,31 +95,53 @@ describe('LeftSidebar file tree', () => {
           <button type="button" onClick={() => setId('lib-2')}>
             switch
           </button>
-          <LeftSidebar library={{ id }} />
+          <LeftSidebar
+            libraries={[
+              { id: 'lib-1', name: 'One' },
+              { id: 'lib-2', name: 'Two' },
+            ]}
+            currentLibrary={{ id, name: id }}
+            onLibraryChange={() => undefined}
+          />
         </>
       );
     }
 
     act(() => {
       root = createRoot(container);
-      root.render(
-        <MemoryRouter>
-          <Switcher />
-        </MemoryRouter>
-      );
+      root.render(withProviders(<Switcher />));
     });
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 0));
-    });
+    await waitFor(() => mockedGet.mock.calls.length > 0);
 
     const button = container.querySelector('button') as HTMLButtonElement;
     act(() => {
       button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 0));
-    });
+    await waitFor(() => mockedGet.mock.calls.some((call) => call[0] === '/files/lib-2/tree'));
 
     expect(mockedGet).toHaveBeenCalledWith('/files/lib-2/tree');
+  });
+
+  it('左栏只渲染内容导航，不含设置类入口', () => {
+    mockedGet.mockResolvedValue({ success: true, data: { tree: [] } });
+
+    act(() => {
+      root = createRoot(container);
+      root.render(
+        withProviders(
+          <LeftSidebar
+            libraries={[{ id: 'lib-1', name: 'Notes' }]}
+            currentLibrary={{ id: 'lib-1', name: 'Notes' }}
+            onLibraryChange={() => undefined}
+          />
+        )
+      );
+    });
+
+    const labels = [...container.querySelectorAll('nav a')].map((a) => a.textContent);
+    expect(labels).toEqual(['Dashboard', 'Search', 'Notifications', 'Tasks', 'AI Assistant']);
+    for (const gone of ['Settings', 'Diagnostics', 'Users', 'Audit Log', 'MCP Tokens', 'Library']) {
+      expect(labels).not.toContain(gone);
+    }
   });
 });
