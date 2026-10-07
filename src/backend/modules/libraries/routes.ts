@@ -1,7 +1,7 @@
 import { readdir, stat } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { zValidator } from '@hono/zod-validator';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, notInArray } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { getEnv } from '../../config/env.js';
@@ -26,7 +26,7 @@ import {
   readLibraryConfig,
   writeLibraryConfig,
 } from './config.js';
-import { scanLibraryTree } from './scanner.js';
+import { type TreeNode, scanLibraryTree } from './scanner.js';
 import { startLibraryWatcher, stopLibraryWatcher } from './watcher.js';
 
 const libraryRoutes = new Hono<Env>();
@@ -375,10 +375,78 @@ libraryRoutes.delete('/:id', async (c) => {
   return c.json({ success: true });
 });
 
+/** Depth-first, parents before children, so a parent id is always known first. */
+function flattenTree(
+  nodes: TreeNode[],
+  parentPath: string | null,
+  out: { node: TreeNode; parentPath: string | null }[] = []
+) {
+  for (const node of nodes) {
+    out.push({ node, parentPath });
+    if (node.children) flattenTree(node.children, node.relativePath, out);
+  }
+  return out;
+}
+
+/**
+ * Mirrors the scanned tree into the `files` table.
+ *
+ * The watcher starts with `ignoreInitial: true`, so without this a library's
+ * existing files never reach the table and everything reading it — backlinks,
+ * the editor's save path, reference analysis — sees an empty library.
+ */
+async function indexLibrary(db: ReturnType<typeof getDb>, libraryId: string, tree: TreeNode[]) {
+  const entries = flattenTree(tree, null);
+  const idByPath = new Map<string, string>();
+
+  for (const { node, parentPath } of entries) {
+    const row = {
+      libraryId,
+      path: node.relativePath,
+      name: node.name,
+      isDir: node.isDir,
+      size: node.size,
+      mimeType: node.mimeType ?? null,
+      mtime: node.mtime,
+      parentId: parentPath ? (idByPath.get(parentPath) ?? null) : null,
+    };
+
+    const [upserted] = await db
+      .insert(files)
+      .values(row)
+      .onConflictDoUpdate({
+        target: [files.libraryId, files.path],
+        set: {
+          name: row.name,
+          isDir: row.isDir,
+          size: row.size,
+          mimeType: row.mimeType,
+          mtime: row.mtime,
+          parentId: row.parentId,
+          updatedAt: new Date(),
+        },
+      })
+      .returning({ id: files.id });
+
+    if (upserted) idByPath.set(node.relativePath, upserted.id);
+  }
+
+  // Rows for files deleted on disk would otherwise linger and surface as
+  // backlinks to notes that no longer exist.
+  const paths = entries.map(({ node }) => node.relativePath);
+  await db
+    .delete(files)
+    .where(
+      paths.length === 0
+        ? eq(files.libraryId, libraryId)
+        : and(eq(files.libraryId, libraryId), notInArray(files.path, paths))
+    );
+}
+
 libraryRoutes.post('/:id/scan', async (c) => {
   const userId = c.get('userId');
   const libraryId = c.req.param('id');
-  const _db = getDb();
+  const db = getDb();
 
   const { library } = await checkLibraryAccess(userId, libraryId);
   const config = await readLibraryConfig(library.path);
@@ -388,6 +456,8 @@ libraryRoutes.post('/:id/scan', async (c) => {
     showObsidian: config?.visibility?.showObsidianDir,
     showGit: config?.visibility?.showGitDir,
   });
+
+  await indexLibrary(db, libraryId, tree);
 
   return c.json({ success: true, data: { tree, totalFiles: countFiles(tree) } });
 });
