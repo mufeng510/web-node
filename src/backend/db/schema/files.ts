@@ -1,4 +1,11 @@
-import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import {
+  type AnySQLiteColumn,
+  index,
+  integer,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from 'drizzle-orm/sqlite-core';
 import { createId } from '../../utils/id.js';
 import { libraries } from './libraries.js';
 
@@ -11,7 +18,12 @@ export const files = sqliteTable(
     libraryId: text('library_id')
       .notNull()
       .references(() => libraries.id, { onDelete: 'cascade' }),
-    parentId: text('parent_id').references(() => files.id, { onDelete: 'cascade' }),
+    // The explicit `AnySQLiteColumn` return type breaks the circular type
+    // inference: without it, `() => files.id` makes `typeof files` resolve to
+    // `any`, which silently erases every `files` column type in the project.
+    parentId: text('parent_id').references((): AnySQLiteColumn => files.id, {
+      onDelete: 'cascade',
+    }),
     path: text('path').notNull(),
     name: text('name').notNull(),
     isDir: integer('is_dir', { mode: 'boolean' }).notNull().default(false),

@@ -76,7 +76,9 @@ export const taskSteps = sqliteTable(
     tool: text('tool').notNull(),
     args: text('args', { mode: 'json' }),
     result: text('result', { mode: 'json' }),
-    status: text('status', { enum: ['pending', 'running', 'completed', 'failed', 'cancelled'] })
+    status: text('status', {
+      enum: ['pending', 'running', 'completed', 'failed', 'cancelled', 'approved', 'rejected'],
+    })
       .notNull()
       .default('pending'),
     error: text('error'),

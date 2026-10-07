@@ -14,7 +14,7 @@ export const providers = sqliteTable(
     chatModel: text('chat_model').notNull(),
     embedModel: text('embed_model'),
     rerankModel: text('rerank_model'),
-    customHeaders: text('custom_headers', { mode: 'json' }),
+    customHeaders: text('custom_headers', { mode: 'json' }).$type<Record<string, string>>(),
     capabilities: text('capabilities', { mode: 'json' }).$type<string[]>().default([]),
     isDefault: integer('is_default', { mode: 'boolean' }).notNull().default(false),
     discoveredModels: text('discovered_models', { mode: 'json' }).$type<string[]>().default([]),
