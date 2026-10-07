@@ -10,6 +10,7 @@ import type { Env } from '../../../middleware/env.js';
 import { NotFoundError } from '../../../utils/errors.js';
 import { createId } from '../../../utils/id.js';
 import { checkLibraryAccess } from '../../libraries/access.js';
+import { generateReply } from './completion.js';
 
 const chatRoutes = new Hono<Env>();
 
@@ -243,7 +244,27 @@ chatRoutes.post(
       .set({ messageCount: sql`${conversations.messageCount} + 1`, updatedAt: new Date() })
       .where(eq(conversations.id, conversationId));
 
-    return c.json({ success: true, data: { id: messageId } });
+    // Only a user turn expects an answer; seeding assistant or system rows must
+    // not trigger a provider call.
+    if (role !== 'user') {
+      return c.json({ success: true, data: { id: messageId } });
+    }
+
+    try {
+      const reply = await generateReply(conversationId, messageId);
+      return c.json({ success: true, data: { id: messageId, reply } });
+    } catch (error) {
+      // The user's message is already stored, so this is reported rather than
+      // thrown: failing the whole request would report a lost message.
+      return c.json({
+        success: true,
+        data: { id: messageId },
+        error: {
+          code: 'REPLY_FAILED',
+          message: error instanceof Error ? error.message : 'Failed to generate a reply',
+        },
+      });
+    }
   }
 );
 
