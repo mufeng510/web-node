@@ -1,5 +1,5 @@
 import { ChevronRight, FolderGit2, X } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { NavLink } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import { IconButton } from '../ui/IconButton';
@@ -20,13 +20,54 @@ export function MobileDrawer({
   currentLibrary,
   onLibraryChange,
 }: MobileDrawerProps) {
+  const panelRef = useRef<HTMLDialogElement>(null);
+
   useEffect(() => {
     if (!isOpen) return;
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const { body } = document;
+    const previousOverflow = body.style.overflow;
+    body.style.overflow = 'hidden';
+
+    const focusableSelector =
+      'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
+    const focusFirst = () => {
+      panelRef.current?.querySelector<HTMLElement>(focusableSelector)?.focus();
     };
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
+    focusFirst();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+        return;
+      }
+      if (event.key !== 'Tab' || !panelRef.current) return;
+
+      const items = [...panelRef.current.querySelectorAll<HTMLElement>(focusableSelector)];
+      if (items.length === 0) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (!first || !last) return;
+      const active = document.activeElement;
+
+      if (event.shiftKey && (active === first || !panelRef.current.contains(active))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      body.style.overflow = previousOverflow;
+      previouslyFocused?.focus();
+    };
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
@@ -39,7 +80,17 @@ export function MobileDrawer({
         onClick={onClose}
         aria-label="Close menu"
       />
-      <aside className="fixed inset-y-0 left-0 z-[var(--z-drawer)] w-[var(--mobile-drawer-w)] bg-bg-elevated border-r border-border lg:hidden flex flex-col">
+      {/* Mounted only while open, so `open` is what makes it visible at all; the
+          UA stylesheet hides a dialog without it. Focus is trapped manually in
+          the effect above, because showModal() would conflict with unmounting. */}
+      <dialog
+        ref={panelRef}
+        id="mobile-menu-drawer"
+        open
+        aria-modal="true"
+        aria-label="Menu"
+        className="fixed inset-y-0 left-0 m-0 p-0 z-[var(--z-drawer)] w-[var(--mobile-drawer-w)] max-w-none h-full bg-bg-elevated border-r border-border lg:hidden flex flex-col backdrop:bg-transparent"
+      >
         <div className="flex items-center justify-between px-3 py-3 border-b border-border">
           <h2 className="text-lg font-medium text-fg">Menu</h2>
           <IconButton size="sm" onClick={onClose} aria-label="Close menu">
@@ -78,7 +129,7 @@ export function MobileDrawer({
 
         <nav
           className="min-h-0 flex-1 px-3 py-3 space-y-1 overflow-y-auto [scrollbar-gutter:stable] [overscroll-behavior:contain]"
-          aria-label="Mobile primary"
+          aria-label="移动主导航"
         >
           {[...WORKSPACE_NAV, SETTINGS_ENTRY].map((item) => {
             const Icon = item.icon;
@@ -104,7 +155,7 @@ export function MobileDrawer({
             );
           })}
         </nav>
-      </aside>
+      </dialog>
     </>
   );
 }
