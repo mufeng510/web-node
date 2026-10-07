@@ -22,7 +22,7 @@ export function BottomNav({ currentLibrary, onLibraryChange, className = '' }: B
 
   return (
     <nav
-      aria-label="Mobile quick navigation"
+      aria-label="移动快捷"
       className={cn(
         'fixed bottom-0 left-0 right-0 bg-bg-elevated/95 backdrop-blur-sm border-t border-border z-[var(--z-sticky)] lg:hidden',
         className
