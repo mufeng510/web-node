@@ -16,6 +16,7 @@ import {
 import { marked } from 'marked';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Breadcrumb } from '../components/ui/Breadcrumb';
 import { Button } from '../components/ui/Button';
 import {
   Dialog,
@@ -259,7 +260,7 @@ export function Editor() {
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      <div className="flex flex-wrap items-center justify-between gap-2 p-3 border-b border-border bg-bg-elevated/50">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 border-b border-border">
         <div className="flex items-center gap-2 min-w-0">
           <button
             type="button"
@@ -269,12 +270,27 @@ export function Editor() {
           >
             <ArrowLeft className="w-4 h-4" aria-hidden="true" />
           </button>
-          <nav
-            aria-label="Breadcrumb"
-            className="hidden md:flex items-center gap-1 text-sm text-fg-muted flex-shrink-0"
-          >
-            <span className="truncate max-w-[120px]">{splat ? notePath || splat : 'New note'}</span>
-          </nav>
+          {libraryId && (
+            <div className="hidden md:block min-w-0 flex-shrink-0">
+              <Breadcrumb
+                items={
+                  splat
+                    ? (notePath || splat)
+                        .split('/')
+                        .filter(Boolean)
+                        .map((part, index, all) => ({
+                          label: part,
+                          href:
+                            index === all.length - 1
+                              ? undefined
+                              : routes.editor(libraryId, all.slice(0, index + 1).join('/')),
+                        }))
+                    : [{ label: 'New note' }]
+                }
+                maxItems={3}
+              />
+            </div>
+          )}
           <Input
             ref={pathInputRef}
             aria-label="Note path"
