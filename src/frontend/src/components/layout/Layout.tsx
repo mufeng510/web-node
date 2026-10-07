@@ -2,9 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useLibraries } from '../../hooks/useLibraries';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
+import { useRouteFocus } from '../../hooks/useRouteFocus';
+import { useSidebarSize } from '../../hooks/useSidebarSize';
 import { routes } from '../../routes';
 import { CommandPalette } from '../command-palette/CommandPalette';
 import type { BreadcrumbItem } from '../ui/Breadcrumb';
+import { Resizable } from '../ui/Resizable';
 import { Spinner } from '../ui/Spinner';
 import { BottomNav } from './BottomNav';
 import { LeftSidebar } from './LeftSidebar';
@@ -20,6 +24,12 @@ export function Layout() {
   const { libraries, currentLibrary, setCurrentLibrary, loading: libLoading } = useLibraries();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const sidebar = useSidebarSize();
+  // The rail is display:none below lg, but a grid track would still reserve its
+  // width and crush main to nothing, so the split only exists on wide screens.
+  const resizableSidebar = useMediaQuery('(min-width: 1024px)') && !sidebar.collapsed;
+
+  useRouteFocus();
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -91,12 +101,20 @@ export function Layout() {
 
   return (
     <div className="h-[var(--shell-h)] bg-bg grid grid-rows-[var(--topbar-h)_minmax(0,1fr)] overflow-hidden">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[var(--z-toast)] focus:rounded-md focus:bg-bg-elevated focus:px-3 focus:py-2 focus:text-sm focus:shadow-lg"
+      >
+        跳到主内容
+      </a>
+
       <TopBar
         user={user}
         currentLibrary={currentLibrary}
         breadcrumb={breadcrumb}
         onOpenPalette={() => setPaletteOpen(true)}
         onMenuClick={() => setMobileMenuOpen(true)}
+        menuOpen={mobileMenuOpen}
         onLogout={logout}
       />
 
@@ -109,17 +127,57 @@ export function Layout() {
           onLibraryChange={handleLibraryChange}
         />
 
-        <LeftSidebar
-          libraries={libraries}
-          currentLibrary={currentLibrary}
-          onLibraryChange={handleLibraryChange}
-          className="hidden lg:flex"
-        />
-
-        <main className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden pb-[var(--bottom-nav-h)] lg:pb-0">
-          <Outlet />
-        </main>
+        {resizableSidebar ? (
+          <Resizable
+            size={sidebar.width}
+            onSizeChange={sidebar.setWidth}
+            onReset={sidebar.resetWidth}
+            min={200}
+            max={480}
+            firstLabel="Resize sidebar"
+            className="flex-1 min-w-0"
+            first={
+              <LeftSidebar
+                libraries={libraries}
+                currentLibrary={currentLibrary}
+                onLibraryChange={handleLibraryChange}
+                onToggleCollapsed={sidebar.toggleCollapsed}
+                resizable
+                className="hidden lg:flex"
+              />
+            }
+            second={
+              <main
+                id="main-content"
+                tabIndex={-1}
+                className="flex min-h-0 flex-col overflow-hidden focus:outline-none"
+              >
+                <Outlet />
+              </main>
+            }
+          />
+        ) : (
+          <>
+            <LeftSidebar
+              libraries={libraries}
+              currentLibrary={currentLibrary}
+              onLibraryChange={handleLibraryChange}
+              collapsed={sidebar.collapsed}
+              onToggleCollapsed={sidebar.toggleCollapsed}
+              className="hidden lg:flex"
+            />
+            <main
+              id="main-content"
+              tabIndex={-1}
+              className="flex min-w-0 flex-1 flex-col overflow-hidden pb-[var(--bottom-nav-h)] lg:pb-0 focus:outline-none"
+            >
+              <Outlet />
+            </main>
+          </>
+        )}
       </div>
+
+      <div id="route-announcer" role="status" aria-live="polite" className="sr-only" />
 
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
 
