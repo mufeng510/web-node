@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, FolderGit2, FolderOpen, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, FolderGit2, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '../components/ui/Badge';
@@ -13,7 +13,7 @@ import {
 } from '../components/ui/Dialog';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Input } from '../components/ui/Input';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageContextBar } from '../components/ui/PageContextBar';
 import { Spinner } from '../components/ui/Spinner';
 import { type DiscoverDirectory, type DiscoverResult, useLibraries } from '../hooks/useLibraries';
 
@@ -50,12 +50,6 @@ export function Dashboard() {
   const handleNewNote = () => {
     if (currentLibrary) {
       navigate(`/editor/${currentLibrary.id}`, { state: { newNote: true } });
-    }
-  };
-
-  const handleBrowseFiles = () => {
-    if (currentLibrary) {
-      navigate(`/editor/${currentLibrary.id}`);
     }
   };
 
@@ -156,32 +150,33 @@ export function Dashboard() {
         />
       ) : (
         <>
-          <PageHeader
+          <PageContextBar
             title={currentLibrary.name}
-            description={currentLibrary.path}
-            actions={
-              <Button size="sm" onClick={() => setShowCreateModal(true)}>
-                <Plus className="w-4 h-4" aria-hidden="true" />
-                New Library
-              </Button>
-            }
+            detail={currentLibrary.path}
+            actions={[
+              {
+                label: 'New Note',
+                onClick: handleNewNote,
+                primary: true,
+                icon: <Plus className="w-4 h-4" aria-hidden="true" />,
+              },
+              {
+                label: 'New Library',
+                onClick: () => setShowCreateModal(true),
+                icon: <FolderGit2 className="w-4 h-4" aria-hidden="true" />,
+              },
+            ]}
           />
 
           <EmptyState
             icon={FolderGit2}
             title={`Welcome to ${currentLibrary.name}`}
-            description="Start by creating a new note, or browse your files in the sidebar menu."
+            description="Create your first note, or pick one from the files in the sidebar."
             actions={
-              <>
-                <Button size="lg" onClick={handleNewNote}>
-                  <Plus className="w-5 h-5" aria-hidden="true" />
-                  New Note
-                </Button>
-                <Button variant="secondary" size="lg" onClick={handleBrowseFiles}>
-                  <FolderOpen className="w-5 h-5" aria-hidden="true" />
-                  Browse Files
-                </Button>
-              </>
+              <Button variant="secondary" onClick={handleNewNote}>
+                <Plus className="w-4 h-4" aria-hidden="true" />
+                New Note
+              </Button>
             }
           />
         </>
