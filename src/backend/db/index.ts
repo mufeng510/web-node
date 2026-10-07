@@ -1,11 +1,19 @@
 import { Database } from 'bun:sqlite';
 import { existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
+import type { BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
 import { drizzle } from 'drizzle-orm/bun-sqlite';
 import { getEnv } from '../config/env.js';
 import * as schema from './schema/index.js';
 
-let dbInstance: ReturnType<typeof drizzle> | null = null;
+/**
+ * `ReturnType<typeof drizzle>` erases the schema generic and collapses to `{}`,
+ * which makes every `db.sessions` and friends fail to type check; naming the
+ * concrete database type keeps the schema's tables visible.
+ */
+export type AppDatabase = BunSQLiteDatabase<typeof schema> & { $client: Database };
+
+let dbInstance: AppDatabase | null = null;
 
 export function getDb() {
   if (dbInstance) return dbInstance;
