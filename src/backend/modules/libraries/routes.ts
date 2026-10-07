@@ -9,27 +9,34 @@ import { getDb } from '../../db/index.js';
 import { aiIndexes } from '../../db/schema/ai_index.js';
 import { files } from '../../db/schema/files.js';
 import { gitConfigs } from '../../db/schema/git.js';
-import { libraries } from '../../db/schema/libraries.js';
+import { type Library, libraries } from '../../db/schema/libraries.js';
 import { libraryMembers } from '../../db/schema/libraries.js';
 import { users } from '../../db/schema/users.js';
 import { auditLog } from '../../middleware/audit.js';
 import { authMiddleware } from '../../middleware/auth.middleware.js';
+import type { Env } from '../../middleware/env.js';
 import { NotFoundError, ValidationError } from '../../utils/errors.js';
 import { createId } from '../../utils/id.js';
 import { getLibraryRoot } from '../../utils/path.js';
 import { checkLibraryAccess, getAccessibleLibraries } from './access.js';
-import { initializeLibraryConfig, readLibraryConfig, writeLibraryConfig } from './config.js';
+import type { LibraryConfig } from './config.js';
+import {
+  getDefaultConfig,
+  initializeLibraryConfig,
+  readLibraryConfig,
+  writeLibraryConfig,
+} from './config.js';
 import { scanLibraryTree } from './scanner.js';
 import { startLibraryWatcher, stopLibraryWatcher } from './watcher.js';
 
-const libraryRoutes = new Hono();
+const libraryRoutes = new Hono<Env>();
 
 libraryRoutes.use('*', authMiddleware());
 
 libraryRoutes.get('/', async (c) => {
   const userId = c.get('userId');
   const userRole = c.get('userRole');
-  const libs = await getAccessibleLibraries(userId, userRole);
+  const libs: Library[] = await getAccessibleLibraries(userId, userRole);
 
   return c.json({
     success: true,
@@ -150,7 +157,8 @@ libraryRoutes.post(
         id: createId(),
         libraryId,
         providerId: data.aiIndex.providerId,
-        embedModel: data.aiIndex.embedModel,
+        // `ai_indexes.embed_model` is NOT NULL; same default as the index rebuild route.
+        embedModel: data.aiIndex.embedModel || 'text-embedding-3-small',
         status: 'idle',
       });
     }
@@ -325,7 +333,7 @@ libraryRoutes.patch(
     if (data.git) updates.gitConfig = data.git;
     if (data.aiIndex) updates.aiIndexConfig = data.aiIndex;
     if (data.attachments || data.visibility || data.readOnly !== undefined) {
-      const config = (await readLibraryConfig(library.path)) || {};
+      const config: LibraryConfig = (await readLibraryConfig(library.path)) ?? getDefaultConfig();
       if (data.attachments) config.attachments = { ...config.attachments, ...data.attachments };
       if (data.visibility) config.visibility = { ...config.visibility, ...data.visibility };
       if (data.readOnly !== undefined) config.readOnly = data.readOnly;
@@ -413,9 +421,10 @@ libraryRoutes.get('/:id/stats', async (c) => {
   const { library } = await checkLibraryAccess(userId, libraryId);
 
   const fileCount = await db.$count(files, eq(files.libraryId, libraryId));
-  const dirCount = await db
-    .$count(files, eq(files.libraryId, libraryId))
-    .where(eq(files.isDir, true));
+  const dirCount = await db.$count(
+    files,
+    and(eq(files.libraryId, libraryId), eq(files.isDir, true))
+  );
 
   return c.json({
     success: true,

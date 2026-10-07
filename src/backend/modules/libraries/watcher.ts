@@ -1,6 +1,7 @@
 import { EventEmitter } from 'node:events';
+import { join } from 'node:path';
 import { type FSWatcher, watch } from 'chokidar';
-import { eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { getEnv } from '../../config/env.js';
 import { getDb } from '../../db/index.js';
 import { files } from '../../db/schema/files.js';
@@ -160,7 +161,7 @@ async function handleFileChange(libraryId: string, relativePath: string) {
       })
       .onConflictDoUpdate({
         target: [files.libraryId, files.path],
-        set: { size: stats.size, mtime: stats.mtime, version: { increment: 1 } },
+        set: { size: stats.size, mtime: stats.mtime, version: sql`${files.version} + 1` },
       });
   } catch (error) {
     console.error(`[Watcher] Failed to update file ${relativePath}:`, error);
@@ -169,7 +170,7 @@ async function handleFileChange(libraryId: string, relativePath: string) {
 
 async function handleFileDelete(libraryId: string, relativePath: string) {
   const db = getDb();
-  await db.delete(files).where(eq(files.libraryId, libraryId)).where(eq(files.path, relativePath));
+  await db.delete(files).where(and(eq(files.libraryId, libraryId), eq(files.path, relativePath)));
 }
 
 async function handleDirAdd(libraryId: string, relativePath: string) {
@@ -191,7 +192,7 @@ async function handleDirAdd(libraryId: string, relativePath: string) {
 
 async function handleDirDelete(libraryId: string, relativePath: string) {
   const db = getDb();
-  await db.delete(files).where(eq(files.libraryId, libraryId)).where(eq(files.path, relativePath));
+  await db.delete(files).where(and(eq(files.libraryId, libraryId), eq(files.path, relativePath)));
 }
 
 function getMimeType(filename: string): string {

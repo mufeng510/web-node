@@ -1,17 +1,18 @@
 import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
-import { type SimpleGit, simpleGit } from 'simple-git';
+import { type Options, type SimpleGit, simpleGit } from 'simple-git';
 import { z } from 'zod';
 import { getDb } from '../../db/index.js';
 import { gitCommits } from '../../db/schema/git.js';
 import { auditLog } from '../../middleware/audit.js';
 import { authMiddleware } from '../../middleware/auth.middleware.js';
+import type { Env } from '../../middleware/env.js';
 import { ValidationError } from '../../utils/errors.js';
 import { createId } from '../../utils/id.js';
 import { getLibraryRoot } from '../../utils/path.js';
 import { checkLibraryAccess } from '../libraries/access.js';
 
-const gitRoutes = new Hono();
+const gitRoutes = new Hono<Env>();
 
 gitRoutes.use('*', authMiddleware());
 
@@ -112,9 +113,9 @@ gitRoutes.post(
       throw new ValidationError('No changes to commit');
     }
 
-    const commitOptions: Record<string, unknown> = { '--no-verify': true };
+    const commitOptions: Options = { '--no-verify': null };
     if (author) {
-      commitOptions.author = `${author.name} <${author.email}>`;
+      commitOptions['--author'] = `${author.name} <${author.email}>`;
     }
 
     const commit = await git.commit(message, commitOptions);
@@ -123,9 +124,9 @@ gitRoutes.post(
     await db.insert(gitCommits).values({
       id: createId(),
       libraryId,
-      hash: commit.hash,
-      shortHash: commit.hash.slice(0, 7),
-      message: commit.summary,
+      hash: commit.commit,
+      shortHash: commit.commit.slice(0, 7),
+      message,
       authorName: author?.name || 'Web Note',
       authorEmail: author?.email || 'webnote@local',
       authorDate: new Date(),
@@ -137,11 +138,11 @@ gitRoutes.post(
       libraryId,
       action: 'git.commit',
       resourceType: 'git',
-      resourceId: commit.hash,
+      resourceId: commit.commit,
       metadata: { message, files: status.files.map((f) => f.path) },
     });
 
-    return c.json({ success: true, data: { hash: commit.hash, message: commit.summary } });
+    return c.json({ success: true, data: { hash: commit.commit, message } });
   }
 );
 
@@ -249,7 +250,9 @@ gitRoutes.post(
         await git.checkout(commitHash, paths);
       } else {
         for (const path of paths) {
-          await git.revert([commitHash, '--', path]);
+          // `revert()` only forwards a single commit ref and drops a path list,
+          // so the argv has to be passed through `raw()` to keep the `--` separator.
+          await git.raw(['revert', commitHash, '--', path]);
         }
       }
     } catch (error) {
