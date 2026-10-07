@@ -14,6 +14,7 @@ export interface LibrarySwitcherProps {
   onLibraryChange: (libraryId: string) => void;
   /** Whether the file tree below is showing this library's files. */
   active?: boolean;
+  collapsed?: boolean;
 }
 
 /** Declares which library the file tree below belongs to. A single-library
@@ -24,6 +25,7 @@ export function LibrarySwitcher({
   currentLibrary,
   onLibraryChange,
   active = false,
+  collapsed = false,
 }: LibrarySwitcherProps) {
   const [open, setOpen] = useState(false);
   const isOnlyLibrary = libraries.length <= 1;
@@ -51,10 +53,12 @@ export function LibrarySwitcher({
             )}
           >
             <FolderGit2 className="w-4 h-4 text-fg-muted flex-shrink-0" aria-hidden="true" />
-            <span className="truncate flex-1 text-left">
-              {currentLibrary?.name ?? 'Select library'}
-            </span>
-            {!isOnlyLibrary && (
+            {!collapsed && (
+              <span className="truncate flex-1 text-left">
+                {currentLibrary?.name ?? 'Select library'}
+              </span>
+            )}
+            {!isOnlyLibrary && !collapsed && (
               <ChevronDown className="w-4 h-4 text-fg-muted flex-shrink-0" aria-hidden="true" />
             )}
           </button>

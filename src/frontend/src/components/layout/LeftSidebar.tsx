@@ -1,4 +1,4 @@
-import { Plus } from 'lucide-react';
+import { PanelLeftOpen, Plus } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { NavLink, useNavigate, useParams } from 'react-router-dom';
 import { cn } from '../../lib/utils';
@@ -12,6 +12,10 @@ interface LeftSidebarProps {
   libraries: { id: string; name: string }[];
   currentLibrary: { id: string; name: string } | null;
   onLibraryChange: (libraryId: string) => void;
+  collapsed?: boolean;
+  onToggleCollapsed?: () => void;
+  /** True when a parent grid track already controls the width. */
+  resizable?: boolean;
   className?: string;
 }
 
@@ -40,6 +44,9 @@ export function LeftSidebar({
   libraries,
   currentLibrary,
   onLibraryChange,
+  collapsed = false,
+  onToggleCollapsed,
+  resizable = false,
   className = '',
 }: LeftSidebarProps) {
   const navigate = useNavigate();
@@ -87,16 +94,42 @@ export function LeftSidebar({
   return (
     <aside
       className={cn(
-        'w-[var(--sidebar-w)] bg-bg-elevated border-r border-border flex flex-col',
+        'bg-bg-elevated border-r border-border flex flex-col min-w-0',
+        // Width comes from the parent grid track when it is resizable, and from
+        // the token otherwise; setting it here would override that track.
+        !resizable && (collapsed ? 'w-[var(--sidebar-w-collapsed)]' : 'w-[var(--sidebar-w)]'),
         className
       )}
     >
+      {onToggleCollapsed && (
+        <button
+          type="button"
+          onClick={onToggleCollapsed}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-expanded={!collapsed}
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          className={cn(
+            'shrink-0 flex items-center text-fg-muted hover:text-fg transition-colors duration-150',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
+            collapsed ? 'justify-center px-1 py-2' : 'justify-end px-2 py-1.5'
+          )}
+        >
+          <PanelLeftOpen
+            className={cn('w-4 h-4 transition-transform duration-150', !collapsed && 'rotate-180')}
+            aria-hidden="true"
+          />
+        </button>
+      )}
+
       {/* The rail does not scroll while the tree does, so the tree keeps the
           leftover height. The max-height is a safety valve for very short
           viewports, where a non-scrolling nav would otherwise starve it. */}
       <nav
-        className="shrink-0 max-h-[45%] overflow-y-auto px-2 py-2 space-y-0.5 [scrollbar-gutter:stable]"
-        aria-label="Primary"
+        className={cn(
+          'shrink-0 max-h-[45%] overflow-y-auto py-2 space-y-0.5 [scrollbar-gutter:stable]',
+          collapsed ? 'px-1' : 'px-2'
+        )}
+        aria-label="主导航"
       >
         {WORKSPACE_NAV.map((item) => {
           const Icon = item.icon;
@@ -105,9 +138,12 @@ export function LeftSidebar({
               key={item.to}
               to={item.to}
               end={item.end}
+              title={item.label}
+              aria-label={item.label}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-2.5 py-1.5 pl-3 pr-2.5 rounded-md text-sm transition-colors duration-150',
+                  'flex items-center rounded-md text-sm transition-colors duration-150',
+                  collapsed ? 'justify-center py-2' : 'gap-2.5 py-1.5 pl-3 pr-2.5',
                   'border-l-2 transition-colors duration-150',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
                   isActive
@@ -117,7 +153,7 @@ export function LeftSidebar({
               }
             >
               <Icon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
-              {item.label}
+              {!collapsed && <span className="truncate">{item.label}</span>}
             </NavLink>
           );
         })}
@@ -128,32 +164,37 @@ export function LeftSidebar({
         currentLibrary={currentLibrary}
         onLibraryChange={onLibraryChange}
         active={Boolean(routeLibraryId)}
+        collapsed={collapsed}
       />
 
-      <div className="shrink-0 flex items-center justify-between px-3 py-2 border-b border-border">
-        <h2 className="text-xs font-medium text-fg-muted uppercase tracking-wider">Files</h2>
-        {libraryId && (
-          <button
-            type="button"
-            onClick={() => navigate(routes.editor(libraryId), { state: { newNote: true } })}
-            aria-label="New note"
-            className="p-1 rounded-md text-fg-muted hover:text-fg hover:bg-bg-hover transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
-          >
-            <Plus className="w-4 h-4" aria-hidden="true" />
-          </button>
-        )}
-      </div>
+      {!collapsed && (
+        <>
+          <div className="shrink-0 flex items-center justify-between px-3 py-2 border-b border-border">
+            <h2 className="text-xs font-medium text-fg-muted uppercase tracking-wider">Files</h2>
+            {libraryId && (
+              <button
+                type="button"
+                onClick={() => navigate(routes.editor(libraryId), { state: { newNote: true } })}
+                aria-label="New note"
+                className="p-1 rounded-md text-fg-muted hover:text-fg hover:bg-bg-hover transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+              >
+                <Plus className="w-4 h-4" aria-hidden="true" />
+              </button>
+            )}
+          </div>
 
-      <TreeView
-        nodes={tree}
-        selectedPath={notePath}
-        onOpenFile={handleOpenFile}
-        expanded={expanded}
-        onExpandedChange={handleExpandedChange}
-        isLoading={isLoading}
-        error={error}
-        onRetry={() => void refetch()}
-      />
+          <TreeView
+            nodes={tree}
+            selectedPath={notePath}
+            onOpenFile={handleOpenFile}
+            expanded={expanded}
+            onExpandedChange={handleExpandedChange}
+            isLoading={isLoading}
+            error={error}
+            onRetry={() => void refetch()}
+          />
+        </>
+      )}
     </aside>
   );
 }
