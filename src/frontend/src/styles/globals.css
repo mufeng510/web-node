@@ -28,12 +28,15 @@
 
   .md-content h1 {
     @apply text-3xl font-bold mt-6 mb-3 leading-tight;
+    scroll-margin-top: var(--topbar-h);
   }
   .md-content h2 {
     @apply text-2xl font-bold mt-5 mb-2 leading-tight;
+    scroll-margin-top: var(--topbar-h);
   }
   .md-content h3 {
     @apply text-xl font-bold mt-4 mb-2 leading-tight;
+    scroll-margin-top: var(--topbar-h);
   }
   .md-content h4 {
     @apply text-lg font-semibold mt-4 mb-2 leading-tight;

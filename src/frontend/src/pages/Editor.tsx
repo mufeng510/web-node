@@ -16,6 +16,8 @@ import {
 import { marked } from 'marked';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { OutlinePanel } from '../components/editor/OutlinePanel';
+import { useRegisterRail } from '../components/layout/RightRail';
 import { Breadcrumb } from '../components/ui/Breadcrumb';
 import { Button } from '../components/ui/Button';
 import {
@@ -33,6 +35,7 @@ import { Tabs } from '../components/ui/Tabs';
 import { Textarea } from '../components/ui/Textarea';
 import { ToolbarButton } from '../components/ui/ToolbarButton';
 import { useMediaQuery } from '../hooks/useMediaQuery';
+import { applyHeadingIds, outlineOf } from '../lib/markdownOutline';
 import { cn } from '../lib/utils';
 import { routes } from '../routes';
 import { api } from '../services/api';
@@ -233,8 +236,15 @@ export function Editor() {
     applyEdit(next, start + snippet.length - 1, start + snippet.length - 1);
   };
 
-  const renderedHtml = useMemo(() => marked.parse(content) as string, [content]);
+  const outline = useMemo(() => outlineOf(content), [content]);
+  const renderedHtml = useMemo(
+    () => applyHeadingIds(marked.parse(content) as string, outlineOf(content)),
+    [content]
+  );
   const editing = view !== 'preview';
+
+  const outlineNode = useMemo(() => <OutlinePanel entries={outline} />, [outline]);
+  useRegisterRail(splat ? `outline:${splat}` : null, outlineNode);
 
   const openLinks = async () => {
     setShowLinks(true);
