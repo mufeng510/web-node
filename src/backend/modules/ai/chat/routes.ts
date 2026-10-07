@@ -24,11 +24,12 @@ chatRoutes.post(
       libraryId: z.string().min(1),
       title: z.string().max(255).optional(),
       initialMessage: z.string().optional(),
+      currentNoteId: z.string().optional(),
     })
   ),
   async (c) => {
     const userId = c.get('userId');
-    const { libraryId, title, initialMessage } = c.req.valid('json');
+    const { libraryId, title, initialMessage, currentNoteId } = c.req.valid('json');
     const db = getDb();
 
     await checkLibraryAccess(userId, libraryId);
@@ -41,6 +42,7 @@ chatRoutes.post(
       libraryId,
       userId,
       title: convTitle,
+      currentNoteId,
     });
 
     let firstMessageId: string | undefined;

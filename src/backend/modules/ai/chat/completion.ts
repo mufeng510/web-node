@@ -1,10 +1,14 @@
-import { asc, eq, sql } from 'drizzle-orm';
+import { readFile } from 'node:fs/promises';
+import { and, asc, eq, sql } from 'drizzle-orm';
 import { getDb } from '../../../db/index.js';
 import { conversations, messages } from '../../../db/schema/conversations.js';
+import { files } from '../../../db/schema/files.js';
+import { libraries } from '../../../db/schema/libraries.js';
 import { providers } from '../../../db/schema/providers.js';
 import { decrypt } from '../../../utils/crypto.js';
 import { AiProviderError } from '../../../utils/errors.js';
 import { createId } from '../../../utils/id.js';
+import { getAbsolutePath } from '../../../utils/path.js';
 
 const REQUEST_TIMEOUT_MS = 60_000;
 const HISTORY_LIMIT = 40;
@@ -36,6 +40,45 @@ async function resolveProvider() {
 
   if (!provider) throw new NoProviderError();
   return provider;
+}
+
+/**
+ * The note a conversation is bound to is the question's real context, so it is
+ * prepended to the prompt; without it every answer is about the note in
+ * isolation rather than about its contents.
+ */
+async function buildSystemMessages(
+  db: ReturnType<typeof getDb>,
+  conversation: { libraryId: string; currentNoteId: string | null }
+): Promise<{ role: string; content: string }[]> {
+  const base = 'You are a helpful assistant for a Markdown knowledge base.';
+  if (!conversation.currentNoteId) return [{ role: 'system', content: base }];
+
+  const file = await db.query.files.findFirst({
+    where: and(
+      eq(files.libraryId, conversation.libraryId),
+      eq(files.path, conversation.currentNoteId)
+    ),
+  });
+  if (!file) return [{ role: 'system', content: base }];
+
+  const library = await db.query.libraries.findFirst({
+    where: eq(libraries.id, conversation.libraryId),
+  });
+  if (!library) return [{ role: 'system', content: base }];
+
+  try {
+    const content = await readFile(getAbsolutePath(library.path, file.path), 'utf-8');
+    const trimmed = content.length > 12_000 ? `${content.slice(0, 12_000)}\n…` : content;
+    return [
+      {
+        role: 'system',
+        content: `${base}\n\nThe user is asking about the note "${file.path}":\n\n${trimmed}`,
+      },
+    ];
+  } catch {
+    return [{ role: 'system', content: base }];
+  }
 }
 
 /**
@@ -71,6 +114,7 @@ export async function generateReply(
     .filter((message) => message.role === 'user' || message.role === 'assistant')
     .map((message) => ({ role: message.role, content: message.content }));
 
+  const systemMessages = await buildSystemMessages(db, conversation);
   const apiKey = provider.apiKey ? decrypt(provider.apiKey) : undefined;
 
   let response: Response;
@@ -84,7 +128,7 @@ export async function generateReply(
       },
       body: JSON.stringify({
         model: provider.chatModel,
-        messages: [{ role: 'system', content: 'You are a helpful assistant.' }, ...payload],
+        messages: [...systemMessages, ...payload],
         stream: false,
       }),
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
