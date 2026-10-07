@@ -74,6 +74,23 @@
   --bottom-nav-h: 3.5rem; /* 56px */
   --content-max-w: 48rem; /* 768px - reading width */
   --editor-max-w: 56rem; /* 896px - editing width */
+
+  /* Shell Height — the shell owns the viewport; every region scrolls inside it.
+     dvh, not vh: mobile browser UI must be accounted for. */
+  --shell-h: 100dvh;
+
+  /* Z-Index Scale — replaces bare z-40 / z-50.
+     CSS custom properties carry no order, so the invariant is recorded here:
+     sticky < header < dropdown < scrim < drawer < modal < toast */
+  --z-base: 0;
+  --z-content: 1; /* lifted content layer, clears sticky bars */
+  --z-sticky: 10; /* sticky sub-headers: file-tree head, PageContextBar */
+  --z-header: 20; /* TopBar */
+  --z-dropdown: 25; /* header-tethered menus: UserMenu, library menu */
+  --z-scrim: 30; /* drawer / dialog backdrop */
+  --z-drawer: 40; /* MobileDrawer panel */
+  --z-modal: 50; /* Dialog overlay + content (DOM order resolves the pair) */
+  --z-toast: 60; /* reserved: toasts, inline notifications */
 }
 
 .dark {
