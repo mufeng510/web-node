@@ -16,7 +16,7 @@ const editorRoutes = new Hono<Env>();
 
 editorRoutes.use('*', authMiddleware());
 
-editorRoutes.get('/:libraryId/:filePath{.+$}/wikilinks', async (c) => {
+editorRoutes.get('/:libraryId/:filePath{.+}/wikilinks', async (c) => {
   const userId = c.get('userId');
   const libraryId = c.req.param('libraryId');
   const _filePath = c.req.param('filePath') || '';
@@ -133,7 +133,7 @@ editorRoutes.post(
   }
 );
 
-editorRoutes.get('/:libraryId/:filePath{.+$}/backlinks', async (c) => {
+editorRoutes.get('/:libraryId/:filePath{.+}/backlinks', async (c) => {
   const userId = c.get('userId');
   const libraryId = c.req.param('libraryId');
   const filePath = c.req.param('filePath') || '';
