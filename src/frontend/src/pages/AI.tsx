@@ -114,6 +114,7 @@ function ConversationsPanel({
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [replyError, setReplyError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [draft, setDraft] = useState('');
@@ -181,8 +182,16 @@ function ConversationsPanel({
     if (!activeId || !draft.trim() || sending) return;
     setSending(true);
     try {
-      await api.post(`/ai/chat/conversations/${activeId}/messages`, { content: draft.trim() });
+      const res = (await api.post(`/ai/chat/conversations/${activeId}/messages`, {
+        content: draft.trim(),
+      })) as unknown as {
+        success: boolean;
+        error?: { code: string; message: string };
+      };
       setDraft('');
+      // The message is stored either way; a reply failure comes back alongside
+      // it, so it is reported rather than thrown.
+      if (res.error) setReplyError(res.error.message);
       await fetchMessages(activeId);
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -233,7 +242,7 @@ function ConversationsPanel({
           <EmptyState
             icon={MessagesSquare}
             title="No conversation selected"
-            description="Create a chat to store messages. Note: automatic AI replies are not wired up on the backend yet — messages are stored for later processing."
+            description="Create a chat to store messages and get replies from the default AI provider."
             actions={
               <Button onClick={handleNew} disabled={creating || libraries.length === 0}>
                 <Plus className="w-4 h-4" aria-hidden="true" /> New chat
@@ -244,6 +253,14 @@ function ConversationsPanel({
           <>
             <ScrollArea className="p-4 space-y-3">
               <ContentShell className="space-y-3">
+                {replyError && (
+                  <p
+                    role="alert"
+                    className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-2.5 text-sm text-destructive"
+                  >
+                    {replyError}
+                  </p>
+                )}
                 {messages.map((m) => (
                   <div
                     key={m.id}
