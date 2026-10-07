@@ -1,23 +1,9 @@
-import {
-  Bell,
-  Bot,
-  ChevronRight,
-  ClipboardList,
-  FolderGit2,
-  Home,
-  KeyRound,
-  ScrollText,
-  Search,
-  Settings,
-  Users,
-  Wrench,
-  X,
-} from 'lucide-react';
+import { ChevronRight, FolderGit2, X } from 'lucide-react';
 import { useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth';
+import { NavLink } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import { IconButton } from '../ui/IconButton';
+import { SETTINGS_ENTRY, WORKSPACE_NAV } from './navConfig';
 
 interface MobileDrawerProps {
   isOpen: boolean;
@@ -43,20 +29,17 @@ export function MobileDrawer({
     return () => document.removeEventListener('keydown', handleEscape);
   }, [isOpen, onClose]);
 
-  const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
-
   if (!isOpen) return null;
 
   return (
     <>
       <button
         type="button"
-        className="fixed inset-0 bg-overlay/50 z-40 lg:hidden animate-in fade-in-0 cursor-default"
+        className="fixed inset-0 bg-overlay/50 z-[var(--z-scrim)] lg:hidden cursor-default"
         onClick={onClose}
         aria-label="Close menu"
       />
-      <aside className="fixed inset-y-0 left-0 z-50 w-[var(--mobile-drawer-w)] bg-bg-elevated border-r border-border lg:hidden flex flex-col animate-in slide-in-from-left">
+      <aside className="fixed inset-y-0 left-0 z-[var(--z-drawer)] w-[var(--mobile-drawer-w)] bg-bg-elevated border-r border-border lg:hidden flex flex-col">
         <div className="flex items-center justify-between px-3 py-3 border-b border-border">
           <h2 className="text-lg font-medium text-fg">Menu</h2>
           <IconButton size="sm" onClick={onClose} aria-label="Close menu">
@@ -93,47 +76,31 @@ export function MobileDrawer({
           ))}
         </div>
 
-        <nav className="flex-1 px-3 py-3 space-y-1 overflow-y-auto" aria-label="Primary">
-          {[
-            { href: '/', label: 'Dashboard', icon: Home },
-            ...(currentLibrary?.id
-              ? [
-                  {
-                    href: `/editor/${currentLibrary.id}`,
-                    label: 'Library',
-                    icon: FolderGit2,
-                  },
-                ]
-              : []),
-            { href: '/search', label: 'Search', icon: Search },
-            { href: '/notifications', label: 'Notifications', icon: Bell },
-            { href: '/tasks', label: 'Tasks', icon: ClipboardList },
-            { href: '/ai', label: 'AI Assistant', icon: Bot },
-            { href: '/mcp', label: 'MCP Tokens', icon: KeyRound },
-            { href: '/settings', label: 'Settings', icon: Settings },
-            { href: '/diagnostics', label: 'Diagnostics', icon: Wrench },
-            ...(isAdmin
-              ? [
-                  { href: '/users', label: 'Users', icon: Users },
-                  { href: '/audit', label: 'Audit Log', icon: ScrollText },
-                ]
-              : []),
-          ].map((item) => {
+        <nav
+          className="min-h-0 flex-1 px-3 py-3 space-y-1 overflow-y-auto [scrollbar-gutter:stable] [overscroll-behavior:contain]"
+          aria-label="Mobile primary"
+        >
+          {[...WORKSPACE_NAV, SETTINGS_ENTRY].map((item) => {
             const Icon = item.icon;
             return (
-              <Link
-                key={item.href}
-                to={item.href}
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
                 onClick={onClose}
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors duration-150',
-                  'text-fg hover:bg-bg-hover',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg'
-                )}
+                className={({ isActive }) =>
+                  cn(
+                    'flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors duration-150',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
+                    isActive
+                      ? 'bg-primary/10 text-primary font-medium'
+                      : 'text-fg hover:bg-bg-hover'
+                  )
+                }
               >
                 <Icon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
                 {item.label}
-              </Link>
+              </NavLink>
             );
           })}
         </nav>

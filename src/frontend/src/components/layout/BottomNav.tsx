@@ -1,11 +1,12 @@
-import { FolderGit2, LayoutDashboard, Plus, Search, Settings } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import { routes } from '../../routes';
+import { WORKSPACE_NAV } from './navConfig';
 
 interface BottomNavProps {
-  currentLibrary: any;
-  onLibraryChange: (id: string) => void;
+  currentLibrary: { id: string; name: string } | null;
+  onLibraryChange: (libraryId: string) => void;
   className?: string;
 }
 
@@ -17,48 +18,35 @@ const linkStyles = cn(
 
 export function BottomNav({ currentLibrary, onLibraryChange, className = '' }: BottomNavProps) {
   const navigate = useNavigate();
+  const items = WORKSPACE_NAV.filter((item) => item.primary);
+
   return (
     <nav
-      aria-label="Primary"
+      aria-label="Mobile quick navigation"
       className={cn(
-        'fixed bottom-0 left-0 right-0 bg-bg-elevated/95 backdrop-blur-sm border-t border-border z-40 lg:hidden',
+        'fixed bottom-0 left-0 right-0 bg-bg-elevated/95 backdrop-blur-sm border-t border-border z-[var(--z-sticky)] lg:hidden',
         className
       )}
     >
-      <div className="grid grid-cols-5">
-        <Link to="/" className={linkStyles}>
-          <LayoutDashboard className="w-6 h-6" aria-hidden="true" />
-          <span className="text-xs">Home</span>
-        </Link>
-        <Link to="/search" className={linkStyles}>
-          <Search className="w-6 h-6" aria-hidden="true" />
-          <span className="text-xs">Search</span>
-        </Link>
+      <div className="grid grid-cols-4">
+        {items.map((item) => {
+          const Icon = item.icon;
+          return (
+            <Link key={item.to} to={item.to} className={linkStyles}>
+              <Icon className="w-6 h-6" aria-hidden="true" />
+              <span className="text-xs">{item.label}</span>
+            </Link>
+          );
+        })}
         <button
           type="button"
           onClick={() => {
-            if (currentLibrary?.id) {
-              onLibraryChange(currentLibrary.id);
-              navigate(routes.editor(currentLibrary.id));
-            } else {
-              navigate('/');
+            if (!currentLibrary?.id) {
+              navigate(routes.home);
+              return;
             }
-          }}
-          className={linkStyles}
-          aria-label="Open current library"
-        >
-          <FolderGit2 className="w-6 h-6" aria-hidden="true" />
-          <span className="text-xs">Library</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            if (currentLibrary?.id) {
-              onLibraryChange(currentLibrary.id);
-              navigate(routes.editor(currentLibrary.id), { state: { newNote: true } });
-            } else {
-              navigate('/');
-            }
+            onLibraryChange(currentLibrary.id);
+            navigate(routes.editor(currentLibrary.id), { state: { newNote: true } });
           }}
           className={linkStyles}
           aria-label="New note"
@@ -66,10 +54,6 @@ export function BottomNav({ currentLibrary, onLibraryChange, className = '' }: B
           <Plus className="w-6 h-6" aria-hidden="true" />
           <span className="text-xs">New</span>
         </button>
-        <Link to="/settings" className={linkStyles}>
-          <Settings className="w-6 h-6" aria-hidden="true" />
-          <span className="text-xs">Settings</span>
-        </Link>
       </div>
     </nav>
   );

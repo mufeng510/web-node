@@ -1,162 +1,88 @@
-import {
-  Bell,
-  Bot,
-  ChevronRight,
-  ClipboardList,
-  FileText,
-  Folder,
-  FolderGit2,
-  Home,
-  KeyRound,
-  Plus,
-  ScrollText,
-  Search,
-  Settings,
-  Users,
-  Wrench,
-} from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth';
+import { Plus } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { NavLink, useNavigate, useParams } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import { routes } from '../../routes';
-import { api } from '../../services/api';
-import { Spinner } from '../ui/Spinner';
-
-interface TreeNode {
-  id: string;
-  name: string;
-  path: string;
-  relativePath: string;
-  isDir: boolean;
-  size: number;
-  mimeType?: string;
-  mtime: Date;
-  children?: TreeNode[];
-  hidden?: boolean;
-}
+import { TreeView } from '../file-tree/TreeView';
+import { useFileTree } from '../file-tree/useFileTree';
+import { LibrarySwitcher } from '../library/LibrarySwitcher';
+import { WORKSPACE_NAV } from './navConfig';
 
 interface LeftSidebarProps {
-  library: any;
+  libraries: { id: string; name: string }[];
+  currentLibrary: { id: string; name: string } | null;
+  onLibraryChange: (libraryId: string) => void;
   className?: string;
 }
 
-export function LeftSidebar({ library, className = '' }: LeftSidebarProps) {
+function readExpanded(libraryId: string | undefined): Set<string> {
+  if (!libraryId) return new Set();
+  try {
+    const raw = localStorage.getItem(`expanded:${libraryId}`);
+    if (!raw) return new Set();
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return new Set();
+    return new Set(parsed.filter((value): value is string => typeof value === 'string'));
+  } catch {
+    return new Set();
+  }
+}
+
+/**
+ * One semantic column: where you are, and what is in it.
+ *
+ * Application configuration is deliberately absent — it lives behind the top-bar
+ * user menu (see `UserMenu`), because settings is a sub-page with its own section
+ * navigation and a rail row pointing at it reads as "navigation" rather than
+ * "configuration".
+ */
+export function LeftSidebar({
+  libraries,
+  currentLibrary,
+  onLibraryChange,
+  className = '',
+}: LeftSidebarProps) {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
-  const [tree, setTree] = useState<TreeNode[]>([]);
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
-  const [selectedPath, setSelectedPath] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const params = useParams();
+
+  // The route wins over remembered context: opening a note in another library
+  // (search result, deep link, history) must show that library's tree.
+  const routeLibraryId = params.libraryId;
+  const libraryId = routeLibraryId ?? currentLibrary?.id;
+  const notePath = params['*'] ?? null;
+
+  const { tree, isLoading, error, refetch } = useFileTree(libraryId);
+  const [expanded, setExpanded] = useState<Set<string>>(() => readExpanded(libraryId));
 
   useEffect(() => {
-    if (!library?.id) {
-      setTree([]);
-      setLoading(false);
-      return;
+    setExpanded(readExpanded(libraryId));
+  }, [libraryId]);
+
+  useEffect(() => {
+    if (routeLibraryId && currentLibrary?.id !== routeLibraryId) {
+      onLibraryChange(routeLibraryId);
     }
-    let cancelled = false;
-    setLoading(true);
-    setTree([]);
-    setExpanded(new Set());
-    setSelectedPath(null);
-    (async () => {
+  }, [routeLibraryId, currentLibrary?.id, onLibraryChange]);
+
+  const handleExpandedChange = useCallback(
+    (next: Set<string>) => {
+      setExpanded(next);
+      if (!libraryId) return;
       try {
-        const response = (await api.get(`/files/${library.id}/tree`)) as unknown as {
-          success: boolean;
-          data: { tree: TreeNode[] };
-        };
-        if (!cancelled && response.success) {
-          setTree(response.data.tree);
-        }
-      } catch (error) {
-        console.error('Failed to load file tree:', error);
-      } finally {
-        if (!cancelled) setLoading(false);
+        localStorage.setItem(`expanded:${libraryId}`, JSON.stringify([...next]));
+      } catch {
+        // storage unavailable — expansion still works for this session
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [library?.id]);
+    },
+    [libraryId]
+  );
 
-  const toggleExpand = (path: string) => {
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(path)) next.delete(path);
-      else next.add(path);
-      return next;
-    });
-  };
-
-  const handleNodeClick = (node: TreeNode, e: React.MouseEvent | React.KeyboardEvent) => {
-    e.stopPropagation();
-    if (node.isDir) {
-      toggleExpand(node.relativePath);
-    } else {
-      setSelectedPath(node.relativePath);
-      if (library?.id) {
-        navigate(routes.editor(library.id, node.relativePath));
-      }
-    }
-  };
-
-  const renderNode = (node: TreeNode, depth = 0): React.ReactElement => {
-    const isExpanded = expanded.has(node.relativePath);
-    const hasChildren = node.children && node.children.length > 0;
-    const isSelected = selectedPath === node.relativePath;
-
-    return (
-      <div key={node.id}>
-        <div
-          className={cn(
-            'flex items-center gap-1.5 px-2 py-1.5 rounded-md cursor-pointer transition-colors duration-150',
-            isSelected ? 'bg-primary/10 text-primary' : 'text-fg hover:bg-bg-hover',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg'
-          )}
-          style={{ paddingLeft: `${12 + depth * 16}px` }}
-          onClick={(e) => handleNodeClick(node, e)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') handleNodeClick(node, e);
-          }}
-          role="treeitem"
-          aria-selected={isSelected}
-          aria-expanded={hasChildren ? isExpanded : undefined}
-        >
-          {hasChildren && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleExpand(node.relativePath);
-              }}
-              className="p-0.5 text-fg-muted hover:text-fg transition-colors duration-150 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              aria-label={isExpanded ? 'Collapse' : 'Expand'}
-            >
-              <ChevronRight
-                className={cn(
-                  'w-4 h-4 transition-transform duration-150',
-                  isExpanded && 'rotate-90'
-                )}
-              />
-            </button>
-          )}
-          {!hasChildren && <span className="w-4" />}
-          {node.isDir ? (
-            <Folder className="w-4 h-4 text-fg-muted flex-shrink-0" aria-hidden="true" />
-          ) : (
-            <FileText className="w-4 h-4 text-fg-muted flex-shrink-0" aria-hidden="true" />
-          )}
-          <span className="truncate text-sm flex-1 min-w-0">{node.name}</span>
-        </div>
-
-        {hasChildren && isExpanded && (
-          <div>{node.children?.map((child) => renderNode(child, depth + 1))}</div>
-        )}
-      </div>
-    );
-  };
+  const handleOpenFile = useCallback(
+    (node: { relativePath: string }) => {
+      if (libraryId) navigate(routes.editor(libraryId, node.relativePath));
+    },
+    [libraryId, navigate]
+  );
 
   return (
     <aside
@@ -165,40 +91,28 @@ export function LeftSidebar({ library, className = '' }: LeftSidebarProps) {
         className
       )}
     >
+      {/* The rail does not scroll while the tree does, so the tree keeps the
+          leftover height. The max-height is a safety valve for very short
+          viewports, where a non-scrolling nav would otherwise starve it. */}
       <nav
-        className="px-2 py-2 border-b border-border space-y-0.5 overflow-y-auto"
+        className="shrink-0 max-h-[45%] overflow-y-auto px-2 py-2 space-y-0.5 [scrollbar-gutter:stable]"
         aria-label="Primary"
       >
-        {[
-          { to: routes.home, label: 'Dashboard', icon: Home, end: true },
-          ...(library?.id
-            ? [{ to: routes.editor(library.id), label: 'Library', icon: FolderGit2, end: false }]
-            : []),
-          { to: routes.search, label: 'Search', icon: Search, end: false },
-          { to: routes.notifications, label: 'Notifications', icon: Bell, end: false },
-          { to: routes.tasks, label: 'Tasks', icon: ClipboardList, end: false },
-          { to: routes.ai, label: 'AI Assistant', icon: Bot, end: false },
-          { to: routes.mcp, label: 'MCP Tokens', icon: KeyRound, end: false },
-          { to: routes.settings, label: 'Settings', icon: Settings, end: false },
-          { to: routes.diagnostics, label: 'Diagnostics', icon: Wrench, end: false },
-          ...(isAdmin
-            ? [
-                { to: routes.users, label: 'Users', icon: Users, end: false },
-                { to: routes.audit, label: 'Audit Log', icon: ScrollText, end: false },
-              ]
-            : []),
-        ].map((item) => {
+        {WORKSPACE_NAV.map((item) => {
           const Icon = item.icon;
           return (
             <NavLink
-              key={item.label}
+              key={item.to}
               to={item.to}
               end={item.end}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors duration-150',
+                  'flex items-center gap-2.5 py-1.5 pl-3 pr-2.5 rounded-md text-sm transition-colors duration-150',
+                  'border-l-2 transition-colors duration-150',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
-                  isActive ? 'bg-primary/10 text-primary font-medium' : 'text-fg hover:bg-bg-hover'
+                  isActive
+                    ? 'bg-primary/10 text-primary font-medium border-primary'
+                    : 'text-fg hover:bg-bg-hover border-transparent'
                 )
               }
             >
@@ -208,12 +122,20 @@ export function LeftSidebar({ library, className = '' }: LeftSidebarProps) {
           );
         })}
       </nav>
-      <div className="px-3 py-3 border-b border-border flex items-center justify-between">
+
+      <LibrarySwitcher
+        libraries={libraries}
+        currentLibrary={currentLibrary}
+        onLibraryChange={onLibraryChange}
+        active={Boolean(routeLibraryId)}
+      />
+
+      <div className="shrink-0 flex items-center justify-between px-3 py-2 border-b border-border">
         <h2 className="text-xs font-medium text-fg-muted uppercase tracking-wider">Files</h2>
-        {library?.id && (
+        {libraryId && (
           <button
             type="button"
-            onClick={() => navigate(routes.editor(library.id), { state: { newNote: true } })}
+            onClick={() => navigate(routes.editor(libraryId), { state: { newNote: true } })}
             aria-label="New note"
             className="p-1 rounded-md text-fg-muted hover:text-fg hover:bg-bg-hover transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
           >
@@ -221,17 +143,17 @@ export function LeftSidebar({ library, className = '' }: LeftSidebarProps) {
           </button>
         )}
       </div>
-      <div className="flex-1 overflow-y-auto p-2">
-        {loading ? (
-          <div className="flex items-center justify-center py-8">
-            <Spinner size="md" label="Loading files" />
-          </div>
-        ) : tree.length === 0 ? (
-          <div className="text-center text-fg-muted py-8 text-sm">No files in this library</div>
-        ) : (
-          tree.map((node) => renderNode(node))
-        )}
-      </div>
+
+      <TreeView
+        nodes={tree}
+        selectedPath={notePath}
+        onOpenFile={handleOpenFile}
+        expanded={expanded}
+        onExpandedChange={handleExpandedChange}
+        isLoading={isLoading}
+        error={error}
+        onRetry={() => void refetch()}
+      />
     </aside>
   );
 }
