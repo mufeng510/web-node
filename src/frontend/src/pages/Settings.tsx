@@ -11,6 +11,8 @@ import { PageContextBar } from '../components/ui/PageContextBar';
 import { ScrollArea } from '../components/ui/ScrollArea';
 import { useAuth } from '../hooks/useAuth';
 import { useLibraries } from '../hooks/useLibraries';
+import { useTheme } from '../hooks/useTheme';
+import type { ThemeChoice } from '../lib/theme';
 import { cn } from '../lib/utils';
 import { api } from '../services/api';
 
@@ -27,25 +29,6 @@ import {
   type SettingsTab,
   resolveSettingsTab,
 } from './settings/settingsTabs';
-
-type ThemeChoice = 'light' | 'dark' | 'system';
-
-function readStoredTheme(): ThemeChoice {
-  try {
-    const stored = localStorage.getItem('theme');
-    if (stored === 'light' || stored === 'dark' || stored === 'system') return stored;
-  } catch {
-    // storage unavailable — fall through to system
-  }
-  return 'system';
-}
-
-function applyTheme(theme: ThemeChoice) {
-  const dark =
-    theme === 'dark' ||
-    (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-  document.documentElement.classList.toggle('dark', dark);
-}
 
 export function Settings() {
   const { user, changePassword, logoutAll } = useAuth();
@@ -81,7 +64,7 @@ export function Settings() {
   const [passwordSuccess, setPasswordSuccess] = useState(false);
 
   // Appearance tab
-  const [theme, setTheme] = useState<ThemeChoice>(() => readStoredTheme());
+  const { theme, setTheme } = useTheme();
   const [fontSize, setFontSize] = useState(16);
   const [language, setLanguage] = useState('en');
   const fontSizeSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -134,21 +117,6 @@ export function Settings() {
       }
     })();
   }, []);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('theme', theme);
-    } catch {
-      // storage unavailable — theme still applies for this session
-    }
-    applyTheme(theme);
-    if (theme !== 'system') return;
-    const query = window.matchMedia('(prefers-color-scheme: dark)');
-    const onChange = (e: MediaQueryListEvent) =>
-      document.documentElement.classList.toggle('dark', e.matches);
-    query.addEventListener('change', onChange);
-    return () => query.removeEventListener('change', onChange);
-  }, [theme]);
 
   const handleFontSizeChange = (value: number) => {
     setFontSize(value);
@@ -270,7 +238,7 @@ export function Settings() {
         <div className="flex flex-col sm:flex-row">
           <nav
             className="w-full sm:w-48 shrink-0 border-b sm:border-b-0 sm:border-r border-border py-2 sm:py-4 bg-bg-elevated/50"
-            aria-label="Settings sections"
+            aria-label="设置章节"
           >
             <SettingsSectionNav
               groups={[
