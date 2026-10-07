@@ -13,6 +13,7 @@ import { Spinner } from '../ui/Spinner';
 import { BottomNav } from './BottomNav';
 import { LeftSidebar } from './LeftSidebar';
 import { MobileDrawer } from './MobileDrawer';
+import { RightRailProvider, RightRailSlot } from './RightRail';
 import { TopBar } from './TopBar';
 import { WORKSPACE_NAV } from './navConfig';
 
@@ -28,6 +29,9 @@ export function Layout() {
   // The rail is display:none below lg, but a grid track would still reserve its
   // width and crush main to nothing, so the split only exists on wide screens.
   const resizableSidebar = useMediaQuery('(min-width: 1024px)') && !sidebar.collapsed;
+  // The editor opens in split view, so a rail sharing the 1024px breakpoint
+  // would leave the preview pane a couple of hundred pixels wide.
+  const isRailWide = useMediaQuery('(min-width: 1280px)');
 
   useRouteFocus();
 
@@ -100,92 +104,104 @@ export function Layout() {
   }
 
   return (
-    <div className="h-[var(--shell-h)] bg-bg grid grid-rows-[var(--topbar-h)_minmax(0,1fr)] overflow-hidden">
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[var(--z-toast)] focus:rounded-md focus:bg-bg-elevated focus:px-3 focus:py-2 focus:text-sm focus:shadow-lg"
-      >
-        跳到主内容
-      </a>
+    <RightRailProvider>
+      <div className="h-[var(--shell-h)] bg-bg grid grid-rows-[var(--topbar-h)_minmax(0,1fr)] overflow-hidden">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[var(--z-toast)] focus:rounded-md focus:bg-bg-elevated focus:px-3 focus:py-2 focus:text-sm focus:shadow-lg"
+        >
+          跳到主内容
+        </a>
 
-      <TopBar
-        user={user}
-        currentLibrary={currentLibrary}
-        breadcrumb={breadcrumb}
-        onOpenPalette={() => setPaletteOpen(true)}
-        onMenuClick={() => setMobileMenuOpen(true)}
-        menuOpen={mobileMenuOpen}
-        onLogout={logout}
-      />
-
-      <div className="flex min-h-0 overflow-hidden">
-        <MobileDrawer
-          isOpen={mobileMenuOpen}
-          onClose={() => setMobileMenuOpen(false)}
-          libraries={libraries}
+        <TopBar
+          user={user}
           currentLibrary={currentLibrary}
-          onLibraryChange={handleLibraryChange}
+          breadcrumb={breadcrumb}
+          onOpenPalette={() => setPaletteOpen(true)}
+          onMenuClick={() => setMobileMenuOpen(true)}
+          menuOpen={mobileMenuOpen}
+          onLogout={logout}
         />
 
-        {resizableSidebar ? (
-          <Resizable
-            size={sidebar.width}
-            onSizeChange={sidebar.setWidth}
-            onReset={sidebar.resetWidth}
-            min={200}
-            max={480}
-            firstLabel="Resize sidebar"
-            className="flex-1 min-w-0"
-            first={
-              <LeftSidebar
-                libraries={libraries}
-                currentLibrary={currentLibrary}
-                onLibraryChange={handleLibraryChange}
-                onToggleCollapsed={sidebar.toggleCollapsed}
-                resizable
-                className="hidden lg:flex"
-              />
-            }
-            second={
+        <div className="flex min-h-0 overflow-hidden">
+          <MobileDrawer
+            isOpen={mobileMenuOpen}
+            onClose={() => setMobileMenuOpen(false)}
+            libraries={libraries}
+            currentLibrary={currentLibrary}
+            onLibraryChange={handleLibraryChange}
+          />
+
+          {(() => {
+            const main = (
               <main
                 id="main-content"
                 tabIndex={-1}
-                className="flex min-h-0 flex-col overflow-hidden focus:outline-none"
+                className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden pb-[var(--bottom-nav-h)] lg:pb-0 focus:outline-none"
               >
                 <Outlet />
               </main>
+            );
+            // The rail sits beside main, never inside it, so route focus and the
+            // skip link keep pointing at the note.
+            const content = (
+              <div className="flex min-h-0 min-w-0 flex-1">
+                {main}
+                {isRailWide && <RightRailSlot />}
+              </div>
+            );
+
+            if (!resizableSidebar) {
+              return (
+                <>
+                  <LeftSidebar
+                    libraries={libraries}
+                    currentLibrary={currentLibrary}
+                    onLibraryChange={handleLibraryChange}
+                    collapsed={sidebar.collapsed}
+                    onToggleCollapsed={sidebar.toggleCollapsed}
+                    className="hidden lg:flex"
+                  />
+                  {content}
+                </>
+              );
             }
-          />
-        ) : (
-          <>
-            <LeftSidebar
-              libraries={libraries}
-              currentLibrary={currentLibrary}
-              onLibraryChange={handleLibraryChange}
-              collapsed={sidebar.collapsed}
-              onToggleCollapsed={sidebar.toggleCollapsed}
-              className="hidden lg:flex"
-            />
-            <main
-              id="main-content"
-              tabIndex={-1}
-              className="flex min-w-0 flex-1 flex-col overflow-hidden pb-[var(--bottom-nav-h)] lg:pb-0 focus:outline-none"
-            >
-              <Outlet />
-            </main>
-          </>
-        )}
+
+            return (
+              <Resizable
+                size={sidebar.width}
+                onSizeChange={sidebar.setWidth}
+                onReset={sidebar.resetWidth}
+                min={200}
+                max={480}
+                firstLabel="Resize sidebar"
+                className="flex-1 min-w-0"
+                first={
+                  <LeftSidebar
+                    libraries={libraries}
+                    currentLibrary={currentLibrary}
+                    onLibraryChange={handleLibraryChange}
+                    onToggleCollapsed={sidebar.toggleCollapsed}
+                    resizable
+                    className="hidden lg:flex"
+                  />
+                }
+                second={content}
+              />
+            );
+          })()}
+        </div>
+
+        <div id="route-announcer" role="status" aria-live="polite" className="sr-only" />
+
+        <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
+
+        <BottomNav
+          currentLibrary={currentLibrary}
+          onLibraryChange={handleLibraryChange}
+          className="lg:hidden"
+        />
       </div>
-
-      <div id="route-announcer" role="status" aria-live="polite" className="sr-only" />
-
-      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
-
-      <BottomNav
-        currentLibrary={currentLibrary}
-        onLibraryChange={handleLibraryChange}
-        className="lg:hidden"
-      />
-    </div>
+    </RightRailProvider>
   );
 }
