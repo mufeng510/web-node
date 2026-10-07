@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Alert } from '../components/ui/Alert';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
+import { ContentShell } from '../components/ui/ContentShell';
 import {
   Dialog,
   DialogContent,
@@ -13,7 +14,8 @@ import {
 } from '../components/ui/Dialog';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Input } from '../components/ui/Input';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageContextBar } from '../components/ui/PageContextBar';
+import { ScrollArea } from '../components/ui/ScrollArea';
 import { Select } from '../components/ui/Select';
 import { Spinner } from '../components/ui/Spinner';
 import { Tabs } from '../components/ui/Tabs';
@@ -59,10 +61,15 @@ export function AI() {
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      <PageHeader
+      <PageContextBar
         title="AI Assistant"
-        description="Conversations, providers and index status"
-        actions={
+        detail="Conversations, providers and index status"
+        className="border-b-0"
+      />
+      {/* Section tabs are view state, not actions, so they stay in the header
+          band instead of moving into the bar's actions array. */}
+      <div className="border-b border-border px-4 py-2 lg:px-6">
+        <div className="mx-auto w-full max-w-[var(--content-max-w)] flex flex-wrap items-center gap-2">
           <Tabs
             options={[
               { id: 'conversations', label: 'Conversations', icon: MessagesSquare },
@@ -73,8 +80,8 @@ export function AI() {
             onChange={setTab}
             ariaLabel="AI sections"
           />
-        }
-      />
+        </div>
+      </div>
       <div className="flex-1 flex flex-col min-h-0">
         {tab === 'conversations' && (
           <ConversationsPanel libraries={libraries} currentLibraryId={currentLibrary?.id} />
@@ -235,22 +242,26 @@ function ConversationsPanel({
           />
         ) : (
           <>
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {messages.map((m) => (
-                <div
-                  key={m.id}
-                  className={`max-w-2xl rounded-lg px-4 py-2.5 text-sm ${m.role === 'user' ? 'ml-auto bg-primary/10 text-fg' : 'mr-auto bg-bg-elevated border border-border text-fg'}`}
-                >
-                  <p className="whitespace-pre-wrap">{m.content}</p>
-                  <p className="text-xs text-fg-subtle mt-1">{formatDistanceToNow(m.createdAt)}</p>
-                </div>
-              ))}
-              {messages.length === 0 && (
-                <p className="text-sm text-fg-muted text-center py-8">
-                  No messages yet. Say hello below.
-                </p>
-              )}
-            </div>
+            <ScrollArea className="p-4 space-y-3">
+              <ContentShell className="space-y-3">
+                {messages.map((m) => (
+                  <div
+                    key={m.id}
+                    className={`max-w-2xl rounded-lg px-4 py-2.5 text-sm ${m.role === 'user' ? 'ml-auto bg-primary/10 text-fg' : 'mr-auto bg-bg-elevated border border-border text-fg'}`}
+                  >
+                    <p className="whitespace-pre-wrap">{m.content}</p>
+                    <p className="text-xs text-fg-subtle mt-1">
+                      {formatDistanceToNow(m.createdAt)}
+                    </p>
+                  </div>
+                ))}
+                {messages.length === 0 && (
+                  <p className="text-sm text-fg-muted text-center py-8">
+                    No messages yet. Say hello below.
+                  </p>
+                )}
+              </ContentShell>
+            </ScrollArea>
             <div className="border-t border-border p-3 flex gap-2">
               <Textarea
                 aria-label="Message"
@@ -376,127 +387,129 @@ function ProvidersPanel() {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-4">
-      <div className="max-w-3xl mx-auto space-y-3">
-        {error && <Alert>{error}</Alert>}
-        <div className="flex justify-end">
-          <Button size="sm" onClick={() => setShowCreate(true)}>
-            <Plus className="w-4 h-4" aria-hidden="true" /> New provider
-          </Button>
-        </div>
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Spinner size="md" label="Loading providers" />
+    <ScrollArea className="p-4">
+      <ContentShell>
+        <div className="max-w-3xl mx-auto space-y-3">
+          {error && <Alert>{error}</Alert>}
+          <div className="flex justify-end">
+            <Button size="sm" onClick={() => setShowCreate(true)}>
+              <Plus className="w-4 h-4" aria-hidden="true" /> New provider
+            </Button>
           </div>
-        ) : providers.length === 0 ? (
-          <EmptyState
-            icon={BrainCircuit}
-            title="No providers"
-            description="Add an OpenAI-compatible provider (OpenAI, Ollama or LM Studio) to enable AI features."
-          />
-        ) : (
-          providers.map((p) => (
-            <div key={p.id} className="border border-border rounded-lg bg-bg-elevated px-4 py-3">
-              <div className="flex items-center gap-2 flex-wrap">
-                <p className="text-sm font-medium text-fg">{p.name}</p>
-                {p.isDefault && <Badge variant="default">Default</Badge>}
-                <Badge variant="outline">{p.type}</Badge>
-                <span className="ml-auto flex gap-2">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => handleTest(p.id)}
-                    disabled={testingId === p.id}
-                  >
-                    {testingId === p.id ? 'Testing…' : 'Test'}
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => handleDelete(p.id)}
-                    disabled={busy}
-                  >
-                    Delete
-                  </Button>
-                </span>
-              </div>
-              <p className="text-xs text-fg-muted mt-1 truncate">
-                {p.baseUrl} · {p.chatModel}
-              </p>
-              {p.lastTestedAt && (
-                <p className="text-xs text-fg-subtle mt-0.5">
-                  Last tested {formatDistanceToNow(p.lastTestedAt)}
-                </p>
-              )}
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Spinner size="md" label="Loading providers" />
             </div>
-          ))
-        )}
-        {testResult && <Alert variant="info">{testResult}</Alert>}
-      </div>
+          ) : providers.length === 0 ? (
+            <EmptyState
+              icon={BrainCircuit}
+              title="No providers"
+              description="Add an OpenAI-compatible provider (OpenAI, Ollama or LM Studio) to enable AI features."
+            />
+          ) : (
+            providers.map((p) => (
+              <div key={p.id} className="border border-border rounded-lg bg-bg-elevated px-4 py-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-sm font-medium text-fg">{p.name}</p>
+                  {p.isDefault && <Badge variant="default">Default</Badge>}
+                  <Badge variant="outline">{p.type}</Badge>
+                  <span className="ml-auto flex gap-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleTest(p.id)}
+                      disabled={testingId === p.id}
+                    >
+                      {testingId === p.id ? 'Testing…' : 'Test'}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleDelete(p.id)}
+                      disabled={busy}
+                    >
+                      Delete
+                    </Button>
+                  </span>
+                </div>
+                <p className="text-xs text-fg-muted mt-1 truncate">
+                  {p.baseUrl} · {p.chatModel}
+                </p>
+                {p.lastTestedAt && (
+                  <p className="text-xs text-fg-subtle mt-0.5">
+                    Last tested {formatDistanceToNow(p.lastTestedAt)}
+                  </p>
+                )}
+              </div>
+            ))
+          )}
+          {testResult && <Alert variant="info">{testResult}</Alert>}
+        </div>
 
-      <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent size="sm">
-          <DialogHeader>
-            <DialogTitle>New provider</DialogTitle>
-            <DialogDescription>Connect an OpenAI-compatible chat API.</DialogDescription>
-          </DialogHeader>
-          <div className="p-6 space-y-4">
-            <Input
-              id="providerName"
-              label="Name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="My Ollama"
-            />
-            <Select
-              aria-label="Type"
-              label="Type"
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-              options={[
-                { value: 'openai', label: 'OpenAI' },
-                { value: 'ollama', label: 'Ollama' },
-                { value: 'lm-studio', label: 'LM Studio' },
-                { value: 'custom', label: 'Custom' },
-              ]}
-            />
-            <Input
-              id="providerBaseUrl"
-              label="Base URL"
-              value={baseUrl}
-              onChange={(e) => setBaseUrl(e.target.value)}
-              placeholder="https://api.openai.com/v1"
-            />
-            <Input
-              id="providerApiKey"
-              label="API key (optional)"
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="Stored encrypted"
-            />
-            <Input
-              id="providerChatModel"
-              label="Chat model"
-              value={chatModel}
-              onChange={(e) => setChatModel(e.target.value)}
-              placeholder="gpt-4o-mini"
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => setShowCreate(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleCreate}
-              disabled={busy || !name.trim() || !baseUrl.trim() || !chatModel.trim()}
-            >
-              {busy ? 'Creating…' : 'Create'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+        <Dialog open={showCreate} onOpenChange={setShowCreate}>
+          <DialogContent size="sm">
+            <DialogHeader>
+              <DialogTitle>New provider</DialogTitle>
+              <DialogDescription>Connect an OpenAI-compatible chat API.</DialogDescription>
+            </DialogHeader>
+            <div className="p-6 space-y-4">
+              <Input
+                id="providerName"
+                label="Name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="My Ollama"
+              />
+              <Select
+                aria-label="Type"
+                label="Type"
+                value={type}
+                onChange={(e) => setType(e.target.value)}
+                options={[
+                  { value: 'openai', label: 'OpenAI' },
+                  { value: 'ollama', label: 'Ollama' },
+                  { value: 'lm-studio', label: 'LM Studio' },
+                  { value: 'custom', label: 'Custom' },
+                ]}
+              />
+              <Input
+                id="providerBaseUrl"
+                label="Base URL"
+                value={baseUrl}
+                onChange={(e) => setBaseUrl(e.target.value)}
+                placeholder="https://api.openai.com/v1"
+              />
+              <Input
+                id="providerApiKey"
+                label="API key (optional)"
+                type="password"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="Stored encrypted"
+              />
+              <Input
+                id="providerChatModel"
+                label="Chat model"
+                value={chatModel}
+                onChange={(e) => setChatModel(e.target.value)}
+                placeholder="gpt-4o-mini"
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="secondary" onClick={() => setShowCreate(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleCreate}
+                disabled={busy || !name.trim() || !baseUrl.trim() || !chatModel.trim()}
+              >
+                {busy ? 'Creating…' : 'Create'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </ContentShell>
+    </ScrollArea>
   );
 }
 
@@ -562,34 +575,36 @@ function IndexPanel({ libraryId, libraryName }: { libraryId?: string; libraryNam
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-4">
-      <div className="max-w-md mx-auto space-y-3">
-        <div className="border border-border rounded-lg bg-bg-elevated px-4 py-3">
-          <div className="flex items-center gap-2">
-            <p className="text-sm font-medium text-fg flex-1 truncate">{libraryName}</p>
-            {loading ? (
-              <Spinner size="sm" />
-            ) : (
-              <Badge variant={status === 'ready' ? 'success' : 'outline'}>{status ?? '—'}</Badge>
-            )}
+    <ScrollArea className="p-4">
+      <ContentShell>
+        <div className="max-w-md mx-auto space-y-3">
+          <div className="border border-border rounded-lg bg-bg-elevated px-4 py-3">
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-medium text-fg flex-1 truncate">{libraryName}</p>
+              {loading ? (
+                <Spinner size="sm" />
+              ) : (
+                <Badge variant={status === 'ready' ? 'success' : 'outline'}>{status ?? '—'}</Badge>
+              )}
+            </div>
+            <div className="flex gap-2 mt-3">
+              <Button variant="secondary" size="sm" onClick={() => run('rebuild')} disabled={busy}>
+                Rebuild
+              </Button>
+              <Button variant="secondary" size="sm" onClick={() => run('pause')} disabled={busy}>
+                Pause
+              </Button>
+              <Button variant="secondary" size="sm" onClick={() => run('resume')} disabled={busy}>
+                Resume
+              </Button>
+            </div>
           </div>
-          <div className="flex gap-2 mt-3">
-            <Button variant="secondary" size="sm" onClick={() => run('rebuild')} disabled={busy}>
-              Rebuild
-            </Button>
-            <Button variant="secondary" size="sm" onClick={() => run('pause')} disabled={busy}>
-              Pause
-            </Button>
-            <Button variant="secondary" size="sm" onClick={() => run('resume')} disabled={busy}>
-              Resume
-            </Button>
-          </div>
+          {message && <Alert variant="info">{message}</Alert>}
+          <p className="text-xs text-fg-subtle">
+            Note: the backend has no embedding worker yet — rebuild only flips the status flag.
+          </p>
         </div>
-        {message && <Alert variant="info">{message}</Alert>}
-        <p className="text-xs text-fg-subtle">
-          Note: the backend has no embedding worker yet — rebuild only flips the status flag.
-        </p>
-      </div>
-    </div>
+      </ContentShell>
+    </ScrollArea>
   );
 }

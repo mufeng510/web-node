@@ -2,8 +2,10 @@ import { Bell, BellOff, CheckCheck } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
+import { ContentShell } from '../components/ui/ContentShell';
 import { EmptyState } from '../components/ui/EmptyState';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageContextBar } from '../components/ui/PageContextBar';
+import { ScrollArea } from '../components/ui/ScrollArea';
 import { Spinner } from '../components/ui/Spinner';
 import { Tabs } from '../components/ui/Tabs';
 import { api } from '../services/api';
@@ -72,80 +74,85 @@ export function Notifications() {
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      <PageHeader
+      <PageContextBar
         title="Notifications"
-        description={unreadCount > 0 ? `${unreadCount} unread` : 'You are all caught up'}
-        actions={
-          <>
-            <Tabs
-              options={[
-                { id: 'all', label: 'All' },
-                { id: 'unread', label: 'Unread' },
-              ]}
-              value={filter}
-              onChange={setFilter}
-              ariaLabel="Notification filter"
-            />
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={handleReadAll}
-              disabled={acting || unreadCount === 0}
-            >
-              <CheckCheck className="w-4 h-4" aria-hidden="true" /> Mark all read
-            </Button>
-          </>
-        }
+        detail={unreadCount > 0 ? `${unreadCount} unread` : 'You are all caught up'}
+        actions={[
+          {
+            label: 'Mark all read',
+            onClick: handleReadAll,
+            disabled: acting || unreadCount === 0,
+            icon: <CheckCheck className="w-4 h-4" aria-hidden="true" />,
+          },
+        ]}
+        className="border-b-0"
       />
-
-      <div className="flex-1 overflow-y-auto p-4">
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Spinner size="md" label="Loading notifications" />
-          </div>
-        ) : items.length === 0 ? (
-          <EmptyState
-            icon={filter === 'unread' ? BellOff : Bell}
-            title={filter === 'unread' ? 'No unread notifications' : 'No notifications'}
-            description={
-              filter === 'unread'
-                ? 'Everything has been read.'
-                : 'System events and mentions will appear here.'
-            }
+      {/* Filter tabs stay in the header band: they are view state, not actions,
+          so they cannot become entries in the bar's actions array. */}
+      <div className="border-b border-border px-4 py-2 lg:px-6">
+        <div className="mx-auto w-full max-w-[var(--content-max-w)] flex flex-wrap items-center gap-2">
+          <Tabs
+            options={[
+              { id: 'all', label: 'All' },
+              { id: 'unread', label: 'Unread' },
+            ]}
+            value={filter}
+            onChange={setFilter}
+            ariaLabel="Notification filter"
           />
-        ) : (
-          <ul className="max-w-3xl mx-auto space-y-2">
-            {items.map((item) => (
-              <li
-                key={item.id}
-                className={`flex items-start gap-3 px-4 py-3 border border-border rounded-lg bg-bg-elevated ${item.read ? 'opacity-70' : ''}`}
-              >
-                <Bell className="w-5 h-5 text-fg-muted flex-shrink-0 mt-0.5" aria-hidden="true" />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-fg truncate">{item.title}</p>
-                    {!item.read && <Badge variant="default">New</Badge>}
-                  </div>
-                  {item.message && <p className="text-sm text-fg-muted mt-0.5">{item.message}</p>}
-                  <p className="text-xs text-fg-subtle mt-1">
-                    {item.type} · {formatDistanceToNow(item.createdAt)}
-                  </p>
-                </div>
-                {!item.read && (
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => handleMarkRead(item.id)}
-                    disabled={acting}
-                  >
-                    Mark read
-                  </Button>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
+        </div>
       </div>
+
+      <ScrollArea className="p-4">
+        <ContentShell>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Spinner size="md" label="Loading notifications" />
+            </div>
+          ) : items.length === 0 ? (
+            <EmptyState
+              icon={filter === 'unread' ? BellOff : Bell}
+              title={filter === 'unread' ? 'No unread notifications' : 'No notifications'}
+              description={
+                filter === 'unread'
+                  ? 'Everything has been read.'
+                  : 'System events and mentions will appear here.'
+              }
+            />
+          ) : (
+            <ul className="max-w-3xl mx-auto space-y-2">
+              {items.map((item) => (
+                <li
+                  key={item.id}
+                  className={`flex items-start gap-3 px-4 py-3 border border-border rounded-lg bg-bg-elevated ${item.read ? 'opacity-70' : ''}`}
+                >
+                  <Bell className="w-5 h-5 text-fg-muted flex-shrink-0 mt-0.5" aria-hidden="true" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium text-fg truncate">{item.title}</p>
+                      {!item.read && <Badge variant="default">New</Badge>}
+                    </div>
+                    {item.message && <p className="text-sm text-fg-muted mt-0.5">{item.message}</p>}
+                    <p className="text-xs text-fg-subtle mt-1">
+                      {item.type} · {formatDistanceToNow(item.createdAt)}
+                    </p>
+                  </div>
+                  {!item.read && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleMarkRead(item.id)}
+                      disabled={acting}
+                    >
+                      Mark read
+                    </Button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </ContentShell>
+      </ScrollArea>
     </div>
   );
 }

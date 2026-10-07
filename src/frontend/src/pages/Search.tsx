@@ -3,9 +3,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
+import { ContentShell } from '../components/ui/ContentShell';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Input } from '../components/ui/Input';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageContextBar } from '../components/ui/PageContextBar';
+import { ScrollArea } from '../components/ui/ScrollArea';
 import { Select } from '../components/ui/Select';
 import { Spinner } from '../components/ui/Spinner';
 import { Tabs } from '../components/ui/Tabs';
@@ -95,7 +97,7 @@ export function Search() {
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      <PageHeader title="Search" description="Search across file names and contents" />
+      <PageContextBar title="Search" detail="Search across file names and contents" />
 
       <form
         onSubmit={handleSubmit}
@@ -135,56 +137,60 @@ export function Search() {
         </div>
       </form>
 
-      <div className="flex-1 overflow-y-auto p-4">
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Spinner size="md" label="Searching" />
-          </div>
-        ) : !searched ? (
-          <EmptyState
-            icon={SearchIcon}
-            title="Search your notes"
-            description="Enter a keyword above to search file names and contents."
-          />
-        ) : items.length === 0 ? (
-          <EmptyState
-            icon={SearchIcon}
-            title="No results"
-            description={`Nothing found for "${query}". Try a different keyword or scope.`}
-          />
-        ) : (
-          <ul className="max-w-3xl mx-auto divide-y divide-border border border-border rounded-lg overflow-hidden">
-            {items.map((item) => (
-              <li key={`${item.libraryId ?? ''}:${item.id}`}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const lib = item.libraryId || libraryId || currentLibrary?.id;
-                    if (lib && !item.isDir) navigate(routes.editor(lib, item.path));
-                  }}
-                  disabled={item.isDir}
-                  className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-bg-hover transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:cursor-default"
-                >
-                  <FileText className="w-5 h-5 text-fg-muted flex-shrink-0" aria-hidden="true" />
-                  <span className="flex-1 min-w-0">
-                    <span className="block truncate text-sm font-medium text-fg">{item.name}</span>
-                    <span className="block truncate text-xs text-fg-muted">{item.path}</span>
-                  </span>
-                  {item.libraryId && item.libraryId !== currentLibrary?.id && (
-                    <Badge variant="outline">{libraryName(item.libraryId)}</Badge>
-                  )}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-        <p className="max-w-3xl mx-auto mt-3 text-xs text-fg-subtle">
-          Tip: open a note from results to jump straight into the editor.{' '}
-          <Link to={routes.home} className="text-primary hover:underline">
-            Back to dashboard
-          </Link>
-        </p>
-      </div>
+      <ScrollArea className="p-4">
+        <ContentShell>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Spinner size="md" label="Searching" />
+            </div>
+          ) : !searched ? (
+            <EmptyState
+              icon={SearchIcon}
+              title="Search your notes"
+              description="Enter a keyword above to search file names and contents."
+            />
+          ) : items.length === 0 ? (
+            <EmptyState
+              icon={SearchIcon}
+              title="No results"
+              description={`Nothing found for "${query}". Try a different keyword or scope.`}
+            />
+          ) : (
+            <ul className="max-w-3xl mx-auto divide-y divide-border border border-border rounded-lg overflow-hidden">
+              {items.map((item) => (
+                <li key={`${item.libraryId ?? ''}:${item.id}`}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const lib = item.libraryId || libraryId || currentLibrary?.id;
+                      if (lib && !item.isDir) navigate(routes.editor(lib, item.path));
+                    }}
+                    disabled={item.isDir}
+                    className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-bg-hover transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:cursor-default"
+                  >
+                    <FileText className="w-5 h-5 text-fg-muted flex-shrink-0" aria-hidden="true" />
+                    <span className="flex-1 min-w-0">
+                      <span className="block truncate text-sm font-medium text-fg">
+                        {item.name}
+                      </span>
+                      <span className="block truncate text-xs text-fg-muted">{item.path}</span>
+                    </span>
+                    {item.libraryId && item.libraryId !== currentLibrary?.id && (
+                      <Badge variant="outline">{libraryName(item.libraryId)}</Badge>
+                    )}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="max-w-3xl mx-auto mt-3 text-xs text-fg-subtle">
+            Tip: open a note from results to jump straight into the editor.{' '}
+            <Link to={routes.home} className="text-primary hover:underline">
+              Back to dashboard
+            </Link>
+          </p>
+        </ContentShell>
+      </ScrollArea>
     </div>
   );
 }
