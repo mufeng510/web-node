@@ -16,7 +16,9 @@ const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {
   pretendToBeVisual: true,
 });
 
-global.window = dom.window;
+// Only `self` differs: lib.dom wants `Window & typeof globalThis`, and a jsdom
+// window can never own the Node globals that `typeof globalThis` demands.
+global.window = dom.window as unknown as Window & typeof globalThis;
 global.document = dom.window.document;
 global.navigator = dom.window.navigator;
 global.HTMLElement = dom.window.HTMLElement;

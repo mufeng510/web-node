@@ -214,7 +214,7 @@ describe('DropdownMenu', () => {
   });
 
   it('preserves a ref on the caller-supplied trigger', () => {
-    const triggerRef = { current: null as HTMLElement | null };
+    const triggerRef = { current: null as HTMLButtonElement | null };
     function RefHost() {
       const [open, setOpen] = useState(false);
       return (
