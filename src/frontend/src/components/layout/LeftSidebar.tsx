@@ -121,12 +121,48 @@ export function LeftSidebar({
         </button>
       )}
 
-      {/* The rail does not scroll while the tree does, so the tree keeps the
-          leftover height. The max-height is a safety valve for very short
-          viewports, where a non-scrolling nav would otherwise starve it. */}
+      {!collapsed && (
+        <>
+          <div className="shrink-0 flex items-center justify-between px-3 py-2 border-b border-border">
+            <h2 className="text-xs font-medium text-fg-muted uppercase tracking-wider">Files</h2>
+            {libraryId && (
+              <button
+                type="button"
+                onClick={() => navigate(routes.editor(libraryId), { state: { newNote: true } })}
+                aria-label="New note"
+                className="p-1 rounded-md text-fg-muted hover:text-fg hover:bg-bg-hover transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+              >
+                <Plus className="w-4 h-4" aria-hidden="true" />
+              </button>
+            )}
+          </div>
+
+          <TreeView
+            nodes={tree}
+            selectedPath={notePath}
+            onOpenFile={handleOpenFile}
+            expanded={expanded}
+            onExpandedChange={handleExpandedChange}
+            isLoading={isLoading}
+            error={error}
+            onRetry={() => void refetch()}
+          />
+        </>
+      )}
+
+      <LibrarySwitcher
+        libraries={libraries}
+        currentLibrary={currentLibrary}
+        onLibraryChange={onLibraryChange}
+        active={Boolean(routeLibraryId)}
+        collapsed={collapsed}
+      />
+
+      {/* 按钮区固定高度，在文件树下方；内容超出时自带滚动条 */}
       <nav
         className={cn(
-          'shrink-0 max-h-[45%] overflow-y-auto py-2 space-y-0.5 [scrollbar-gutter:stable]',
+          'shrink-0 overflow-y-auto py-2 space-y-0.5 [scrollbar-gutter:stable]',
+          'h-[var(--sidebar-nav-h)]',
           collapsed ? 'px-1' : 'px-2'
         )}
         aria-label="主导航"
@@ -158,43 +194,6 @@ export function LeftSidebar({
           );
         })}
       </nav>
-
-      <LibrarySwitcher
-        libraries={libraries}
-        currentLibrary={currentLibrary}
-        onLibraryChange={onLibraryChange}
-        active={Boolean(routeLibraryId)}
-        collapsed={collapsed}
-      />
-
-      {!collapsed && (
-        <>
-          <div className="shrink-0 flex items-center justify-between px-3 py-2 border-b border-border">
-            <h2 className="text-xs font-medium text-fg-muted uppercase tracking-wider">Files</h2>
-            {libraryId && (
-              <button
-                type="button"
-                onClick={() => navigate(routes.editor(libraryId), { state: { newNote: true } })}
-                aria-label="New note"
-                className="p-1 rounded-md text-fg-muted hover:text-fg hover:bg-bg-hover transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
-              >
-                <Plus className="w-4 h-4" aria-hidden="true" />
-              </button>
-            )}
-          </div>
-
-          <TreeView
-            nodes={tree}
-            selectedPath={notePath}
-            onOpenFile={handleOpenFile}
-            expanded={expanded}
-            onExpandedChange={handleExpandedChange}
-            isLoading={isLoading}
-            error={error}
-            onRetry={() => void refetch()}
-          />
-        </>
-      )}
     </aside>
   );
 }

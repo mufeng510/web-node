@@ -317,7 +317,7 @@ export function Editor() {
   const editorPane = editing ? (
     <div
       className={cn(
-        'min-h-0 overflow-auto p-4',
+        'min-h-0 overflow-auto p-4 h-full',
         view === 'split' &&
           (draggableSplit
             ? 'border-r border-border'
@@ -337,7 +337,7 @@ export function Editor() {
 
   const previewPane =
     view !== 'write' ? (
-      <div className="min-h-0 overflow-auto p-4">
+      <div className="min-h-0 overflow-auto p-4 h-full">
         <div className="md-content max-w-none">
           {/* biome-ignore lint/security/noDangerouslySetInnerHtml: preview renders author-owned note markdown via marked */}
           <div dangerouslySetInnerHTML={{ __html: renderedHtml }} />

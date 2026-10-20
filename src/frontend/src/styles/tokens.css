@@ -69,6 +69,7 @@
   --topbar-h: 3rem; /* 48px */
   --sidebar-w: 16rem; /* 256px - left */
   --sidebar-w-collapsed: 3.5rem; /* 56px */
+  --sidebar-nav-h: 13rem; /* 208px - fixed height of the top nav rail in the left sidebar */
   --right-sidebar-w: 20rem; /* 320px */
   --mobile-drawer-w: 18rem; /* 288px */
   --bottom-nav-h: 3.5rem; /* 56px */

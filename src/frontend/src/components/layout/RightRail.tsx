@@ -179,7 +179,7 @@ export function RightRailSlot() {
         // Remounting on key change is what drops a previous note's headings.
         key={content.key}
         style={{ width }}
-        className="hidden shrink-0 overflow-hidden border-l border-border bg-bg-elevated lg:flex lg:flex-col"
+        className="hidden shrink-0 overflow-y-auto border-l border-border bg-bg-elevated lg:flex lg:flex-col"
       >
         {content.node}
       </aside>
