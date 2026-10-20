@@ -94,7 +94,7 @@ export function LeftSidebar({
   return (
     <aside
       className={cn(
-        'bg-bg-elevated border-r border-border flex flex-col min-w-0',
+        'bg-bg-elevated border-r border-border flex flex-col min-w-0 min-h-0',
         // Width comes from the parent grid track when it is resizable, and from
         // the token otherwise; setting it here would override that track.
         !resizable && (collapsed ? 'w-[var(--sidebar-w-collapsed)]' : 'w-[var(--sidebar-w)]'),

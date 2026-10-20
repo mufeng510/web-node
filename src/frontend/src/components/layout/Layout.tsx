@@ -175,7 +175,7 @@ export function Layout() {
                 min={200}
                 max={480}
                 firstLabel="Resize sidebar"
-                className="flex-1 min-w-0"
+                className="flex-1 min-w-0 h-full"
                 first={
                   <LeftSidebar
                     libraries={libraries}

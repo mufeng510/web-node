@@ -126,8 +126,18 @@ export const Resizable = forwardRef<HTMLDivElement, ResizableProps>(
         className={cn('grid', dragging && 'select-none', className)}
         style={
           horizontal
-            ? { gridTemplateColumns: `${size}px 6px minmax(0, 1fr)` }
-            : { gridTemplateRows: `${size}px 6px minmax(0, 1fr)` }
+            ? {
+                gridTemplateColumns: `${size}px 6px minmax(0, 1fr)`,
+                // The cross axis is pinned to the container, never to the
+                // content. An auto row would let a tall pane push the whole
+                // region past the shell's height, and every `h-full` inside it
+                // would stop resolving to anything.
+                gridTemplateRows: 'minmax(0, 1fr)',
+              }
+            : {
+                gridTemplateRows: `${size}px 6px minmax(0, 1fr)`,
+                gridTemplateColumns: 'minmax(0, 1fr)',
+              }
         }
       >
         {first}

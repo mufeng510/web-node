@@ -31,7 +31,7 @@ export function LibrarySwitcher({
   const isOnlyLibrary = libraries.length <= 1;
 
   return (
-    <div className="px-2 py-2 border-b border-border">
+    <div className="shrink-0 px-2 py-2 border-b border-border">
       <DropdownMenu
         open={open}
         onOpenChange={setOpen}

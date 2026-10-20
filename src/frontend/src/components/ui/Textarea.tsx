@@ -5,14 +5,22 @@ export interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElemen
   label?: string;
   error?: string;
   hint?: string;
+  /**
+   * Stretch the field to the height of its container.
+   *
+   * The wrapper is what the field's own `h-full` resolves against, so a
+   * field that has to fill a pane (the markdown source view) needs the
+   * wrapper to carry the height too.
+   */
+  fill?: boolean;
 }
 
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
-  ({ className, label, error, hint, id, ...props }, ref) => {
+  ({ className, label, error, hint, id, fill = false, ...props }, ref) => {
     const textareaId = id || label?.toLowerCase().replace(/\s+/g, '-');
 
     return (
-      <div className="w-full">
+      <div className={cn('w-full', fill && 'h-full')}>
         {label && (
           <label htmlFor={textareaId} className="block text-sm font-medium text-fg mb-1">
             {label}

@@ -234,12 +234,26 @@ describe('Resizable', () => {
       root.render(<Host />);
     });
     expect(surface().style.gridTemplateColumns).toBe('192px 6px minmax(0, 1fr)');
-    expect(surface().style.gridTemplateRows).toBe('');
 
     act(() => {
       root?.render(<Host orientation="vertical" />);
     });
     expect(surface().style.gridTemplateRows).toBe('192px 6px minmax(0, 1fr)');
-    expect(surface().style.gridTemplateColumns).toBe('');
+  });
+
+  it('pins the cross axis to the container so a pane cannot outgrow the shell', () => {
+    act(() => {
+      root = createRoot(container);
+      root.render(<Host />);
+    });
+    // An auto row would size itself to its content: a tall child would then
+    // push the whole region past the shell's height, and every `h-full`
+    // inside it would stop resolving to anything.
+    expect(surface().style.gridTemplateRows).toBe('minmax(0, 1fr)');
+
+    act(() => {
+      root?.render(<Host orientation="vertical" />);
+    });
+    expect(surface().style.gridTemplateColumns).toBe('minmax(0, 1fr)');
   });
 });

@@ -144,4 +144,38 @@ describe('LeftSidebar file tree', () => {
       expect(labels).not.toContain(gone);
     }
   });
+
+  it('文件树排在导航按钮区之前，按钮区因此不会被树挤出视口', async () => {
+    mockedGet.mockResolvedValue({ success: true, data: { tree: treeData } });
+
+    act(() => {
+      root = createRoot(container);
+      root.render(
+        withProviders(
+          <LeftSidebar
+            libraries={[{ id: 'lib-1', name: 'Notes' }]}
+            currentLibrary={{ id: 'lib-1', name: 'Notes' }}
+            onLibraryChange={() => undefined}
+          />
+        )
+      );
+    });
+    await waitFor(() => container.textContent?.includes('readme.md') ?? false);
+
+    const aside = container.querySelector('aside');
+    const tree = aside?.querySelector('[role="tree"]') as HTMLElement | null;
+    const nav = aside?.querySelector('nav[aria-label="主导航"]') as HTMLElement | null;
+    expect(tree).toBeTruthy();
+    expect(nav).toBeTruthy();
+
+    // The tree is the flexible region (it scrolls); the rail below it keeps a
+    // fixed height, so the two never compete for the sidebar's height.
+    const treeComesFirst =
+      (tree as HTMLElement).compareDocumentPosition(nav as HTMLElement) &
+      Node.DOCUMENT_POSITION_FOLLOWING;
+    expect(treeComesFirst).toBeTruthy();
+    expect((tree as HTMLElement).className).toContain('flex-1');
+    expect((tree as HTMLElement).className).toContain('overflow-y-auto');
+    expect((nav as HTMLElement).className).toContain('h-[var(--sidebar-nav-h)]');
+  });
 });
