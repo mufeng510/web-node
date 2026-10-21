@@ -94,19 +94,19 @@ async function getGit(
   credentials: string | null = null
 ): Promise<SimpleGit> {
   const root = getLibraryRoot(libraryPath);
-  const git = simpleGit(root);
+  let git = simpleGit(root);
 
-  // SSH 模式下，为当前仓库配置 core.sshCommand（写入 .git/config，不污染全局环境）
+  // SSH 模式下通过环境变量指定私钥，不写进仓库的 .git/config —— 那是用户的
+  // 仓库，Web Note 不该往里面塞自己的配置
   if (authType === 'ssh' && credentials) {
     try {
       const decrypted = decrypt(credentials);
-      await git.raw([
-        'config',
-        'core.sshCommand',
-        `ssh -i ${decrypted} -o StrictHostKeyChecking=accept-new`,
-      ]);
+      git = git.env({
+        ...process.env,
+        GIT_SSH_COMMAND: `ssh -i ${decrypted} -o StrictHostKeyChecking=accept-new`,
+      });
     } catch {
-      // 配置 sshCommand 失败不阻塞后续操作
+      // 配置失败不阻塞后续操作
     }
   }
 
@@ -141,6 +141,82 @@ gitRoutes.get('/:libraryId/config', async (c) => {
       autoBackupSchedule:
         row?.autoBackupSchedule ?? (jsonConfig.autoBackupSchedule as string) ?? '0 * * * *',
       lastBackupAt: row?.lastBackupAt ?? null,
+    },
+  });
+});
+
+/**
+ * 去掉 URL 里内嵌的凭据。
+ *
+ * 仓库的 remote 有可能写成 `https://user:token@host/repo.git`（用户自己配的，
+ * 或者被工具写进去的）。这份配置会被读出来预填到表单里，所以先把凭据摘掉，
+ * 免得明文出现在界面和日志中。
+ */
+function stripCredentials(remoteUrl: string): string {
+  if (!remoteUrl) return '';
+  try {
+    const url = new URL(remoteUrl);
+    if (url.username || url.password) {
+      url.username = '';
+      url.password = '';
+      // 去掉空的用户信息后，URL 会以 //host 开头，补回协议
+      return url.toString();
+    }
+    return remoteUrl;
+  } catch {
+    // 不是标准 URL（比如 scp 形式的 git@host:path），原样返回
+    return remoteUrl;
+  }
+}
+
+/**
+ * 检测库目录里已存在的 Git 仓库，读出它的 remote 和当前分支。
+ *
+ * 注册一个本来就带 .git 的目录时，这些信息在 Web Note 自己的配置里并不存在
+ * （用户还没填过任何 Git 设置）。把它读出来，前端就能把表单预填成仓库的真实
+ * 情况，而不是让用户对着一个空的 remote 输入框猜。
+ */
+gitRoutes.get('/:libraryId/detect', async (c) => {
+  const userId = c.get('userId');
+  const libraryId = c.req.param('libraryId');
+
+  const { library } = await checkLibraryAccess(userId, libraryId, 'admin');
+
+  const git = simpleGit(getLibraryRoot(library.path));
+
+  try {
+    await git.revparse(['--is-inside-work-tree']);
+  } catch {
+    return c.json({
+      success: true,
+      data: { isRepository: false, remotes: [], branch: null, upstream: null },
+    });
+  }
+
+  const remotes = await git.getRemotes(true);
+  const branch = await git.revparse(['--abbrev-ref', 'HEAD']);
+
+  let upstream: string | null = null;
+  try {
+    const tracking = await git.raw(['rev-parse', '--abbrev-ref', '@{upstream}']);
+    const value = tracking.trim();
+    upstream = value && value !== '@{upstream}' ? value : null;
+  } catch {
+    upstream = null;
+  }
+
+  return c.json({
+    success: true,
+    data: {
+      isRepository: true,
+      remotes: remotes.map((r) => ({
+        name: r.name,
+        url: stripCredentials(r.refs.push || r.refs.fetch || ''),
+        fetchUrl: stripCredentials(r.refs.fetch || ''),
+        pushUrl: stripCredentials(r.refs.push || ''),
+      })),
+      branch: branch.trim() || null,
+      upstream,
     },
   });
 });

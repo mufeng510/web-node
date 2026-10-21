@@ -66,7 +66,20 @@ async function runAutoBackup(libraryId: string, libraryPath: string, gitConfig: 
 
   try {
     const db = getDb();
-    const git = simpleGit(getLibraryRoot(libraryPath));
+    let git = simpleGit(getLibraryRoot(libraryPath));
+
+    // SSH 模式：私钥路径通过环境变量传给 git 子进程，不写进仓库的 .git/config
+    if (gitConfig.authType === 'ssh' && gitConfig.credentials) {
+      try {
+        const decrypted = decrypt(gitConfig.credentials);
+        git = git.env({
+          ...process.env,
+          GIT_SSH_COMMAND: `ssh -i ${decrypted} -o StrictHostKeyChecking=accept-new`,
+        });
+      } catch {
+        // 忽略，push 阶段会报错
+      }
+    }
 
     // 确保是 git 仓库
     try {
@@ -85,11 +98,18 @@ async function runAutoBackup(libraryId: string, libraryPath: string, gitConfig: 
       return;
     }
 
-    // 配置 HTTPS 凭据（如需要）
-    if (gitConfig.authType === 'https' && gitConfig.credentials) {
+    /**
+     * 凭据只在本次操作里生效，绝不写回仓库的 .git/config。
+     *
+     * 早先的实现用 `git remote set-url` 把带明文凭据的 URL 写进 .git/config，
+     * 凭据因此以明文留在磁盘上，还可能随仓库一起被推走。这里改为把带凭据的
+     * URL 直接作为 push 的目标传给 git，仓库自身的 origin 保持原样。
+     */
+    let pushRemote = 'origin';
+    if (gitConfig.authType === 'https' && gitConfig.credentials && gitConfig.remoteUrl) {
       try {
         const decrypted = decrypt(gitConfig.credentials);
-        const url = new URL(gitConfig.remoteUrl || '');
+        const url = new URL(gitConfig.remoteUrl);
         if (decrypted.includes(':')) {
           const [user = '', pass = ''] = decrypted.split(':');
           url.username = user;
@@ -97,23 +117,10 @@ async function runAutoBackup(libraryId: string, libraryPath: string, gitConfig: 
         } else {
           url.username = decrypted;
         }
-        await git.raw(['remote', 'set-url', 'origin', url.toString()]);
+        pushRemote = url.toString();
       } catch {
-        // 忽略凭据配置失败，push 阶段会报错
-      }
-    }
-
-    // SSH 模式：配置 core.sshCommand
-    if (gitConfig.authType === 'ssh' && gitConfig.credentials) {
-      try {
-        const decrypted = decrypt(gitConfig.credentials);
-        await git.raw([
-          'config',
-          'core.sshCommand',
-          `ssh -i ${decrypted} -o StrictHostKeyChecking=accept-new`,
-        ]);
-      } catch {
-        // 忽略
+        // 凭据解不开就退回用 origin，让 push 自己报错
+        pushRemote = 'origin';
       }
     }
 
@@ -125,26 +132,7 @@ async function runAutoBackup(libraryId: string, libraryPath: string, gitConfig: 
 
     // git push（如有 remoteUrl）
     if (gitConfig.remoteUrl) {
-      const resolvedRemote =
-        gitConfig.authType === 'https' && gitConfig.credentials
-          ? (() => {
-              try {
-                const decrypted = decrypt(gitConfig.credentials);
-                const url = new URL(gitConfig.remoteUrl);
-                if (decrypted.includes(':')) {
-                  const [user = '', pass = ''] = decrypted.split(':');
-                  url.username = user;
-                  url.password = pass;
-                } else {
-                  url.username = decrypted;
-                }
-                return url.toString();
-              } catch {
-                return 'origin';
-              }
-            })()
-          : 'origin';
-      await git.push(resolvedRemote, gitConfig.branch || 'main');
+      await git.push(pushRemote, gitConfig.branch || 'main');
     }
 
     // 更新 lastBackupAt
