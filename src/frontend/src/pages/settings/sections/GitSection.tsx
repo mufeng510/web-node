@@ -45,9 +45,17 @@ const SCHEDULE_PRESETS: { label: string; value: string }[] = [
   { label: 'Every Monday at 03:00', value: '0 3 * * 1' },
 ];
 
+interface DetectedRepo {
+  isRepository: boolean;
+  remotes: { name: string; url: string; fetchUrl: string; pushUrl: string }[];
+  branch: string | null;
+  upstream: string | null;
+}
+
 export default function GitSection() {
   const { currentLibrary, updateLibrary } = useLibraries();
   const [config, setConfig] = useState<GitConfig | null>(null);
+  const [detected, setDetected] = useState<DetectedRepo | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -60,17 +68,36 @@ export default function GitSection() {
     if (!currentLibrary?.id) {
       setLoading(false);
       setConfig(null);
+      setDetected(null);
       return;
     }
     setLoading(true);
     setError('');
     try {
-      const res = (await api.get(`/git/${currentLibrary.id}/config`)) as unknown as {
-        success: boolean;
-        data: GitConfig;
-      };
-      if (res.success) {
-        setConfig(res.data);
+      const [configRes, detectRes] = (await Promise.all([
+        api.get(`/git/${currentLibrary.id}/config`),
+        api.get(`/git/${currentLibrary.id}/detect`),
+      ])) as unknown as [
+        { success: boolean; data: GitConfig },
+        { success: boolean; data: DetectedRepo },
+      ];
+
+      if (configRes.success) {
+        const saved = configRes.data;
+        const repo = detectRes.success ? detectRes.data : null;
+
+        // 库里已经是个 Git 仓库，但 Web Note 自己还没配过：把仓库里已有的
+        // remote 和分支预填进表单，用户能一眼看出系统读到的是什么，
+        // 确认或改完再保存。
+        const origin = repo?.remotes.find((r) => r.name === 'origin') ?? repo?.remotes[0];
+        const prefilled: GitConfig = {
+          ...saved,
+          remoteUrl: saved.remoteUrl || origin?.url || '',
+          branch: saved.branch || repo?.branch || saved.branch,
+        };
+
+        setConfig(prefilled);
+        setDetected(repo);
         setCredentials('');
         setClearCredentials(false);
       } else {
@@ -163,6 +190,29 @@ export default function GitSection() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {detected?.isRepository && (
+            <div className="rounded-md border border-border bg-bg-elevated px-3 py-2 text-sm">
+              <div className="flex items-center gap-2">
+                <Badge variant="success">Git repository detected</Badge>
+                {detected.branch && (
+                  <span className="text-fg-muted">
+                    on branch <span className="text-fg">{detected.branch}</span>
+                  </span>
+                )}
+              </div>
+              {detected.remotes.length > 0 ? (
+                <p className="mt-1.5 text-xs text-fg-muted">
+                  {detected.remotes.length === 1 ? 'Remote: ' : 'Remotes: '}
+                  {detected.remotes.map((r) => `${r.name} → ${r.url || '(no url)'}`).join(', ')}
+                </p>
+              ) : (
+                <p className="mt-1.5 text-xs text-fg-muted">
+                  This repository has no remote configured yet.
+                </p>
+              )}
+            </div>
+          )}
+
           <SettingRow
             label="Enable Git"
             description="Track this library in a Git repository and allow commit, push and pull."
@@ -181,7 +231,11 @@ export default function GitSection() {
             value={config.remoteUrl}
             onChange={(e) => update('remoteUrl', e.target.value)}
             placeholder="https://github.com/owner/repo.git"
-            hint="Leave empty to keep the repository local only."
+            hint={
+              detected?.isRepository
+                ? 'Prefilled from the repository. Leave empty to use the repository’s own remote as-is.'
+                : 'Leave empty to keep the repository local only.'
+            }
           />
 
           <Input
@@ -190,6 +244,7 @@ export default function GitSection() {
             value={config.branch}
             onChange={(e) => update('branch', e.target.value)}
             placeholder="main"
+            hint={detected?.branch ? 'Prefilled from the repository’s current branch.' : undefined}
           />
 
           <Select
