@@ -42,6 +42,9 @@ coverage/
 # Bun
 .bun/
 
+# npm lockfile: the project uses bun and commits bun.lock
+package-lock.json
+
 # TypeScript cache
 *.tsbuildinfo
 
