@@ -42,6 +42,18 @@ import { api } from '../services/api';
 
 type EditorView = 'write' | 'preview' | 'split';
 
+/**
+ * 保存状态机。
+ *
+ * `dirty` 是唯一会启动防抖计时器的状态；`saving` 期间不排程，
+ * 保存结束后由 `saveNote` 依据内容快照决定回到 `saved` 还是 `dirty`；
+ * `error` 不自动重试，等用户继续编辑或手动保存。
+ */
+type SaveState = 'saved' | 'dirty' | 'saving' | 'error';
+
+/** 停止输入多久后自动落盘 */
+const AUTOSAVE_DELAY_MS = 1500;
+
 function encodePath(path: string): string {
   return path.split('/').map(encodeURIComponent).join('/');
 }
@@ -78,10 +90,33 @@ export function Editor() {
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [fileExists, setFileExists] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(true);
+  const [saveState, setSaveState] = useState<SaveState>('saved');
+  const [saveError, setSaveError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const pathInputRef = useRef<HTMLInputElement>(null);
+  /**
+   * 已落盘的内容快照。`content` 与它不一致才说明有真正的未保存修改，
+   * 避免每次按键都触发一次无谓的写盘。
+   */
+  const savedContentRef = useRef('');
+  /** 编辑器里的最新内容，保存与卸载时读取，不等 React 批处理完成 */
+  const contentRef = useRef('');
+  /** 当前打开的笔记路径，卸载时用来决定写回哪个文件 */
+  const splatRef = useRef(splat);
+  useEffect(() => {
+    splatRef.current = splat;
+  }, [splat]);
+  /**
+   * 笔记代次。每次加载或切换笔记都 +1。
+   *
+   * 切换笔记时，旧笔记的保存请求可能在新笔记加载完成后才返回；那时若照常
+   * 更新 `savedContentRef` 和状态，会把新笔记误标成"有未保存修改"，进而触发
+   * 一次多余的写盘。保存时记下当时的代次，回来发现代次变了就只丢弃结果。
+   */
+  const noteGenerationRef = useRef(0);
+  const fileExistsRef = useRef(false);
+  /** 正在写盘时置位，防止防抖回调与手动保存并发写同一个文件 */
+  const savingRef = useRef(false);
   const [showLinks, setShowLinks] = useState(false);
   const [backlinks, setBacklinks] = useState<
     { sourcePath: string; sourceName: string; type: string; target: string }[]
@@ -101,13 +136,78 @@ export function Editor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /**
+   * 把内容写盘。`targetPath` 与 `body` 显式传入，这样切换笔记时的 flush
+   * 能锁定离开那一刻的内容，而不会被后续的状态更新改写。
+   */
+  const saveNote = useCallback(
+    async (targetPath: string, body: string): Promise<boolean> => {
+      const path = targetPath.trim();
+      if (!libraryId || !path) return false;
+      // 已有一次写盘在进行时直接跳过：防抖回调与手动保存可能撞在一起
+      if (savingRef.current) return false;
+
+      savingRef.current = true;
+      setSaveState('saving');
+      setSaveError(null);
+      const generation = noteGenerationRef.current;
+      try {
+        // 已有文件走 PATCH； adopted 老库在 files 表可能没有记录，404 时回退到 POST 创建
+        if (fileExistsRef.current) {
+          try {
+            await api.patch(`/files/${libraryId}/${encodePath(path)}`, { content: body });
+          } catch (error) {
+            if (isAxiosError(error) && error.response?.status === 404) {
+              await api.post(`/files/${libraryId}/`, { path, content: body });
+              fileExistsRef.current = true;
+              setFileExists(true);
+            } else {
+              throw error;
+            }
+          }
+        } else {
+          await api.post(`/files/${libraryId}/`, { path, content: body });
+          fileExistsRef.current = true;
+          setFileExists(true);
+        }
+        // 已经切到别的笔记了：内容确实写成功了，但别去动当前笔记的快照和状态
+        if (noteGenerationRef.current !== generation) return true;
+        savedContentRef.current = body;
+        // 写盘期间用户可能又改了内容；那就要回到 dirty 让防抖再排一次
+        if (contentRef.current === body) {
+          setSaveState('saved');
+        } else {
+          setSaveState('dirty');
+        }
+        return true;
+      } catch (error) {
+        console.error('Failed to save:', error);
+        // 已经切到别的笔记了，失败信息不该挂到当前笔记头上
+        if (noteGenerationRef.current === generation) {
+          setSaveState('error');
+          setSaveError(error instanceof Error ? error.message : 'Failed to save');
+        }
+        return false;
+      } finally {
+        savingRef.current = false;
+      }
+    },
+    [libraryId]
+  );
+
   useEffect(() => {
     if (!libraryId) return;
+    // 换一代：上一个笔记还在路上的保存请求回来时，会发现自己已经过期
+    noteGenerationRef.current += 1;
     if (!splat) {
       setNotePath('');
-      setContent('# Welcome to Web Note\n\nStart writing your notes here...');
+      contentRef.current = '# Welcome to Web Note\n\nStart writing your notes here...';
+      setContent(contentRef.current);
+      fileExistsRef.current = false;
       setFileExists(false);
-      setSaved(true);
+      savedContentRef.current = contentRef.current;
+      setSaveState('saved');
+      setSaveError(null);
       setLoadError(null);
       return;
     }
@@ -122,17 +222,25 @@ export function Editor() {
         };
         if (!cancelled && response.success) {
           setNotePath(splat);
-          setContent(response.data.content ?? '');
+          contentRef.current = response.data.content ?? '';
+          setContent(contentRef.current);
+          fileExistsRef.current = true;
           setFileExists(true);
-          setSaved(true);
+          savedContentRef.current = contentRef.current;
+          setSaveState('saved');
+          setSaveError(null);
         }
       } catch (error) {
         console.error('Failed to load note:', error);
         if (!cancelled) {
           setLoadError(`Failed to load ${splat}`);
           setNotePath(splat);
+          contentRef.current = '';
           setContent('');
+          fileExistsRef.current = false;
           setFileExists(false);
+          savedContentRef.current = '';
+          setSaveState('saved');
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -140,44 +248,76 @@ export function Editor() {
     })();
     return () => {
       cancelled = true;
+      // 离开这个笔记前把还没落盘的修改保存掉，否则切走后内容就丢了。
+      // 这里读的是 ref 而不是 state：cleanup 运行时 content 仍是旧笔记的内容。
+      if (fileExistsRef.current && contentRef.current !== savedContentRef.current) {
+        void saveNote(splat, contentRef.current);
+      }
     };
-  }, [libraryId, splat]);
+  }, [libraryId, splat, saveNote]);
 
   const handleSave = async () => {
     const path = notePath.trim();
-    if (!libraryId || !path || saving) return;
-    setSaving(true);
-    try {
-      // 已有文件走 PATCH； adopted 老库在 files 表可能没有记录，404 时回退到 POST 创建
-      if (fileExists) {
-        try {
-          await api.patch(`/files/${libraryId}/${encodePath(path)}`, { content });
-        } catch (error) {
-          if (isAxiosError(error) && error.response?.status === 404) {
-            await api.post(`/files/${libraryId}/`, { path, content });
-            setFileExists(true);
-          } else {
-            throw error;
-          }
-        }
-      } else {
-        await api.post(`/files/${libraryId}/`, { path, content });
-        setFileExists(true);
-      }
-      setSaved(true);
-      if (path !== (splat ?? '')) {
-        navigate(routes.editor(libraryId, path), { replace: true });
-      }
-    } catch (error) {
-      console.error('Failed to save:', error);
-    } finally {
-      setSaving(false);
+    if (!libraryId || !path) return;
+    const ok = await saveNote(path, content);
+    if (ok && path !== (splat ?? '')) {
+      navigate(routes.editor(libraryId, path), { replace: true });
     }
   };
 
+  /**
+   * 自动保存：只处理已存在的文件。
+   *
+   * 新笔记的路径还在输入框里由用户决定，替他落盘会造出半截路径的文件，
+   * 所以新笔记仍然要先手动保存一次，之后的编辑才会自动保存。
+   */
+  const flushAutoSave = useCallback(async () => {
+    if (!splat) return;
+    if (!fileExistsRef.current) return;
+    if (contentRef.current === savedContentRef.current) return;
+    if (savingRef.current) return;
+    await saveNote(splat, contentRef.current);
+  }, [splat, saveNote]);
+
+  // 防抖：`content` 变化就重置计时器，停手 AUTOSAVE_DELAY_MS 后才真正写盘
+  useEffect(() => {
+    if (saveState !== 'dirty') return;
+    if (!fileExists) return;
+    const timer = setTimeout(() => {
+      void flushAutoSave();
+    }, AUTOSAVE_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [saveState, content, fileExists, flushAutoSave]);
+
+  // 离开编辑器（关闭标签页 / 刷新）时，若还有未落盘的修改则拦一下，
+  // 给用户一次反悔的机会。自动保存通常已经把内容写掉了，这里只是兜底。
+  useEffect(() => {
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (saveState === 'saved' || saveState === 'saving') return;
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [saveState]);
+
+  // 组件卸载时做最后一次保存。依赖数组保持为空，cleanup 只在真正卸载时跑一次
+  // （切笔记走的是加载 effect 自己的 cleanup），读 ref 拿到离开时的内容。
+  useEffect(() => {
+    return () => {
+      const path = splatRef.current;
+      const body = contentRef.current;
+      if (!path || !fileExistsRef.current) return;
+      if (body === savedContentRef.current) return;
+      void saveNote(path, body);
+    };
+  }, [saveNote]);
+
   const handleContentChange = (newContent: string) => {
+    // ref 同步更新，这样即使保存请求还在途中，也能拿到最新的内容
+    contentRef.current = newContent;
     setContent(newContent);
-    setSaved(false);
+    setSaveState('dirty');
   };
 
   const applyEdit = (next: string, selectStart: number, selectEnd: number) => {
@@ -388,8 +528,31 @@ export function Editor() {
             className="w-64"
           />
           <StatusDot
-            tone={saved ? 'success' : 'muted'}
-            label={saved ? 'Saved' : 'Unsaved changes'}
+            tone={
+              saveState === 'saved'
+                ? 'success'
+                : saveState === 'saving'
+                  ? 'primary'
+                  : saveState === 'error'
+                    ? 'destructive'
+                    : 'muted'
+            }
+            label={
+              saveState === 'saved'
+                ? 'Saved'
+                : saveState === 'saving'
+                  ? 'Saving…'
+                  : saveState === 'error'
+                    ? 'Save failed'
+                    : 'Unsaved changes'
+            }
+            title={
+              saveState === 'error'
+                ? (saveError ?? 'Failed to save')
+                : saveState === 'dirty'
+                  ? `Auto-saves ${AUTOSAVE_DELAY_MS / 1000}s after you stop typing`
+                  : undefined
+            }
           />
         </div>
         <div className="flex items-center gap-2">
@@ -399,11 +562,23 @@ export function Editor() {
             onChange={setView}
             ariaLabel="Editor view"
           />
-          <Button onClick={handleSave} disabled={saving || saved} size="sm">
-            <Save className="w-4 h-4" aria-hidden="true" /> {saving ? 'Saving...' : 'Save'}
+          <Button
+            onClick={handleSave}
+            // 新笔记还没有落盘过，即使内容为空也要能保存；已有文件则只在有改动时可点
+            disabled={saveState === 'saving' || (saveState === 'saved' && fileExists)}
+            size="sm"
+          >
+            <Save className="w-4 h-4" aria-hidden="true" />{' '}
+            {saveState === 'saving' ? 'Saving...' : 'Save'}
           </Button>
         </div>
       </div>
+
+      {saveState === 'error' && saveError && (
+        <div className="px-4 py-2 text-sm text-destructive" role="alert">
+          {saveError}
+        </div>
+      )}
 
       {editing && (
         <div
