@@ -15,6 +15,7 @@ import { users } from '../../db/schema/users.js';
 import { auditLog } from '../../middleware/audit.js';
 import { authMiddleware } from '../../middleware/auth.middleware.js';
 import type { Env } from '../../middleware/env.js';
+import { encrypt } from '../../utils/crypto.js';
 import { NotFoundError, ValidationError } from '../../utils/errors.js';
 import { createId } from '../../utils/id.js';
 import { getLibraryRoot } from '../../utils/path.js';
@@ -28,6 +29,22 @@ import {
 } from './config.js';
 import { type TreeNode, scanLibraryTree } from './scanner.js';
 import { startLibraryWatcher, stopLibraryWatcher } from './watcher.js';
+
+/**
+ * 将 git 配置中的敏感 credentials 加密后再持久化。
+ * `previous` 为库中已存的配置：未提供 credentials 时沿用旧值，避免误清空。
+ */
+function encryptGitConfig(gitConfig: any, previous?: any): any {
+  if (!gitConfig || typeof gitConfig !== 'object') return gitConfig;
+  const merged = { ...(previous ?? {}), ...gitConfig };
+  if (gitConfig.credentials === undefined && previous?.credentials) {
+    merged.credentials = previous.credentials;
+  }
+  return {
+    ...merged,
+    credentials: merged.credentials ? encrypt(merged.credentials) : merged.credentials,
+  };
+}
 
 const libraryRoutes = new Hono<Env>();
 
@@ -118,7 +135,7 @@ libraryRoutes.post(
       path: fullPath,
       ownerId: userId,
       config: {},
-      gitConfig: data.git,
+      gitConfig: data.git ? encryptGitConfig(data.git) : null,
       aiIndexConfig: data.aiIndex,
     });
 
@@ -139,14 +156,14 @@ libraryRoutes.post(
       await writeLibraryConfig(fullPath, existingConfig);
     }
 
-    if (data.git?.enabled && data.git.remoteUrl) {
+    if (data.git?.enabled) {
       await db.insert(gitConfigs).values({
         id: createId(),
         libraryId,
         remoteUrl: data.git.remoteUrl,
         branch: data.git.branch,
         authType: data.git.authType,
-        credentials: data.git.credentials,
+        credentials: data.git.credentials ? encrypt(data.git.credentials) : null,
         autoBackup: data.git.autoBackup,
         autoBackupSchedule: data.git.autoBackupSchedule,
       });
@@ -330,7 +347,7 @@ libraryRoutes.patch(
 
     const updates: any = { updatedAt: new Date() };
     if (data.name) updates.name = data.name;
-    if (data.git) updates.gitConfig = data.git;
+    if (data.git) updates.gitConfig = encryptGitConfig(data.git, library.gitConfig);
     if (data.aiIndex) updates.aiIndexConfig = data.aiIndex;
     if (data.attachments || data.visibility || data.readOnly !== undefined) {
       const config: LibraryConfig = (await readLibraryConfig(library.path)) ?? getDefaultConfig();
@@ -343,12 +360,44 @@ libraryRoutes.patch(
 
     await db.update(libraries).set(updates).where(eq(libraries.id, libraryId));
 
+    // Upsert gitConfigs 表（同步 libraries.gitConfig 的结构化副本）
+    if (data.git) {
+      const existingGitConfig = await db.query.gitConfigs.findFirst({
+        where: eq(gitConfigs.libraryId, libraryId),
+      });
+      const gitValues: Record<string, unknown> = {
+        remoteUrl: data.git.remoteUrl ?? existingGitConfig?.remoteUrl ?? '',
+        branch: data.git.branch ?? existingGitConfig?.branch ?? 'main',
+        authType: data.git.authType ?? existingGitConfig?.authType ?? 'none',
+        autoBackup: data.git.autoBackup ?? existingGitConfig?.autoBackup ?? true,
+        autoBackupSchedule:
+          data.git.autoBackupSchedule ?? existingGitConfig?.autoBackupSchedule ?? '0 * * * *',
+      };
+      if (data.git.credentials !== undefined) {
+        gitValues.credentials = data.git.credentials ? encrypt(data.git.credentials) : null;
+      } else if (existingGitConfig) {
+        gitValues.credentials = existingGitConfig.credentials;
+      }
+      if (existingGitConfig) {
+        await db.update(gitConfigs).set(gitValues).where(eq(gitConfigs.libraryId, libraryId));
+      } else {
+        await db.insert(gitConfigs).values({
+          id: createId(),
+          libraryId,
+          ...gitValues,
+        });
+      }
+    }
+
     auditLog({
       userId,
       action: 'library.update',
       resourceType: 'library',
       resourceId: libraryId,
-      metadata: data,
+      // 审计日志不能落明文凭据
+      metadata: data.git
+        ? { ...data, git: { ...data.git, credentials: data.git.credentials ? '***' : undefined } }
+        : data,
     });
 
     return c.json({ success: true });

@@ -5,7 +5,7 @@ FROM oven/bun:1-alpine AS builder
 WORKDIR /app
 
 # Install build dependencies (npm needed for node-gyp upgrade)
-RUN apk add --no-cache python3 make g++ sqlite-dev npm
+RUN apk add --no-cache python3 make g++ sqlite-dev npm git
 
 # Copy package files
 COPY package.json bun.lock* ./
@@ -29,8 +29,8 @@ FROM oven/bun:1-alpine AS runner
 
 WORKDIR /app
 
-# Install runtime dependencies
-RUN apk add --no-cache sqlite-libs tini
+# Install runtime dependencies (git required for git auto-backup/push/pull)
+RUN apk add --no-cache sqlite-libs tini git
 
 # Create non-root user (GID 1000 may already exist in base image)
 RUN addgroup -g 1001 -S webnote 2>/dev/null || true && \

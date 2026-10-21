@@ -1,4 +1,14 @@
-import { KeyRound, Lock, Palette, ScrollText, User, Users, Wrench, X } from 'lucide-react';
+import {
+  GitBranch,
+  KeyRound,
+  Lock,
+  Palette,
+  ScrollText,
+  User,
+  Users,
+  Wrench,
+  X,
+} from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { DANGEROUS_SETTINGS_TABS, type SettingsTab } from './settingsTabs';
@@ -9,6 +19,7 @@ const ICONS: Record<SettingsTab, LucideIcon> = {
   appearance: Palette,
   advanced: Wrench,
   diagnostics: Wrench,
+  git: GitBranch,
   mcp: KeyRound,
   users: Users,
   audit: ScrollText,
@@ -20,6 +31,7 @@ const LABELS: Record<SettingsTab, string> = {
   appearance: '外观',
   advanced: '高级',
   diagnostics: '诊断',
+  git: 'Git',
   mcp: 'MCP Tokens',
   users: '用户',
   audit: '审计日志',

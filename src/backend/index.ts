@@ -3,9 +3,13 @@ import { createApp } from './app.js';
 import { getEnv } from './config/env.js';
 import { closeDb } from './db/index.js';
 import { flushAuditLogsNow } from './middleware/audit.js';
+import { initAutoBackup, stopAutoBackup } from './modules/git/auto-backup.js';
 
 const app = createApp();
 const env = getEnv();
+
+// 启动 Git 自动备份定时任务（加载所有启用 autoBackup 的库）
+initAutoBackup();
 
 let isShuttingDown = false;
 
@@ -20,6 +24,13 @@ async function shutdown(signal: string) {
     console.log('Audit logs flushed');
   } catch (error) {
     console.error('Failed to flush audit logs:', error);
+  }
+
+  try {
+    stopAutoBackup();
+    console.log('Git auto-backup scheduler stopped');
+  } catch {
+    // ignore
   }
 
   try {

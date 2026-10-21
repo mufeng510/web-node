@@ -6,8 +6,10 @@ import {
   GitBranch,
   HardDrive,
   Server,
+  Settings2,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Badge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/Card';
@@ -43,6 +45,7 @@ interface StatusData {
 
 export default function DiagnosticsSection() {
   const { currentLibrary } = useLibraries();
+  const navigate = useNavigate();
   const [health, setHealth] = useState<HealthCheck | null>(null);
   const [status, setStatus] = useState<StatusData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -331,6 +334,15 @@ export default function DiagnosticsSection() {
                     disabled={gitBusy || !currentLibrary}
                   >
                     {gitBusy ? 'Working…' : 'Pull'}
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => navigate('/settings?tab=git')}
+                    disabled={!currentLibrary}
+                  >
+                    <Settings2 className="w-4 h-4" aria-hidden="true" />
+                    Configure
                   </Button>
                 </div>
                 {gitNotice && <output className="block text-sm text-fg-muted">{gitNotice}</output>}

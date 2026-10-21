@@ -151,7 +151,8 @@ providerRoutes.patch(
       action: 'ai.provider.update',
       resourceType: 'provider',
       resourceId: id,
-      metadata: data,
+      // 审计日志不能落明文 API key
+      metadata: { ...data, apiKey: data.apiKey ? '***' : undefined },
     });
 
     return c.json({ success: true });

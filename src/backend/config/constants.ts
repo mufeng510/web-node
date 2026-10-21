@@ -22,6 +22,7 @@ export const APP_CONSTANTS = {
       remoteUrl: '',
       branch: 'main',
       authType: 'none',
+      credentials: '',
       autoBackup: true,
       autoBackupSchedule: '0 * * * *',
     },

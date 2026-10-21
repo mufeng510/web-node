@@ -19,6 +19,7 @@ import { api } from '../services/api';
 import { SettingsSectionNav } from './settings/SettingsSectionNav';
 import AuditSection from './settings/sections/AuditSection';
 import DiagnosticsSection from './settings/sections/DiagnosticsSection';
+import GitSection from './settings/sections/GitSection';
 import McpSection from './settings/sections/McpSection';
 import UsersSection from './settings/sections/UsersSection';
 import {
@@ -259,6 +260,7 @@ export function Settings() {
           <div className="flex-1 min-w-0 p-4 sm:p-6">
             <ContentShell>
               {activeTab === 'diagnostics' && <DiagnosticsSection />}
+              {activeTab === 'git' && <GitSection />}
               {activeTab === 'mcp' && <McpSection />}
               {activeTab === 'users' && isAdmin && <UsersSection />}
               {activeTab === 'audit' && isAdmin && <AuditSection />}

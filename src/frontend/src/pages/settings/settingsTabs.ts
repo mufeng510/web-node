@@ -4,6 +4,7 @@ export const SETTINGS_TABS = [
   'appearance',
   'advanced',
   'diagnostics',
+  'git',
   'mcp',
   'users',
   'audit',
@@ -19,7 +20,7 @@ export const DANGEROUS_SETTINGS_TABS: SettingsTab[] = ['advanced'];
 
 export const PERSONAL_TABS: SettingsTab[] = ['account', 'security', 'appearance'];
 
-export const SYSTEM_TABS: SettingsTab[] = ['diagnostics', 'mcp', 'users', 'audit'];
+export const SYSTEM_TABS: SettingsTab[] = ['diagnostics', 'git', 'mcp', 'users', 'audit'];
 
 export const ADMIN_ONLY_TABS: SettingsTab[] = ['users', 'audit'];
 
