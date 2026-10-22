@@ -55,6 +55,11 @@ const envSchema = z.object({
   GIT_AUTO_BACKUP_ENABLED: z.coerce.boolean().default(true),
   GIT_AUTO_BACKUP_DEFAULT_SCHEDULE: z.string().default('0 * * * *'),
 
+  /** 连续登录失败多少次后锁定账号 */
+  AUTH_MAX_LOGIN_ATTEMPTS: z.coerce.number().int().positive().max(100).default(5),
+  /** 锁定时长（分钟） */
+  AUTH_LOCKOUT_MINUTES: z.coerce.number().int().positive().max(1440).default(5),
+
   CORS_ORIGIN: z.string().optional(),
 
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60000),
@@ -109,6 +114,8 @@ export function getEnv(): Env {
     MCP_TOKEN_DEFAULT_EXPIRY_DAYS: getEnvVar('MCP_TOKEN_DEFAULT_EXPIRY_DAYS'),
     GIT_AUTO_BACKUP_ENABLED: getEnvVar('GIT_AUTO_BACKUP_ENABLED'),
     GIT_AUTO_BACKUP_DEFAULT_SCHEDULE: getEnvVar('GIT_AUTO_BACKUP_DEFAULT_SCHEDULE'),
+    AUTH_MAX_LOGIN_ATTEMPTS: getEnvVar('AUTH_MAX_LOGIN_ATTEMPTS'),
+    AUTH_LOCKOUT_MINUTES: getEnvVar('AUTH_LOCKOUT_MINUTES'),
     CORS_ORIGIN: getEnvVar('CORS_ORIGIN'),
     RATE_LIMIT_WINDOW_MS: getEnvVar('RATE_LIMIT_WINDOW_MS'),
     RATE_LIMIT_MAX_REQUESTS: getEnvVar('RATE_LIMIT_MAX_REQUESTS'),

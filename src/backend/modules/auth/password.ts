@@ -1,4 +1,4 @@
-import { eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { getEnv } from '../../config/env.js';
 import { getDb } from '../../db/index.js';
 import { users } from '../../db/schema/users.js';
@@ -53,55 +53,65 @@ export async function createUser(email: string, password: string, role: 'admin' 
   return { id: userId, email, role };
 }
 
-export async function authenticateUser(email: string, password: string) {
+/**
+ * 校验账号密码，失败时按阈值锁定。
+ *
+ * 锁定只在连续失败达到阈值之后才触发：早先的实现是错一次就锁 15 分钟，
+ * 于是输错一次的人即便随后输入了正确密码也只能看着 401 干等。
+ */
+export async function authenticateUser(
+  email: string,
+  password: string
+): Promise<{ id: string; email: string; role: 'admin' | 'user' }> {
   const db = getDb();
+  const env = getEnv();
+
   const user = await db.query.users.findFirst({
     where: eq(users.email, email),
   });
 
-  if (!user) {
-    await incrementFailedAttempts(email);
-    throw new AuthenticationError('Invalid credentials');
-  }
-
-  if (!user.isActive) {
-    throw new AuthenticationError('Account is disabled');
+  if (!user || !user.isActive) {
+    // 不区分"用户不存在"和"密码错误"，免得被用来枚举账号
+    throw new AuthenticationError('Invalid email or password');
   }
 
   if (user.lockedUntil && user.lockedUntil > new Date()) {
-    throw new AuthenticationError('Account is temporarily locked');
+    const minutes = Math.max(1, Math.ceil((user.lockedUntil.getTime() - Date.now()) / 60000));
+    throw new AuthenticationError(
+      `Too many failed attempts. This account is locked for another ${minutes} minute${
+        minutes === 1 ? '' : 's'
+      }.`
+    );
   }
 
   const valid = await verifyPassword(password, user.passwordHash);
 
   if (!valid) {
-    await incrementFailedAttempts(email);
-    throw new AuthenticationError('Invalid credentials');
+    const attempts = user.failedLoginAttempts + 1;
+    const shouldLock = attempts >= env.AUTH_MAX_LOGIN_ATTEMPTS;
+    await db
+      .update(users)
+      .set({
+        failedLoginAttempts: attempts,
+        lockedUntil: shouldLock
+          ? new Date(Date.now() + env.AUTH_LOCKOUT_MINUTES * 60 * 1000)
+          : null,
+      })
+      .where(eq(users.id, user.id));
+    if (shouldLock) {
+      throw new AuthenticationError(
+        `Too many failed attempts. This account is locked for ${env.AUTH_LOCKOUT_MINUTES} minutes.`
+      );
+    }
+    throw new AuthenticationError('Invalid email or password');
   }
 
-  await resetFailedAttempts(user.id);
-
-  return user;
-}
-
-async function incrementFailedAttempts(email: string) {
-  const db = getDb();
-  const _env = getEnv();
   await db
     .update(users)
-    .set({
-      failedLoginAttempts: sql`${users.failedLoginAttempts} + 1`,
-      lockedUntil: new Date(Date.now() + 15 * 60 * 1000),
-    })
-    .where(eq(users.email, email));
-}
+    .set({ failedLoginAttempts: 0, lockedUntil: null, lastLoginAt: new Date() })
+    .where(eq(users.id, user.id));
 
-async function resetFailedAttempts(userId: string) {
-  const db = getDb();
-  await db
-    .update(users)
-    .set({ failedLoginAttempts: 0, lockedUntil: null })
-    .where(eq(users.id, userId));
+  return { id: user.id, email: user.email, role: user.role };
 }
 
 export async function changePassword(userId: string, currentPassword: string, newPassword: string) {

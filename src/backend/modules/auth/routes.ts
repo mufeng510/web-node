@@ -1,5 +1,5 @@
 import { zValidator } from '@hono/zod-validator';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { getEnv } from '../../config/env.js';
@@ -17,10 +17,10 @@ import {
 } from '../../middleware/auth.js';
 import { authMiddleware } from '../../middleware/auth.middleware.js';
 import type { Env } from '../../middleware/env.js';
-import { AuthenticationError, NotFoundError } from '../../utils/errors.js';
+import { NotFoundError } from '../../utils/errors.js';
 import { createId } from '../../utils/id.js';
 import { generateCsrfToken, hashSecret } from './csrf.js';
-import { changePassword, hashPassword, verifyPassword } from './password.js';
+import { authenticateUser, changePassword, hashPassword } from './password.js';
 
 const auth = new Hono<Env>();
 
@@ -119,33 +119,9 @@ auth.post('/setup', zValidator('json', setupSchema), async (c) => {
 
 auth.post('/login', zValidator('json', loginSchema), async (c) => {
   const { email, password, rememberMe } = c.req.valid('json');
-  const db = getDb();
 
-  const user = await db.query.users.findFirst({ where: eq(users.email, email) });
-  if (!user || !user.isActive) {
-    throw new AuthenticationError('Invalid credentials');
-  }
-
-  if (user.lockedUntil && user.lockedUntil > new Date()) {
-    throw new AuthenticationError('Account is temporarily locked');
-  }
-
-  const valid = await verifyPassword(password, user.passwordHash);
-  if (!valid) {
-    await db
-      .update(users)
-      .set({
-        failedLoginAttempts: sql`${users.failedLoginAttempts} + 1`,
-        lockedUntil: new Date(Date.now() + 15 * 60 * 1000),
-      })
-      .where(eq(users.id, user.id));
-    throw new AuthenticationError('Invalid credentials');
-  }
-
-  await db
-    .update(users)
-    .set({ failedLoginAttempts: 0, lockedUntil: null, lastLoginAt: new Date() })
-    .where(eq(users.id, user.id));
+  // 密码校验与失败锁定都在 authenticateUser 里，login 路由只管发会话
+  const user = await authenticateUser(email, password);
 
   const maxAge = rememberMe ? getEnv().SESSION_MAX_AGE_DAYS * 24 * 60 * 60 : 24 * 60 * 60;
   const { token, expiresAt } = await createSession(

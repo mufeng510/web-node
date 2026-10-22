@@ -53,6 +53,14 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !suppressAuthRedirect) {
       window.location.href = '/login';
     }
+    // axios 默认抛出的 message 是 "Request failed with status code 401"，
+    // 后端那句真正有用的说明（密码错误、账号被锁……）就丢了。这里把它接到
+    // 错误对象上，界面上才能显示给人看。
+    const payload = error.response?.data as { error?: { message?: string } } | undefined;
+    const serverMessage = payload?.error?.message;
+    if (serverMessage) {
+      error.message = serverMessage;
+    }
     return Promise.reject(error);
   }
 );
