@@ -55,6 +55,7 @@ export default function DiagnosticsSection() {
     branch: string;
     clean: boolean;
     changed: number;
+    remote?: string | null;
   } | null>(null);
   const [gitMessage, setGitMessage] = useState<string | null>(null);
   const [providers, setProviders] = useState<{ id: string; name: string; type: string }[] | null>(
@@ -106,16 +107,20 @@ export default function DiagnosticsSection() {
     setGitNotice('');
     if (libraryId) {
       try {
-        const res = (await api.get(`/git/${libraryId}/status`)) as unknown as {
-          success: boolean;
-          data: { status: { current: string | null; files: unknown[] } };
-        };
-        if (res.success) {
-          const files = res.data.status.files || [];
+        const [statusRes, configRes] = (await Promise.all([
+          api.get(`/git/${libraryId}/status`),
+          api.get(`/git/${libraryId}/config`),
+        ])) as unknown as [
+          { success: boolean; data: { status: { current: string | null; files: unknown[] } } },
+          { success: boolean; data: { remoteUrl: string } },
+        ];
+        if (statusRes.success) {
+          const files = statusRes.data.status.files || [];
           setGitInfo({
-            branch: res.data.status.current || 'detached',
+            branch: statusRes.data.status.current || 'detached',
             clean: files.length === 0,
             changed: files.length,
+            remote: configRes.success && configRes.data.remoteUrl ? configRes.data.remoteUrl : null,
           });
         }
       } catch {
@@ -310,6 +315,12 @@ export default function DiagnosticsSection() {
                   <span className="text-fg-muted">Library</span>
                   <span className="text-fg truncate max-w-[160px]">{currentLibrary?.name}</span>
                 </div>
+                {gitInfo.remote && (
+                  <div className="flex justify-between">
+                    <span className="text-fg-muted">Remote</span>
+                    <span className="text-fg truncate max-w-[160px]">{gitInfo.remote}</span>
+                  </div>
+                )}
                 <div className="flex gap-2 pt-1 flex-wrap">
                   <Button
                     variant="secondary"

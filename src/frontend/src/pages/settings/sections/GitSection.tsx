@@ -74,17 +74,25 @@ export default function GitSection() {
     setLoading(true);
     setError('');
     try {
-      const [configRes, detectRes] = (await Promise.all([
-        api.get(`/git/${currentLibrary.id}/config`),
-        api.get(`/git/${currentLibrary.id}/detect`),
-      ])) as unknown as [
-        { success: boolean; data: GitConfig },
-        { success: boolean; data: DetectedRepo },
-      ];
+      // config 和 detect 分别请求：detect 失败（例如旧部署没有该端点）
+      // 不应导致已保存的配置无法显示。
+      const configRes = (await api.get(`/git/${currentLibrary.id}/config`)) as unknown as {
+        success: boolean;
+        data: GitConfig;
+      };
+      let detectRes: { success: boolean; data: DetectedRepo } | null = null;
+      try {
+        detectRes = (await api.get(`/git/${currentLibrary.id}/detect`)) as unknown as {
+          success: boolean;
+          data: DetectedRepo;
+        };
+      } catch {
+        // detect 失败不影响配置显示
+      }
 
       if (configRes.success) {
         const saved = configRes.data;
-        const repo = detectRes.success ? detectRes.data : null;
+        const repo = detectRes?.success ? detectRes.data : null;
 
         // 库里已经是个 Git 仓库，但 Web Note 自己还没配过：把仓库里已有的
         // remote 和分支预填进表单，用户能一眼看出系统读到的是什么，

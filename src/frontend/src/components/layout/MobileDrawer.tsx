@@ -1,8 +1,11 @@
 import { ChevronRight, FolderGit2, X } from 'lucide-react';
-import { useEffect, useRef } from 'react';
-import { NavLink } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { NavLink, useNavigate, useParams } from 'react-router-dom';
 import { cn } from '../../lib/utils';
+import { TreeView } from '../file-tree/TreeView';
+import { type TreeNode, useFileTree } from '../file-tree/useFileTree';
 import { IconButton } from '../ui/IconButton';
+import { Spinner } from '../ui/Spinner';
 import { SETTINGS_ENTRY, WORKSPACE_NAV } from './navConfig';
 
 interface MobileDrawerProps {
@@ -21,6 +24,18 @@ export function MobileDrawer({
   onLibraryChange,
 }: MobileDrawerProps) {
   const panelRef = useRef<HTMLDialogElement>(null);
+  const { libraryId } = useParams<{ libraryId?: string }>();
+  const navigate = useNavigate();
+
+  const activeLibraryId = libraryId ?? currentLibrary?.id;
+  const { tree, isLoading, error } = useFileTree(activeLibraryId);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  const handleOpenFile = (node: TreeNode) => {
+    if (!activeLibraryId) return;
+    navigate(`/editor/${activeLibraryId}/${node.relativePath}`);
+    onClose();
+  };
 
   useEffect(() => {
     if (!isOpen) return;
@@ -126,6 +141,37 @@ export function MobileDrawer({
             </button>
           ))}
         </div>
+
+        {activeLibraryId && (
+          <div className="px-3 py-3 border-b border-border">
+            <h3 className="text-xs font-medium text-fg-muted uppercase tracking-wider mb-2">
+              Files
+            </h3>
+            {isLoading ? (
+              <div className="flex items-center justify-center py-4">
+                <Spinner size="sm" label="Loading files" />
+              </div>
+            ) : error ? (
+              <div className="px-2 py-2 text-sm text-destructive">{error.message}</div>
+            ) : tree.length === 0 ? (
+              <div className="px-2 py-2 text-sm text-fg-muted">
+                No files yet. Create a note to see it appear here.
+              </div>
+            ) : (
+              <div className="max-h-48 overflow-y-auto [scrollbar-gutter:stable]">
+                <TreeView
+                  nodes={tree}
+                  selectedPath={null}
+                  onOpenFile={handleOpenFile}
+                  expanded={new Set()}
+                  onExpandedChange={() => {}}
+                  isLoading={false}
+                  error={null}
+                />
+              </div>
+            )}
+          </div>
+        )}
 
         <nav
           className="min-h-0 flex-1 px-3 py-3 space-y-1 overflow-y-auto [scrollbar-gutter:stable] [overscroll-behavior:contain]"
