@@ -60,6 +60,11 @@ export default function GitSection() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [testLoading, setTestLoading] = useState(false);
+  const [testResult, setTestResult] = useState<{
+    type: 'success' | 'error';
+    message: string;
+  } | null>(null);
   /** 凭据输入框留空表示“保持原值”，避免把已存凭据覆盖成空 */
   const [credentials, setCredentials] = useState('');
   const [clearCredentials, setClearCredentials] = useState(false);
@@ -125,6 +130,34 @@ export default function GitSection() {
   const update = <K extends keyof GitConfig>(key: K, value: GitConfig[K]) => {
     setConfig((prev) => (prev ? { ...prev, [key]: value } : prev));
     setNotice('');
+  };
+
+  const handleTestConnection = async () => {
+    if (!currentLibrary?.id) return;
+    setTestLoading(true);
+    setTestResult(null);
+    try {
+      const res = (await api.post(`/git/${currentLibrary.id}/test`)) as unknown as {
+        success: boolean;
+        data?: { message: string };
+        error?: { message?: string };
+      };
+      if (res.success) {
+        setTestResult({ type: 'success', message: res.data?.message ?? 'Connection successful' });
+      } else {
+        setTestResult({
+          type: 'error',
+          message: res.error?.message || 'Test failed',
+        });
+      }
+    } catch (err) {
+      setTestResult({
+        type: 'error',
+        message: err instanceof Error ? err.message : 'Test failed',
+      });
+    } finally {
+      setTestLoading(false);
+    }
   };
 
   const handleSave = async () => {
@@ -254,6 +287,26 @@ export default function GitSection() {
             placeholder="main"
             hint={detected?.branch ? 'Prefilled from the repository’s current branch.' : undefined}
           />
+
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={handleTestConnection}
+              disabled={testLoading || !config.remoteUrl}
+              size="sm"
+            >
+              {testLoading ? (
+                <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4" />
+              )}
+              {testLoading ? 'Testing…' : 'Test connection'}
+            </Button>
+            {testResult && (
+              <Badge variant={testResult.type === 'success' ? 'success' : 'destructive'}>
+                {testResult.message}
+              </Badge>
+            )}
+          </div>
 
           <Select
             id="git-auth-type"

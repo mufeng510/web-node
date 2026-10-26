@@ -4,14 +4,24 @@ import { cn } from '../../lib/utils';
 export interface SwitchProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> {
   label?: string;
   description?: string;
+  id?: string;
+  disabled?: boolean;
 }
 
 export const Switch = forwardRef<HTMLInputElement, SwitchProps>(
   ({ className, label, description, id, disabled, ...props }, ref) => {
     const switchId = id || label?.toLowerCase().replace(/\s+/g, '-');
+    const hasLabel = Boolean(label || description);
 
     return (
-      <label className="flex items-start gap-3 cursor-pointer" htmlFor={switchId}>
+      <label
+        className={cn(
+          'inline-flex items-center gap-2 cursor-pointer',
+          disabled && 'opacity-50 disabled:cursor-not-allowed',
+          className
+        )}
+        htmlFor={switchId}
+      >
         <div className="relative flex items-center">
           <input
             ref={ref}
@@ -19,26 +29,37 @@ export const Switch = forwardRef<HTMLInputElement, SwitchProps>(
             id={switchId}
             disabled={disabled}
             className={cn(
-              'peer h-5 w-5 appearance-none rounded-full border-2 border-border bg-bg',
-              'checked:bg-primary checked:border-primary',
+              'peer appearance-none rounded-full border-2 transition-all duration-200 ease-in-out',
+              // 未选中：较深的背景条，便于在浅色背景下辨认
+              'bg-muted border-border',
+              'peer-checked:bg-primary peer-checked:border-primary',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
               'disabled:opacity-50 disabled:cursor-not-allowed',
-              'transition-colors duration-150',
-              'after:content-[""] after:absolute after:top-0.5 after:left-0.5 after:h-4 after:w-4 after:rounded-full after:bg-fg-subtle after:transition-transform after:duration-150',
-              'peer-checked:after:translate-x-full peer-checked:after:bg-primary-fg',
+              'h-6 w-11',
               className
             )}
             {...props}
           />
+          <span
+            className={cn(
+              'absolute left-1 top-1 rounded-full bg-fg shadow-sm transition-transform duration-200 ease-in-out',
+              'h-4 w-4',
+              'peer-checked:translate-x-6',
+              disabled && 'opacity-50'
+            )}
+            aria-hidden="true"
+          />
         </div>
-        <div className="pt-1">
-          {label && (
-            <span className={cn('text-sm font-medium text-fg', disabled && 'text-fg-muted')}>
-              {label}
-            </span>
-          )}
-          {description && <p className="text-xs text-fg-muted mt-0.5">{description}</p>}
-        </div>
+        {hasLabel && (
+          <div className="pt-0.5">
+            {label && (
+              <span className={cn('text-sm font-medium text-fg', disabled && 'text-fg-muted')}>
+                {label}
+              </span>
+            )}
+            {description && <p className="text-xs text-fg-muted mt-0.5">{description}</p>}
+          </div>
+        )}
       </label>
     );
   }

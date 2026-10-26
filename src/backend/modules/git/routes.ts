@@ -146,6 +146,52 @@ gitRoutes.get('/:libraryId/config', async (c) => {
 });
 
 /**
+ * 测试 Git 远程连接：执行 `git ls-remote` 验证远程仓库可达性和凭据。
+ * 不写入任何配置，只做只读探测。
+ */
+gitRoutes.post('/:libraryId/test', async (c) => {
+  const userId = c.get('userId');
+  const libraryId = c.req.param('libraryId');
+
+  const { library } = await checkLibraryAccess(userId, libraryId, 'admin');
+
+  const gitConfig = await getGitConfig(libraryId);
+  if (!gitConfig?.remoteUrl) {
+    throw new ValidationError('No remote URL configured');
+  }
+
+  const git = await getGit(library.path, gitConfig.authType, gitConfig.credentials);
+
+  // 构造用于测试的 remote：HTTPS 时嵌入凭据；SSH 时依赖 GIT_SSH_COMMAND 环境变量
+  let testRemote: string;
+  if (gitConfig.authType === 'https' && gitConfig.credentials) {
+    try {
+      testRemote = urlWithAuth(gitConfig.remoteUrl, decrypt(gitConfig.credentials));
+    } catch {
+      testRemote = gitConfig.remoteUrl;
+    }
+  } else {
+    testRemote = gitConfig.remoteUrl;
+  }
+
+  try {
+    await git.raw(['ls-remote', testRemote]);
+    auditLog({
+      userId,
+      libraryId,
+      action: 'git.test',
+      resourceType: 'git',
+      metadata: { remote: gitConfig.remoteUrl },
+    });
+    return c.json({ success: true, data: { message: 'Connection successful' } });
+  } catch (error) {
+    throw new ValidationError(
+      `Connection test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+  }
+});
+
+/**
  * 去掉 URL 里内嵌的凭据。
  *
  * 仓库的 remote 有可能写成 `https://user:token@host/repo.git`（用户自己配的，
