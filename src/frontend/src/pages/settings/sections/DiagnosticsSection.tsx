@@ -25,6 +25,7 @@ import { Input } from '../../../components/ui/Input';
 import { Spinner } from '../../../components/ui/Spinner';
 import { StatCard } from '../../../components/ui/StatCard';
 import { useLibraries } from '../../../hooks/useLibraries';
+import { useTranslation } from '../../../hooks/useTranslation';
 import { api } from '../../../services/api';
 import { formatDistanceToNow } from '../../../utils/format';
 
@@ -44,6 +45,7 @@ interface StatusData {
 }
 
 export default function DiagnosticsSection() {
+  const { t } = useTranslation();
   const { currentLibrary } = useLibraries();
   const navigate = useNavigate();
   const [health, setHealth] = useState<HealthCheck | null>(null);
@@ -124,10 +126,10 @@ export default function DiagnosticsSection() {
           });
         }
       } catch {
-        setGitMessage('Not a git repository or git unavailable');
+        setGitMessage(t('sections.diagnostics.msgNotRepo'));
       }
     } else {
-      setGitMessage('Select a library to view git status');
+      setGitMessage(t('sections.diagnostics.msgSelectLibrary'));
     }
     try {
       const res = (await api.get('/ai/providers')) as unknown as {
@@ -186,16 +188,24 @@ export default function DiagnosticsSection() {
       };
       if (res.success) {
         setGitNotice(
-          `${op === 'commit' ? 'Committed' : op === 'push' ? 'Pushed' : 'Pulled'} successfully.`
+          op === 'commit'
+            ? t('sections.diagnostics.msgCommitted')
+            : op === 'push'
+              ? t('sections.diagnostics.msgPushed')
+              : t('sections.diagnostics.msgPulled')
         );
         setShowCommit(false);
         setCommitMessage('');
         fetchIntegrations(currentLibrary.id);
       } else {
-        setGitNotice(res.error?.message || `${op} failed`);
+        setGitNotice(res.error?.message || t('sections.diagnostics.messageActionFailed', { op }));
       }
     } catch (error) {
-      setGitNotice(error instanceof Error ? error.message : `${op} failed`);
+      setGitNotice(
+        error instanceof Error
+          ? error.message
+          : t('sections.diagnostics.messageActionFailed', { op })
+      );
     } finally {
       setGitBusy(false);
     }
@@ -219,8 +229,8 @@ export default function DiagnosticsSection() {
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center gap-3 text-fg-muted">
-        <Spinner label="Loading diagnostics" />
-        <span>Loading diagnostics...</span>
+        <Spinner label={t('sections.diagnostics.spinnerLoadingDiagnostics')} />
+        <span>{t('sections.diagnostics.textLoading')}</span>
       </div>
     );
   }
@@ -229,19 +239,25 @@ export default function DiagnosticsSection() {
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard
-          title="Overall Health"
-          value={health?.healthy ? 'Healthy' : 'Unhealthy'}
+          title={t('sections.diagnostics.cardHealth')}
+          value={
+            health?.healthy
+              ? t('sections.diagnostics.statusHealthy')
+              : t('sections.diagnostics.statusUnhealthy')
+          }
           icon={health?.healthy ? CheckCircle : AlertCircle}
           iconClassName={health?.healthy ? 'text-success' : 'text-destructive'}
           details={Object.entries(health?.checks || {}).map(([k, v]) => (
             <div key={k} className="flex justify-between text-xs">
               <span className="capitalize text-fg-muted">{k.replace(/_/g, ' ')}</span>
-              <Badge variant={v ? 'success' : 'destructive'}>{v ? 'OK' : 'Failed'}</Badge>
+              <Badge variant={v ? 'success' : 'destructive'}>
+                {v ? t('sections.diagnostics.statusOk') : t('sections.diagnostics.statusFailed')}
+              </Badge>
             </div>
           ))}
         />
         <StatCard
-          title="Database"
+          title={t('sections.diagnostics.cardDatabase')}
           value={formatBytes(status?.database?.size || 0)}
           icon={Database}
           iconClassName="text-primary"
@@ -253,38 +269,38 @@ export default function DiagnosticsSection() {
           ))}
         />
         <StatCard
-          title="Storage"
+          title={t('sections.diagnostics.cardStorage')}
           value={`${status?.storage?.dataRoot} / ${status?.storage?.appDataRoot}`}
           icon={HardDrive}
           details={[
             <div key="data" className="flex justify-between text-xs">
-              <span className="text-fg-muted">Data Root</span>
+              <span className="text-fg-muted">{t('sections.diagnostics.labelDataRoot')}</span>
               <span className="text-fg">{status?.storage?.dataRoot}</span>
             </div>,
             <div key="app" className="flex justify-between text-xs">
-              <span className="text-fg-muted">App Data Root</span>
+              <span className="text-fg-muted">{t('sections.diagnostics.labelAppDataRoot')}</span>
               <span className="text-fg">{status?.storage?.appDataRoot}</span>
             </div>,
           ]}
         />
         <StatCard
-          title="System"
+          title={t('sections.diagnostics.cardSystem')}
           value={formatUptime(status?.uptime || 0)}
           icon={Server}
           details={[
             <div key="mem" className="flex justify-between text-xs">
-              <span className="text-fg-muted">Memory</span>
+              <span className="text-fg-muted">{t('sections.diagnostics.labelMemory')}</span>
               <span className="text-fg">
                 {formatBytes(status?.memory?.heapUsed || 0)} /{' '}
                 {formatBytes(status?.memory?.heapTotal || 0)}
               </span>
             </div>,
             <div key="env" className="flex justify-between text-xs">
-              <span className="text-fg-muted">Environment</span>
+              <span className="text-fg-muted">{t('sections.diagnostics.labelEnvironment')}</span>
               <span className="text-fg">{status?.environment}</span>
             </div>,
             <div key="ver" className="flex justify-between text-xs">
-              <span className="text-fg-muted">Version</span>
+              <span className="text-fg-muted">{t('sections.diagnostics.labelVersion')}</span>
               <span className="text-fg">{status?.version}</span>
             </div>,
           ]}
@@ -295,29 +311,34 @@ export default function DiagnosticsSection() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <GitBranch className="w-5 h-5 text-fg-muted" aria-hidden="true" /> Git Status
+              <GitBranch className="w-5 h-5 text-fg-muted" aria-hidden="true" />{' '}
+              {t('sections.diagnostics.cardGitStatus')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             {gitInfo ? (
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-fg-muted">Branch</span>
+                  <span className="text-fg-muted">{t('sections.diagnostics.labelBranch')}</span>
                   <span className="text-fg">{gitInfo.branch}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-fg-muted">Working tree</span>
+                  <span className="text-fg-muted">
+                    {t('sections.diagnostics.labelWorkingTree')}
+                  </span>
                   <Badge variant={gitInfo.clean ? 'success' : 'destructive'}>
-                    {gitInfo.clean ? 'Clean' : `${gitInfo.changed} changed`}
+                    {gitInfo.clean
+                      ? t('sections.diagnostics.badgeClean')
+                      : `${gitInfo.changed} changed`}
                   </Badge>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-fg-muted">Library</span>
+                  <span className="text-fg-muted">{t('sections.diagnostics.labelLibrary')}</span>
                   <span className="text-fg truncate max-w-[160px]">{currentLibrary?.name}</span>
                 </div>
                 {gitInfo.remote && (
                   <div className="flex justify-between">
-                    <span className="text-fg-muted">Remote</span>
+                    <span className="text-fg-muted">{t('sections.diagnostics.labelRemote')}</span>
                     <span className="text-fg truncate max-w-[160px]">{gitInfo.remote}</span>
                   </div>
                 )}
@@ -328,7 +349,7 @@ export default function DiagnosticsSection() {
                     onClick={() => setShowCommit(true)}
                     disabled={gitBusy || !currentLibrary}
                   >
-                    Commit
+                    {t('sections.diagnostics.btnCommit')}
                   </Button>
                   <Button
                     variant="secondary"
@@ -336,7 +357,9 @@ export default function DiagnosticsSection() {
                     onClick={() => runGitOp('push')}
                     disabled={gitBusy || !currentLibrary}
                   >
-                    {gitBusy ? 'Working…' : 'Push'}
+                    {gitBusy
+                      ? t('sections.diagnostics.btnWorking')
+                      : t('sections.diagnostics.btnPush')}
                   </Button>
                   <Button
                     variant="secondary"
@@ -344,7 +367,9 @@ export default function DiagnosticsSection() {
                     onClick={() => runGitOp('pull')}
                     disabled={gitBusy || !currentLibrary}
                   >
-                    {gitBusy ? 'Working…' : 'Pull'}
+                    {gitBusy
+                      ? t('sections.diagnostics.btnWorking')
+                      : t('sections.diagnostics.btnPull')}
                   </Button>
                   <Button
                     variant="secondary"
@@ -353,13 +378,15 @@ export default function DiagnosticsSection() {
                     disabled={!currentLibrary}
                   >
                     <Settings2 className="w-4 h-4" aria-hidden="true" />
-                    Configure
+                    {t('sections.diagnostics.btnConfigure')}
                   </Button>
                 </div>
                 {gitNotice && <output className="block text-sm text-fg-muted">{gitNotice}</output>}
               </div>
             ) : (
-              <div className="text-sm text-fg-muted">{gitMessage || 'Loading...'}</div>
+              <div className="text-sm text-fg-muted">
+                {gitMessage || t('sections.diagnostics.textLoading')}
+              </div>
             )}
           </CardContent>
         </Card>
@@ -367,14 +394,17 @@ export default function DiagnosticsSection() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <BrainCircuit className="w-5 h-5 text-fg-muted" aria-hidden="true" /> AI Services
+              <BrainCircuit className="w-5 h-5 text-fg-muted" aria-hidden="true" />{' '}
+              {t('sections.diagnostics.cardAiServices')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             {providers === null ? (
-              <div className="text-sm text-fg-muted">Loading...</div>
+              <div className="text-sm text-fg-muted">{t('sections.diagnostics.textLoading')}</div>
             ) : providers.length === 0 ? (
-              <div className="text-sm text-fg-muted">No AI providers configured</div>
+              <div className="text-sm text-fg-muted">
+                {t('sections.diagnostics.textNoAiProviders')}
+              </div>
             ) : (
               <div className="space-y-2 text-sm">
                 {providers.map((p) => (
@@ -391,16 +421,15 @@ export default function DiagnosticsSection() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Database className="w-5 h-5 text-fg-muted" aria-hidden="true" /> Backups
+              <Database className="w-5 h-5 text-fg-muted" aria-hidden="true" />{' '}
+              {t('sections.diagnostics.cardBackups')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             {backups === null ? (
-              <div className="text-sm text-fg-muted">Loading...</div>
+              <div className="text-sm text-fg-muted">{t('sections.diagnostics.textLoading')}</div>
             ) : backups.length === 0 ? (
-              <div className="text-sm text-fg-muted">
-                No backups yet. Create one from Settings → Advanced.
-              </div>
+              <div className="text-sm text-fg-muted">{t('sections.diagnostics.textNoBackups')}</div>
             ) : (
               <ul className="space-y-1.5 text-sm">
                 {backups.map((b) => (
@@ -421,16 +450,20 @@ export default function DiagnosticsSection() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Server className="w-5 h-5 text-fg-muted" aria-hidden="true" /> Migrations
+              <Server className="w-5 h-5 text-fg-muted" aria-hidden="true" />{' '}
+              {t('sections.diagnostics.cardMigrations')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             {migrations === null ? (
-              <div className="text-sm text-fg-muted">Loading...</div>
+              <div className="text-sm text-fg-muted">{t('sections.diagnostics.textLoading')}</div>
             ) : (
               <div className="text-sm text-fg-muted">
-                {migrations.length} applied migration{migrations.length === 1 ? '' : 's'}. Schema
-                upgrades run via CLI.
+                {t('sections.diagnostics.textMigrationsApplied', {
+                  count: migrations.length,
+                  s: migrations.length === 1 ? '' : 's',
+                })}
+                . Schema upgrades run via CLI.
               </div>
             )}
           </CardContent>
@@ -440,29 +473,33 @@ export default function DiagnosticsSection() {
       <Dialog open={showCommit} onOpenChange={setShowCommit}>
         <DialogContent size="sm">
           <DialogHeader>
-            <DialogTitle>Commit changes</DialogTitle>
+            <DialogTitle>{t('sections.diagnostics.dialogCommitChanges')}</DialogTitle>
             <DialogDescription>
-              Commit all current changes in {currentLibrary?.name}.
+              {t('sections.diagnostics.dialogCommitChangesDesc', {
+                libraryName: currentLibrary?.name ?? '',
+              })}
             </DialogDescription>
           </DialogHeader>
           <div className="p-6">
             <Input
-              aria-label="Commit message"
-              label="Message"
+              aria-label={t('sections.diagnostics.labelCommitMessage')}
+              label={t('sections.diagnostics.labelCommitMessage')}
               value={commitMessage}
               onChange={(e) => setCommitMessage(e.target.value)}
-              placeholder="Describe your changes"
+              placeholder={t('sections.diagnostics.placeholderCommitMessage')}
             />
           </div>
           <DialogFooter>
             <Button variant="secondary" onClick={() => setShowCommit(false)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               onClick={() => runGitOp('commit', { message: commitMessage.trim() })}
               disabled={gitBusy || !commitMessage.trim()}
             >
-              {gitBusy ? 'Committing…' : 'Commit'}
+              {gitBusy
+                ? t('sections.diagnostics.btnCommitting')
+                : t('sections.diagnostics.btnCommit')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -471,7 +508,7 @@ export default function DiagnosticsSection() {
       <Dialog open={showExport} onOpenChange={setShowExport}>
         <DialogContent size="lg">
           <DialogHeader>
-            <DialogTitle>Diagnostics Export</DialogTitle>
+            <DialogTitle>{t('sections.diagnostics.dialogExport')}</DialogTitle>
           </DialogHeader>
           <div className="p-0">
             <div className="max-h-[50vh] overflow-auto p-4 font-mono text-xs bg-bg">
@@ -480,7 +517,7 @@ export default function DiagnosticsSection() {
           </div>
           <DialogFooter>
             <Button variant="secondary" onClick={() => setShowExport(false)}>
-              Close
+              {t('sections.diagnostics.btnClose')}
             </Button>
           </DialogFooter>
         </DialogContent>

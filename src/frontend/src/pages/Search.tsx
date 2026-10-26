@@ -12,6 +12,7 @@ import { Select } from '../components/ui/Select';
 import { Spinner } from '../components/ui/Spinner';
 import { Tabs } from '../components/ui/Tabs';
 import { useLibraries } from '../hooks/useLibraries';
+import { useTranslation } from '../hooks/useTranslation';
 import { routes } from '../routes';
 import { api } from '../services/api';
 
@@ -28,13 +29,13 @@ interface SearchItem {
   mtime: string;
 }
 
-const scopeOptions = [
-  { id: 'all', label: 'All' },
-  { id: 'filename', label: 'Filename' },
-  { id: 'content', label: 'Content' },
-] as const;
-
 export function Search() {
+  const { t } = useTranslation();
+  const scopeOptions = [
+    { id: 'all', label: t('pages.search.scopeAll') },
+    { id: 'filename', label: t('pages.search.scopeFilename') },
+    { id: 'content', label: t('pages.search.scopeContent') },
+  ] as const;
   const { libraries, currentLibrary } = useLibraries();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
@@ -97,19 +98,19 @@ export function Search() {
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      <PageContextBar title="Search" detail="Search across file names and contents" />
+      <PageContextBar title={t('pages.search.title')} detail={t('pages.search.detail')} />
 
       <form
         onSubmit={handleSubmit}
         className="flex flex-col sm:flex-row gap-2 p-4 border-b border-border"
-        aria-label="Search notes"
+        aria-label={t('pages.search.ariaSearchNotes')}
       >
         <div className="flex-1 min-w-0">
           <Input
-            aria-label="Search query"
+            aria-label={t('pages.search.ariaSearchQuery')}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search notes…"
+            placeholder={t('pages.search.placeholder')}
             leadingIcon={<SearchIcon className="w-5 h-5" aria-hidden="true" />}
           />
         </div>
@@ -118,21 +119,21 @@ export function Search() {
             options={scopeOptions.map((o) => ({ ...o }))}
             value={scope}
             onChange={setScope}
-            ariaLabel="Search scope"
+            ariaLabel={t('pages.search.ariaSearchScope')}
           />
           <div className="w-40 flex-shrink-0">
             <Select
-              aria-label="Library"
+              aria-label={t('pages.search.ariaLibrary')}
               value={libraryId}
               onChange={(e) => setLibraryId(e.target.value)}
               options={[
-                { value: '', label: 'All libraries' },
+                { value: '', label: t('pages.search.selectAllLibraries') },
                 ...libraries.map((l) => ({ value: l.id, label: l.name })),
               ]}
             />
           </div>
           <Button type="submit" disabled={loading}>
-            {loading ? 'Searching…' : 'Search'}
+            {loading ? t('pages.search.btnSearching') : t('pages.search.btnSearch')}
           </Button>
         </div>
       </form>
@@ -141,19 +142,19 @@ export function Search() {
         <ContentShell>
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <Spinner size="md" label="Searching" />
+              <Spinner size="md" label={t('pages.search.spinnerSearching')} />
             </div>
           ) : !searched ? (
             <EmptyState
               icon={SearchIcon}
-              title="Search your notes"
-              description="Enter a keyword above to search file names and contents."
+              title={t('pages.search.emptyTitle')}
+              description={t('pages.search.emptyDescription')}
             />
           ) : items.length === 0 ? (
             <EmptyState
               icon={SearchIcon}
-              title="No results"
-              description={`Nothing found for "${query}". Try a different keyword or scope.`}
+              title={t('pages.search.emptyNoResults')}
+              description={t('pages.search.emptyNoResultsDescription', { query })}
             />
           ) : (
             <ul className="max-w-3xl mx-auto divide-y divide-border border border-border rounded-lg overflow-hidden">
@@ -184,9 +185,9 @@ export function Search() {
             </ul>
           )}
           <p className="max-w-3xl mx-auto mt-3 text-xs text-fg-subtle">
-            Tip: open a note from results to jump straight into the editor.{' '}
+            {t('pages.search.tip')}{' '}
             <Link to={routes.home} className="text-primary hover:underline">
-              Back to dashboard
+              {t('pages.search.linkBackToDashboard')}
             </Link>
           </p>
         </ContentShell>

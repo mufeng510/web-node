@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 import { cn } from '../../lib/utils';
 
 export interface ResizableProps {
@@ -35,13 +36,15 @@ export const Resizable = forwardRef<HTMLDivElement, ResizableProps>(
       min = 160,
       max = 640,
       step = 16,
-      firstLabel = 'Resize',
+      firstLabel,
       first,
       second,
       className,
     },
     ref
   ) => {
+    const { t } = useTranslation();
+    const resolvedFirstLabel = firstLabel ?? t('components.ui.resize');
     const horizontal = orientation === 'horizontal';
     const [dragging, setDragging] = useState(false);
     const startRef = useRef({ coord: 0, size: 0 });
@@ -148,7 +151,7 @@ export const Resizable = forwardRef<HTMLDivElement, ResizableProps>(
           aria-valuenow={size}
           aria-valuemin={min}
           aria-valuemax={max}
-          aria-label={firstLabel}
+          aria-label={resolvedFirstLabel}
           tabIndex={0}
           onPointerDown={handlePointerDown}
           onKeyDown={handleKeyDown}

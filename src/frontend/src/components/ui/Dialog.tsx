@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { t } from '../../lib/i18n';
 import { cn } from '../../lib/utils';
 
 interface DialogContextValue {
@@ -247,7 +248,7 @@ interface DialogCloseProps extends HTMLAttributes<HTMLButtonElement> {
 export function DialogClose({
   className,
   children,
-  label = 'Close dialog',
+  label = t('common.close'),
   ...props
 }: DialogCloseProps) {
   const { onOpenChange } = useDialogContext();

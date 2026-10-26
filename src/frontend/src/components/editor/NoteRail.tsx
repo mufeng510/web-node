@@ -1,3 +1,4 @@
+import { useTranslation } from '../../hooks/useTranslation';
 import type { OutlineEntry } from '../../lib/markdownOutline';
 import { Spinner } from '../ui/Spinner';
 import { AiRailPanel } from './AiRailPanel';
@@ -20,9 +21,9 @@ export interface NoteRailProps {
 }
 
 const TYPE_LABEL: Record<string, string> = {
-  wikilink: '双链',
-  embed: '嵌入',
-  'markdown-link': '链接',
+  wikilink: 'editor.type.wikilink',
+  embed: 'editor.type.embed',
+  'markdown-link': 'editor.type.markdownLink',
 };
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -50,19 +51,20 @@ export function NoteRail({
   loading,
   onOpenNote,
 }: NoteRailProps) {
+  const { t } = useTranslation();
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <Section title="大纲">
+      <Section title={t('editor.rail.outline')}>
         <OutlinePanel entries={entries} />
       </Section>
 
-      <Section title="反链">
+      <Section title={t('editor.rail.backlinks')}>
         {loading ? (
           <div className="px-4 pb-4">
-            <Spinner size="sm" label="Loading backlinks" />
+            <Spinner size="sm" label={t('editor.rail.loadingBacklinks')} />
           </div>
         ) : backlinks.length === 0 ? (
-          <p className="px-4 pb-4 text-sm text-fg-muted">还没有其他笔记链接到这篇。</p>
+          <p className="px-4 pb-4 text-sm text-fg-muted">{t('editor.rail.noBacklinks')}</p>
         ) : (
           <ul className="px-2 pb-3">
             {backlinks.map((link) => (
@@ -75,7 +77,7 @@ export function NoteRail({
                 >
                   <span className="truncate text-sm text-fg">{link.sourceName}</span>
                   <span className="ml-auto shrink-0 text-xs text-fg-subtle">
-                    {TYPE_LABEL[link.type] ?? link.type}
+                    {t(TYPE_LABEL[link.type] ?? 'editor.type.markdownLink')}
                   </span>
                 </button>
               </li>
@@ -83,14 +85,14 @@ export function NoteRail({
           </ul>
         )}
         {notePath === '' && (
-          <p className="px-4 pb-4 text-sm text-fg-muted">先保存笔记才能显示反链。</p>
+          <p className="px-4 pb-4 text-sm text-fg-muted">{t('editor.rail.saveFirst')}</p>
         )}
       </Section>
 
       {notePath !== '' && (
         <section className="flex min-h-0 flex-1 flex-col border-t border-border">
           <h2 className="shrink-0 px-4 pt-4 pb-2 text-xs font-medium uppercase tracking-wider text-fg-muted">
-            提问
+            {t('editor.rail.ask')}
           </h2>
           <AiRailPanel libraryId={libraryId} notePath={notePath} />
         </section>

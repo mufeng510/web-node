@@ -1,5 +1,6 @@
 import { Plus } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from '../../hooks/useTranslation';
 import { cn } from '../../lib/utils';
 import { routes } from '../../routes';
 import { WORKSPACE_NAV } from './navConfig';
@@ -17,12 +18,13 @@ const linkStyles = cn(
 );
 
 export function BottomNav({ currentLibrary, onLibraryChange, className = '' }: BottomNavProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const items = WORKSPACE_NAV.filter((item) => item.primary);
 
   return (
     <nav
-      aria-label="移动快捷"
+      aria-label={t('components.layout.ariaMobileMainNav')}
       className={cn(
         'fixed bottom-0 left-0 right-0 bg-bg-elevated/95 backdrop-blur-sm border-t border-border z-[var(--z-sticky)] lg:hidden',
         className
@@ -34,7 +36,7 @@ export function BottomNav({ currentLibrary, onLibraryChange, className = '' }: B
           return (
             <Link key={item.to} to={item.to} className={linkStyles}>
               <Icon className="w-6 h-6" aria-hidden="true" />
-              <span className="text-xs">{item.label}</span>
+              <span className="text-xs">{t(item.label)}</span>
             </Link>
           );
         })}
@@ -49,10 +51,10 @@ export function BottomNav({ currentLibrary, onLibraryChange, className = '' }: B
             navigate(routes.editor(currentLibrary.id), { state: { newNote: true } });
           }}
           className={linkStyles}
-          aria-label="New note"
+          aria-label={t('components.layout.ariaNewNoteBottom')}
         >
           <Plus className="w-6 h-6" aria-hidden="true" />
-          <span className="text-xs">New</span>
+          <span className="text-xs">{t('components.layout.btnNew')}</span>
         </button>
       </div>
     </nav>

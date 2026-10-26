@@ -1,3 +1,4 @@
+import { useTranslation } from '../../hooks/useTranslation';
 import type { OutlineEntry } from '../../lib/markdownOutline';
 import { cn } from '../../lib/utils';
 
@@ -13,16 +14,13 @@ export interface OutlinePanelProps {
  * assigned from, so an entry always targets the heading it names.
  */
 export function OutlinePanel({ entries, onNavigate }: OutlinePanelProps) {
+  const { t } = useTranslation();
   if (entries.length === 0) {
-    return (
-      <div className="p-4 text-sm text-fg-muted">
-        这篇笔记还没有标题，大纲会在你添加标题后出现。
-      </div>
-    );
+    return <div className="p-4 text-sm text-fg-muted">{t('editor.outline.noHeadings')}</div>;
   }
 
   return (
-    <nav aria-label="笔记大纲" className="p-2">
+    <nav aria-label={t('editor.outline.ariaLabel')} className="p-2">
       <ul className="space-y-0.5">
         {entries.map((entry) => (
           <li key={entry.slug}>

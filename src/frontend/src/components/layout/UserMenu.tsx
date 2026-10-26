@@ -1,6 +1,7 @@
 import { ChevronDown, LogOut, Settings } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from '../../hooks/useTranslation';
 import { cn } from '../../lib/utils';
 import { DropdownMenu } from '../ui/DropdownMenu';
 import { SETTINGS_ENTRY, visibleSettingsGroups } from './navConfig';
@@ -19,6 +20,7 @@ export interface UserMenuProps {
  * entries deep-link a section so they land on the right tab.
  */
 export function UserMenu({ user, onLogout }: UserMenuProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
 
@@ -32,7 +34,7 @@ export function UserMenu({ user, onLogout }: UserMenuProps) {
       open={open}
       onOpenChange={setOpen}
       align="end"
-      ariaLabel="Account"
+      ariaLabel={t('components.layout.labelAccount')}
       menuClassName="min-w-[13rem]"
       trigger={
         <button
@@ -51,7 +53,9 @@ export function UserMenu({ user, onLogout }: UserMenuProps) {
           </span>
           <span className="hidden sm:flex flex-col items-start leading-tight">
             <span className="text-xs font-medium text-fg max-w-[8rem] truncate">{displayName}</span>
-            <span className="text-xs text-fg-muted uppercase tracking-wide">{user.role}</span>
+            <span className="text-xs text-fg-muted uppercase tracking-wide">
+              {user.role === 'admin' ? t('common.admin') : t('common.user')}
+            </span>
           </span>
           <ChevronDown className="w-4 h-4 text-fg-muted flex-shrink-0" aria-hidden="true" />
         </button>
@@ -65,7 +69,7 @@ export function UserMenu({ user, onLogout }: UserMenuProps) {
         // biome-ignore lint/a11y/useSemanticElements: role=group is the WAI-ARIA menu grouping pattern; biome only knows group→fieldset, which is form-only
         <div key={group.id} role="group" aria-label={group.label}>
           <p className="px-3 py-1.5 text-xs font-medium text-fg-subtle uppercase tracking-wider">
-            {group.label}
+            {t(group.label)}
           </p>
           {group.items.map((item) => {
             const Icon = item.icon;
@@ -81,7 +85,7 @@ export function UserMenu({ user, onLogout }: UserMenuProps) {
                 className="w-full px-3 py-2 text-sm text-left flex items-center gap-2 text-fg hover:bg-bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
               >
                 <Icon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
-                {item.label}
+                {t(item.label)}
               </button>
             );
           })}
@@ -99,7 +103,7 @@ export function UserMenu({ user, onLogout }: UserMenuProps) {
           className="w-full px-3 py-2 text-sm text-left flex items-center gap-2 text-fg-muted hover:text-fg hover:bg-bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
         >
           <Settings className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
-          全部设置
+          {t('components.layout.labelAllSettings')}
         </button>
         <button
           type="button"
@@ -111,7 +115,7 @@ export function UserMenu({ user, onLogout }: UserMenuProps) {
           className="w-full px-3 py-2 text-sm text-left flex items-center gap-2 text-destructive hover:bg-destructive/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
         >
           <LogOut className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
-          登出
+          {t('components.layout.labelLogout')}
         </button>
       </div>
     </DropdownMenu>

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 import { api } from '../../services/api';
 import { Button } from '../ui/Button';
 import { Spinner } from '../ui/Spinner';
@@ -30,6 +31,7 @@ const SEEN_LIMIT = 12;
  * answer would be about the note's name rather than its text.
  */
 export function AiRailPanel({ libraryId, notePath }: AiRailPanelProps) {
+  const { t } = useTranslation();
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState('');
@@ -43,7 +45,7 @@ export function AiRailPanel({ libraryId, notePath }: AiRailPanelProps) {
       })) as unknown as { success: boolean; data: { items: ChatMessage[] } };
       if (res.success) setMessages(res.data.items.slice(-SEEN_LIMIT));
     } catch {
-      setError('无法加载对话记录');
+      setError(t('editor.ai.loadFailed'));
     }
   }, []);
 
@@ -68,7 +70,7 @@ export function AiRailPanel({ libraryId, notePath }: AiRailPanelProps) {
         setConversationId(existing.id);
         await loadMessages(existing.id);
       } catch {
-        if (!cancelled) setError('无法加载对话记录');
+        if (!cancelled) setError(t('editor.ai.loadFailed'));
       }
     })();
 
@@ -103,7 +105,7 @@ export function AiRailPanel({ libraryId, notePath }: AiRailPanelProps) {
       if (res.error) setError(res.error.message);
       await loadMessages(id);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : '发送失败');
+      setError(caught instanceof Error ? caught.message : t('editor.ai.sendFailed'));
     } finally {
       setBusy(false);
     }
@@ -113,7 +115,7 @@ export function AiRailPanel({ libraryId, notePath }: AiRailPanelProps) {
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 py-2">
         {messages.length === 0 && !error && (
-          <p className="text-sm text-fg-muted">围绕当前这篇笔记提问，回复会显示在这里。</p>
+          <p className="text-sm text-fg-muted">{t('editor.ai.askPrompt')}</p>
         )}
         {messages.map((message) => (
           <div
@@ -129,7 +131,7 @@ export function AiRailPanel({ libraryId, notePath }: AiRailPanelProps) {
         ))}
         {busy && (
           <div className="px-1 py-1">
-            <Spinner size="sm" label="生成回复中" />
+            <Spinner size="sm" label={t('editor.ai.generating')} />
           </div>
         )}
         {error && (
@@ -150,12 +152,12 @@ export function AiRailPanel({ libraryId, notePath }: AiRailPanelProps) {
             }
           }}
           rows={2}
-          placeholder="问点什么…"
-          aria-label="向 AI 提问"
+          placeholder={t('editor.ai.placeholder')}
+          aria-label={t('editor.ai.ariaLabel')}
           className="min-h-[2.5rem] flex-1 resize-none rounded-md border border-border bg-bg px-2 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
         <Button onClick={() => void send()} disabled={busy || !draft.trim()} size="sm">
-          发送
+          {t('editor.ai.send')}
         </Button>
       </div>
     </div>

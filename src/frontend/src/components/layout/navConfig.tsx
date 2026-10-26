@@ -35,18 +35,18 @@ export interface NavItem {
  * LeftSidebar, MobileDrawer and BottomNav all derive from it.
  */
 export const WORKSPACE_NAV: NavItem[] = [
-  { to: routes.home, label: 'Dashboard', icon: Home, end: true, primary: true },
-  { to: routes.search, label: 'Search', icon: Search, end: true, primary: true },
-  { to: routes.notifications, label: 'Notifications', icon: Bell, end: true },
-  { to: routes.tasks, label: 'Tasks', icon: ClipboardList, end: true, primary: true },
-  { to: routes.ai, label: 'AI Assistant', icon: Bot, end: true },
+  { to: routes.home, label: 'nav.dashboard', icon: Home, end: true, primary: true },
+  { to: routes.search, label: 'nav.search', icon: Search, end: true, primary: true },
+  { to: routes.notifications, label: 'nav.notifications', icon: Bell, end: true },
+  { to: routes.tasks, label: 'nav.tasks', icon: ClipboardList, end: true, primary: true },
+  { to: routes.ai, label: 'nav.ai', icon: Bot, end: true },
 ];
 
 /** The one config destination reachable without opening a menu, so hiding
  * settings from the rail does not make it undiscoverable on a phone. */
 export const SETTINGS_ENTRY: NavItem = {
   to: routes.settings,
-  label: 'Settings',
+  label: 'nav.settings',
   icon: Settings,
   end: true,
 };
@@ -71,13 +71,25 @@ export function settingsUrl(tab: string): string {
 export const SETTINGS_MENU_GROUPS: SettingsMenuGroup[] = [
   {
     id: 'personal',
-    label: '个人',
+    label: 'settings.groupPersonal',
     items: [
-      { to: settingsUrl('account'), label: '账号', icon: User, tab: 'account', end: true },
-      { to: settingsUrl('security'), label: '安全', icon: Shield, tab: 'security', end: true },
+      {
+        to: settingsUrl('account'),
+        label: 'settings.account',
+        icon: User,
+        tab: 'account',
+        end: true,
+      },
+      {
+        to: settingsUrl('security'),
+        label: 'settings.security',
+        icon: Shield,
+        tab: 'security',
+        end: true,
+      },
       {
         to: settingsUrl('appearance'),
-        label: '外观',
+        label: 'settings.appearance',
         icon: Palette,
         tab: 'appearance',
         end: true,
@@ -86,18 +98,18 @@ export const SETTINGS_MENU_GROUPS: SettingsMenuGroup[] = [
   },
   {
     id: 'system',
-    label: '系统',
+    label: 'settings.groupSystem',
     items: [
       {
         to: settingsUrl('diagnostics'),
-        label: '诊断',
+        label: 'settings.diagnostics',
         icon: Wrench,
         tab: 'diagnostics',
         end: true,
       },
-      { to: settingsUrl('mcp'), label: 'MCP Tokens', icon: KeyRound, tab: 'mcp', end: true },
-      { to: routes.users, label: '用户', icon: Users, end: true, adminOnly: true },
-      { to: routes.audit, label: '审计日志', icon: ScrollText, end: true, adminOnly: true },
+      { to: settingsUrl('mcp'), label: 'common.mcp', icon: KeyRound, tab: 'mcp', end: true },
+      { to: routes.users, label: 'common.users', icon: Users, end: true, adminOnly: true },
+      { to: routes.audit, label: 'common.audit', icon: ScrollText, end: true, adminOnly: true },
     ],
   },
 ];

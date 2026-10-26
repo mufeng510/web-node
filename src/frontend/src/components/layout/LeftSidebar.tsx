@@ -1,6 +1,7 @@
 import { PanelLeftOpen, Plus } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { NavLink, useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from '../../hooks/useTranslation';
 import { cn } from '../../lib/utils';
 import { routes } from '../../routes';
 import { TreeView } from '../file-tree/TreeView';
@@ -49,6 +50,7 @@ export function LeftSidebar({
   resizable = false,
   className = '',
 }: LeftSidebarProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const params = useParams();
 
@@ -105,9 +107,17 @@ export function LeftSidebar({
         <button
           type="button"
           onClick={onToggleCollapsed}
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-label={
+            collapsed
+              ? t('components.layout.ariaExpandSidebar')
+              : t('components.layout.ariaCollapseSidebar')
+          }
           aria-expanded={!collapsed}
-          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          title={
+            collapsed
+              ? t('components.layout.ariaExpandSidebar')
+              : t('components.layout.ariaCollapseSidebar')
+          }
           className={cn(
             'shrink-0 flex items-center text-fg-muted hover:text-fg transition-colors duration-150',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
@@ -124,12 +134,14 @@ export function LeftSidebar({
       {!collapsed && (
         <>
           <div className="shrink-0 flex items-center justify-between px-3 py-2 border-b border-border">
-            <h2 className="text-xs font-medium text-fg-muted uppercase tracking-wider">Files</h2>
+            <h2 className="text-xs font-medium text-fg-muted uppercase tracking-wider">
+              {t('components.layout.labelFiles')}
+            </h2>
             {libraryId && (
               <button
                 type="button"
                 onClick={() => navigate(routes.editor(libraryId), { state: { newNote: true } })}
-                aria-label="New note"
+                aria-label={t('components.layout.ariaNewNoteSidebar')}
                 className="p-1 rounded-md text-fg-muted hover:text-fg hover:bg-bg-hover transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
               >
                 <Plus className="w-4 h-4" aria-hidden="true" />
@@ -165,7 +177,7 @@ export function LeftSidebar({
           'h-[var(--sidebar-nav-h)]',
           collapsed ? 'px-1' : 'px-2'
         )}
-        aria-label="主导航"
+        aria-label={t('components.layout.ariaMainNav')}
       >
         {WORKSPACE_NAV.map((item) => {
           const Icon = item.icon;
@@ -174,8 +186,8 @@ export function LeftSidebar({
               key={item.to}
               to={item.to}
               end={item.end}
-              title={item.label}
-              aria-label={item.label}
+              title={t(item.label)}
+              aria-label={t(item.label)}
               className={({ isActive }) =>
                 cn(
                   'flex items-center rounded-md text-sm transition-colors duration-150',
@@ -189,7 +201,7 @@ export function LeftSidebar({
               }
             >
               <Icon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
-              {!collapsed && <span className="truncate">{item.label}</span>}
+              {!collapsed && <span className="truncate">{t(item.label)}</span>}
             </NavLink>
           );
         })}

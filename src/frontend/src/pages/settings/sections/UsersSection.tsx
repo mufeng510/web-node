@@ -16,6 +16,7 @@ import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { Spinner } from '../../../components/ui/Spinner';
 import { useAuth } from '../../../hooks/useAuth';
+import { useTranslation } from '../../../hooks/useTranslation';
 import { api } from '../../../services/api';
 import { formatDistanceToNow } from '../../../utils/format';
 
@@ -40,6 +41,7 @@ interface SessionItem {
 }
 
 export default function UsersSection() {
+  const { t } = useTranslation();
   const { user: me } = useAuth();
   const [users, setUsers] = useState<UserItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,7 +66,7 @@ export default function UsersSection() {
       };
       if (res.success) setUsers(res.data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load users');
+      setError(err instanceof Error ? err.message : t('sections.users.errorLoadUsers'));
     } finally {
       setLoading(false);
     }
@@ -86,7 +88,7 @@ export default function UsersSection() {
       setRole('user');
       await fetchUsers();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create user');
+      setError(err instanceof Error ? err.message : t('sections.users.errorCreateUser'));
     } finally {
       setBusy(false);
     }
@@ -98,7 +100,7 @@ export default function UsersSection() {
       await api.patch(`/users/${u.id}`, { isActive: !u.isActive });
       await fetchUsers();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update user');
+      setError(err instanceof Error ? err.message : t('sections.users.errorUpdateUser'));
     } finally {
       setBusy(false);
     }
@@ -111,7 +113,7 @@ export default function UsersSection() {
       await api.patch(`/users/${u.id}`, { role: next });
       await fetchUsers();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update role');
+      setError(err instanceof Error ? err.message : t('sections.users.errorUpdateRole'));
     } finally {
       setBusy(false);
     }
@@ -123,7 +125,7 @@ export default function UsersSection() {
       await api.post(`/users/${id}/unlock`);
       await fetchUsers();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to unlock user');
+      setError(err instanceof Error ? err.message : t('sections.users.errorUnlockUser'));
     } finally {
       setBusy(false);
     }
@@ -140,7 +142,7 @@ export default function UsersSection() {
       setConfirmDeleteId(null);
       await fetchUsers();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete user');
+      setError(err instanceof Error ? err.message : t('sections.users.errorDeleteUser'));
     } finally {
       setBusy(false);
     }
@@ -160,7 +162,7 @@ export default function UsersSection() {
       };
       if (res.success) setSessions(res.data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load sessions');
+      setError(err instanceof Error ? err.message : t('sections.users.errorLoadSessions'));
     } finally {
       setSessionsLoading(false);
     }
@@ -172,7 +174,7 @@ export default function UsersSection() {
       await api.delete(`/users/${id}/sessions`);
       setSessions([]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to revoke sessions');
+      setError(err instanceof Error ? err.message : t('sections.users.errorRevokeSessions'));
     } finally {
       setBusy(false);
     }
@@ -187,7 +189,11 @@ export default function UsersSection() {
             <Spinner size="md" label="Loading users" />
           </div>
         ) : users.length === 0 ? (
-          <EmptyState icon={Unlock} title="No users" description="No accounts found." />
+          <EmptyState
+            icon={Unlock}
+            title={t('sections.users.emptyNoUsers')}
+            description={t('sections.users.emptyNoAccountsFound')}
+          />
         ) : (
           users.map((u) => (
             <div key={u.id} className="border border-border rounded-lg bg-bg-elevated">
@@ -195,13 +201,22 @@ export default function UsersSection() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-sm font-medium text-fg truncate">{u.email}</p>
-                    {me?.id === u.id && <Badge variant="outline">You</Badge>}
-                    {!u.isActive && <Badge variant="destructive">Disabled</Badge>}
-                    {u.lockedUntil && <Badge variant="destructive">Locked</Badge>}
+                    {me?.id === u.id && (
+                      <Badge variant="outline">{t('sections.users.badgeYou')}</Badge>
+                    )}
+                    {!u.isActive && (
+                      <Badge variant="destructive">{t('sections.users.badgeDisabled')}</Badge>
+                    )}
+                    {u.lockedUntil && (
+                      <Badge variant="destructive">{t('sections.users.badgeLocked')}</Badge>
+                    )}
                   </div>
                   <p className="text-xs text-fg-subtle mt-0.5">
-                    {u.role} · joined {formatDistanceToNow(u.createdAt)}
-                    {u.lastLoginAt ? ` · last login ${formatDistanceToNow(u.lastLoginAt)}` : ''}
+                    {u.role} ·{' '}
+                    {t('sections.users.textJoined', { date: formatDistanceToNow(u.createdAt) })}
+                    {u.lastLoginAt
+                      ? ` · ${t('sections.users.textLastLogin', { date: formatDistanceToNow(u.lastLoginAt) })}`
+                      : ''}
                   </p>
                 </div>
                 <div className="w-28 flex-shrink-0">
@@ -210,8 +225,8 @@ export default function UsersSection() {
                     value={u.role}
                     onChange={(e) => handleRoleChange(u, e.target.value as 'admin' | 'user')}
                     options={[
-                      { value: 'admin', label: 'Admin' },
-                      { value: 'user', label: 'User' },
+                      { value: 'admin', label: t('sections.users.labelRoleAdmin') },
+                      { value: 'user', label: t('sections.users.labelRoleUser') },
                     ]}
                     disabled={busy || me?.id === u.id}
                   />
@@ -225,7 +240,9 @@ export default function UsersSection() {
                   disabled={busy}
                 >
                   <MonitorSmartphone className="w-4 h-4" aria-hidden="true" />
-                  {expandedId === u.id ? 'Hide sessions' : 'Sessions'}
+                  {expandedId === u.id
+                    ? t('sections.users.btnHideSessions')
+                    : t('sections.users.btnSessions')}
                 </Button>
                 <Button
                   variant="secondary"
@@ -233,7 +250,7 @@ export default function UsersSection() {
                   onClick={() => handleToggleActive(u)}
                   disabled={busy || me?.id === u.id}
                 >
-                  {u.isActive ? 'Disable' : 'Enable'}
+                  {u.isActive ? t('sections.users.btnDisable') : t('sections.users.btnEnable')}
                 </Button>
                 {u.lockedUntil && (
                   <Button
@@ -242,7 +259,8 @@ export default function UsersSection() {
                     onClick={() => handleUnlock(u.id)}
                     disabled={busy}
                   >
-                    <Unlock className="w-4 h-4" aria-hidden="true" /> Unlock
+                    <Unlock className="w-4 h-4" aria-hidden="true" />{' '}
+                    {t('sections.users.btnUnlock')}
                   </Button>
                 )}
                 <Button
@@ -255,7 +273,9 @@ export default function UsersSection() {
                   }
                 >
                   <Trash2 className="w-4 h-4" aria-hidden="true" />
-                  {confirmDeleteId === u.id ? 'Confirm?' : 'Delete'}
+                  {confirmDeleteId === u.id
+                    ? t('sections.users.btnConfirmDelete')
+                    : t('sections.users.btnDelete')}
                 </Button>
               </div>
               {expandedId === u.id && (
@@ -263,14 +283,17 @@ export default function UsersSection() {
                   {sessionsLoading ? (
                     <Spinner size="sm" label="Loading sessions" />
                   ) : sessions.length === 0 ? (
-                    <p className="text-sm text-fg-muted">No active sessions.</p>
+                    <p className="text-sm text-fg-muted">
+                      {t('sections.users.textNoActiveSessions')}
+                    </p>
                   ) : (
                     <>
                       <ul className="space-y-1.5">
                         {sessions.map((s) => (
                           <li key={s.id} className="text-xs text-fg-muted">
-                            {s.deviceInfo || 'Unknown device'} · {s.ip || 'unknown IP'} · last
-                            active {s.lastActivityAt ? formatDistanceToNow(s.lastActivityAt) : '—'}
+                            {s.deviceInfo || t('sections.users.unknownDevice')} ·{' '}
+                            {s.ip || t('sections.users.unknownIp')} · last active{' '}
+                            {s.lastActivityAt ? formatDistanceToNow(s.lastActivityAt) : '—'}
                           </li>
                         ))}
                       </ul>
@@ -281,7 +304,7 @@ export default function UsersSection() {
                         onClick={() => handleRevokeSessions(u.id)}
                         disabled={busy}
                       >
-                        Revoke all sessions
+                        {t('sections.users.btnRevokeAllSessions')}
                       </Button>
                     </>
                   )}
@@ -295,10 +318,8 @@ export default function UsersSection() {
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent size="sm">
           <DialogHeader>
-            <DialogTitle>New User</DialogTitle>
-            <DialogDescription>
-              Create an account. The user signs in with email and password.
-            </DialogDescription>
+            <DialogTitle>{t('sections.users.dialogNewUser')}</DialogTitle>
+            <DialogDescription>{t('sections.users.dialogNewUserDescription')}</DialogDescription>
           </DialogHeader>
           <div className="p-6 space-y-4">
             <Input
@@ -323,8 +344,8 @@ export default function UsersSection() {
               value={role}
               onChange={(e) => setRole(e.target.value as 'admin' | 'user')}
               options={[
-                { value: 'user', label: 'User' },
-                { value: 'admin', label: 'Admin' },
+                { value: 'user', label: t('sections.users.labelRoleUser') },
+                { value: 'admin', label: t('sections.users.labelRoleAdmin') },
               ]}
             />
           </div>
@@ -333,7 +354,7 @@ export default function UsersSection() {
               Cancel
             </Button>
             <Button onClick={handleCreate} disabled={busy || !email.trim() || !password.trim()}>
-              {busy ? 'Creating…' : 'Create'}
+              {busy ? t('common.creating') : t('common.create')}
             </Button>
           </DialogFooter>
         </DialogContent>

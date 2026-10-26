@@ -4,7 +4,11 @@ import ReactDOM from 'react-dom/client';
 import { App } from './App';
 import { AuthProvider } from './hooks/useAuth';
 import { LibraryProvider } from './hooks/useLibraries';
+import { initLocale } from './lib/i18n';
 import './styles/globals.css';
+
+// Resolve language (localStorage > browser language > en) before mounting.
+initLocale();
 
 const queryClient = new QueryClient({
   defaultOptions: {

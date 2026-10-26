@@ -1,4 +1,5 @@
 import { ChevronRight, FileText, Folder } from 'lucide-react';
+import { useTranslation } from '../../hooks/useTranslation';
 import { cn } from '../../lib/utils';
 import type { TreeNode } from './useFileTree';
 
@@ -26,6 +27,7 @@ export function TreeNodeItem({
   onOpen,
   onFocus,
 }: TreeNodeItemProps) {
+  const { t } = useTranslation();
   const isFolder = node.isDir;
 
   return (
@@ -64,7 +66,9 @@ export function TreeNodeItem({
           'p-0.5 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
           hasChildren ? 'text-fg-muted hover:text-fg' : 'invisible'
         )}
-        aria-label={expanded ? 'Collapse folder' : 'Expand folder'}
+        aria-label={
+          expanded ? t('components.fileTree.collapseFolder') : t('components.fileTree.expandFolder')
+        }
       >
         <ChevronRight
           className={cn('w-4 h-4 transition-transform duration-150', expanded && 'rotate-90')}

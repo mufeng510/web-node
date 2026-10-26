@@ -1,6 +1,7 @@
 import { ChevronRight, FolderGit2, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { NavLink, useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from '../../hooks/useTranslation';
 import { cn } from '../../lib/utils';
 import { TreeView } from '../file-tree/TreeView';
 import { type TreeNode, useFileTree } from '../file-tree/useFileTree';
@@ -23,6 +24,7 @@ export function MobileDrawer({
   currentLibrary,
   onLibraryChange,
 }: MobileDrawerProps) {
+  const { t } = useTranslation();
   const panelRef = useRef<HTMLDialogElement>(null);
   const { libraryId } = useParams<{ libraryId?: string }>();
   const navigate = useNavigate();
@@ -93,7 +95,7 @@ export function MobileDrawer({
         type="button"
         className="fixed inset-0 bg-overlay/50 z-[var(--z-scrim)] lg:hidden cursor-default"
         onClick={onClose}
-        aria-label="Close menu"
+        aria-label={t('common.close')}
       />
       {/* Mounted only while open, so `open` is what makes it visible at all; the
           UA stylesheet hides a dialog without it. Focus is trapped manually in
@@ -107,8 +109,8 @@ export function MobileDrawer({
         className="fixed inset-y-0 left-0 m-0 p-0 z-[var(--z-drawer)] w-[var(--mobile-drawer-w)] max-w-none h-full bg-bg-elevated border-r border-border lg:hidden flex flex-col backdrop:bg-transparent"
       >
         <div className="flex items-center justify-between px-3 py-3 border-b border-border">
-          <h2 className="text-lg font-medium text-fg">Menu</h2>
-          <IconButton size="sm" onClick={onClose} aria-label="Close menu">
+          <h2 className="text-lg font-medium text-fg">{t('components.layout.buttonMenu')}</h2>
+          <IconButton size="sm" onClick={onClose} aria-label={t('common.close')}>
             <X className="w-5 h-5" />
           </IconButton>
         </div>
@@ -145,11 +147,11 @@ export function MobileDrawer({
         {activeLibraryId && (
           <div className="px-3 py-3 border-b border-border">
             <h3 className="text-xs font-medium text-fg-muted uppercase tracking-wider mb-2">
-              Files
+              {t('components.layout.labelFiles')}
             </h3>
             {isLoading ? (
               <div className="flex items-center justify-center py-4">
-                <Spinner size="sm" label="Loading files" />
+                <Spinner size="sm" label={t('components.layout.spinnerLoadingFiles')} />
               </div>
             ) : error ? (
               <div className="px-2 py-2 text-sm text-destructive">{error.message}</div>
@@ -175,7 +177,7 @@ export function MobileDrawer({
 
         <nav
           className="min-h-0 flex-1 px-3 py-3 space-y-1 overflow-y-auto [scrollbar-gutter:stable] [overscroll-behavior:contain]"
-          aria-label="移动主导航"
+          aria-label={t('components.layout.ariaMobileMainNav')}
         >
           {[...WORKSPACE_NAV, SETTINGS_ENTRY].map((item) => {
             const Icon = item.icon;
@@ -196,7 +198,7 @@ export function MobileDrawer({
                 }
               >
                 <Icon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
-                {item.label}
+                {t(item.label)}
               </NavLink>
             );
           })}

@@ -1,5 +1,6 @@
 import { Check, ChevronDown, FolderGit2 } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 import { cn } from '../../lib/utils';
 import { DropdownMenu } from '../ui/DropdownMenu';
 
@@ -27,6 +28,7 @@ export function LibrarySwitcher({
   active = false,
   collapsed = false,
 }: LibrarySwitcherProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const isOnlyLibrary = libraries.length <= 1;
 
@@ -35,13 +37,15 @@ export function LibrarySwitcher({
       <DropdownMenu
         open={open}
         onOpenChange={setOpen}
-        ariaLabel="Switch library"
+        ariaLabel={t('components.layout.switchLibrary')}
         menuClassName="min-w-[12rem]"
         trigger={
           <button
             type="button"
             aria-label={
-              isOnlyLibrary ? `Library: ${currentLibrary?.name ?? 'none'}` : 'Switch library'
+              isOnlyLibrary
+                ? `Library: ${currentLibrary?.name ?? 'none'}`
+                : t('components.layout.switchLibrary')
             }
             className={cn(
               'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm font-medium',
@@ -55,7 +59,7 @@ export function LibrarySwitcher({
             <FolderGit2 className="w-4 h-4 text-fg-muted flex-shrink-0" aria-hidden="true" />
             {!collapsed && (
               <span className="truncate flex-1 text-left">
-                {currentLibrary?.name ?? 'Select library'}
+                {currentLibrary?.name ?? t('components.layout.selectLibrary')}
               </span>
             )}
             {!isOnlyLibrary && !collapsed && (
@@ -65,11 +69,11 @@ export function LibrarySwitcher({
         }
       >
         {libraries.length === 0 && (
-          <p className="px-3 py-2 text-sm text-fg-muted">No libraries yet</p>
+          <p className="px-3 py-2 text-sm text-fg-muted">{t('components.layout.noLibrariesYet')}</p>
         )}
         {isOnlyLibrary && currentLibrary && (
           <p className="px-3 py-2 text-sm text-fg-muted">
-            {currentLibrary.name} is the only registered library.
+            {t('components.layout.onlyLibrary', { name: currentLibrary.name })}
           </p>
         )}
         {libraries.map((library) => (

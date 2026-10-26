@@ -2,6 +2,7 @@ import { Command } from 'cmdk';
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLibraries } from '../../hooks/useLibraries';
+import { useTranslation } from '../../hooks/useTranslation';
 import { cn } from '../../lib/utils';
 import { routes } from '../../routes';
 import { SETTINGS_MENU_GROUPS, WORKSPACE_NAV } from '../layout/navConfig';
@@ -26,6 +27,7 @@ interface CommandItem {
  * which is why the settings registry's `advanced` entry is filtered out below.
  */
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { libraries, currentLibrary } = useLibraries();
   const listRef = useRef<HTMLDivElement>(null);
@@ -48,13 +50,13 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     ...WORKSPACE_NAV.map((item) => ({
       id: `nav:${item.to}`,
       label: item.label,
-      group: '导航',
+      group: t('groupNav'),
       run: () => go(item.to),
     })),
     {
       id: 'action:new-note',
-      label: '新建笔记',
-      group: '操作',
+      label: t('newNote'),
+      group: t('groupAction'),
       run: () => {
         onOpenChange(false);
         if (currentLibrary) {
@@ -66,15 +68,15 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     },
     {
       id: 'action:new-library',
-      label: '新建库',
-      group: '操作',
+      label: t('newLibrary'),
+      group: t('groupAction'),
       run: () => go(routes.home),
     },
     ...libraries.map((library) => ({
       id: `library:${library.id}`,
       label: library.name,
-      hint: library.id === currentLibrary?.id ? '当前' : undefined,
-      group: '切换库',
+      hint: library.id === currentLibrary?.id ? t('hintCurrent') : undefined,
+      group: t('groupSwitchLibrary'),
       run: () => go(routes.editor(library.id)),
     })),
     ...SETTINGS_MENU_GROUPS.flatMap((group) =>
@@ -84,7 +86,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         .map((item) => ({
           id: `settings:${item.to}`,
           label: item.label,
-          group: `设置 · ${group.label}`,
+          group: t('groupSettings', { group: t(group.label) }),
           run: () => go(item.to),
         }))
     ),
@@ -97,7 +99,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   return (
     <Command
       ref={listRef}
-      label="命令面板"
+      label={t('commandPalette.label')}
       shouldFilter
       loop
       className={cn(
@@ -115,14 +117,20 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
       >
         <Command.Input
           autoFocus
-          placeholder="搜索命令、页面、库…"
+          placeholder={t('commandPalette.placeholder')}
           className="w-full px-4 py-3 text-sm bg-transparent text-fg placeholder-fg-subtle outline-none border-b border-border"
         />
         <Command.List className="max-h-[24rem] overflow-y-auto p-2">
           <Command.Empty className="px-3 py-6 text-center text-sm text-fg-muted">
-            没有匹配的命令
+            {t('commandPalette.noMatchingCommands')}
           </Command.Empty>
-          {['导航', '操作', '切换库', '设置 · 个人', '设置 · 系统'].map((group) => {
+          {[
+            t('groupNav'),
+            t('groupAction'),
+            t('groupSwitchLibrary'),
+            t('groupSettings', { group: t('settings.groupPersonal') }),
+            t('groupSettings', { group: t('settings.groupSystem') }),
+          ].map((group) => {
             const groupItems = items.filter((item) => item.group === group);
             if (groupItems.length === 0) return null;
             return (

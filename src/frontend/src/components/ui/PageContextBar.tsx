@@ -1,5 +1,6 @@
 import { Check, Copy } from 'lucide-react';
 import { type HTMLAttributes, forwardRef, useEffect, useState } from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 import { cn } from '../../lib/utils';
 import { Breadcrumb, type BreadcrumbItem } from './Breadcrumb';
 
@@ -29,6 +30,7 @@ export interface PageContextBarProps extends HTMLAttributes<HTMLDivElement> {
  */
 export const PageContextBar = forwardRef<HTMLDivElement, PageContextBarProps>(
   ({ title, detail, breadcrumb, actions, className, ...props }, ref) => {
+    const { t } = useTranslation();
     const [copied, setCopied] = useState(false);
 
     useEffect(() => {
@@ -86,7 +88,9 @@ export const PageContextBar = forwardRef<HTMLDivElement, PageContextBarProps>(
                       aria-hidden="true"
                     />
                   )}
-                  <span className="sr-only">{copied ? 'Copied' : 'Copy path'}</span>
+                  <span className="sr-only">
+                    {copied ? t('common.copied') : t('common.copyPath')}
+                  </span>
                 </button>
               )}
             </div>

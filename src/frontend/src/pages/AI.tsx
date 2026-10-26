@@ -22,6 +22,7 @@ import { Tabs } from '../components/ui/Tabs';
 import { Textarea } from '../components/ui/Textarea';
 import { useAuth } from '../hooks/useAuth';
 import { useLibraries } from '../hooks/useLibraries';
+import { useTranslation } from '../hooks/useTranslation';
 import { api } from '../services/api';
 import { formatDistanceToNow } from '../utils/format';
 
@@ -54,6 +55,7 @@ interface Provider {
 }
 
 export function AI() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { libraries, currentLibrary } = useLibraries();
   const isAdmin = user?.role === 'admin';
@@ -62,8 +64,8 @@ export function AI() {
   return (
     <div className="flex-1 flex flex-col min-h-0">
       <PageContextBar
-        title="AI Assistant"
-        detail="Conversations, providers and index status"
+        title={t('pages.ai.title')}
+        detail={t('pages.ai.detail')}
         className="border-b-0"
       />
       {/* Section tabs are view state, not actions, so they stay in the header
@@ -72,9 +74,9 @@ export function AI() {
         <div className="mx-auto w-full max-w-[var(--content-max-w)] flex flex-wrap items-center gap-2">
           <Tabs
             options={[
-              { id: 'conversations', label: 'Conversations', icon: MessagesSquare },
-              { id: 'providers', label: 'Providers', icon: BrainCircuit },
-              { id: 'index', label: 'Index', icon: Bot },
+              { id: 'conversations', label: t('pages.ai.tabConversations'), icon: MessagesSquare },
+              { id: 'providers', label: t('pages.ai.tabProviders'), icon: BrainCircuit },
+              { id: 'index', label: t('pages.ai.tabIndex'), icon: Bot },
             ]}
             value={tab}
             onChange={setTab}
@@ -92,8 +94,8 @@ export function AI() {
           ) : (
             <EmptyState
               icon={BrainCircuit}
-              title="Admin only"
-              description="AI provider configuration requires an administrator account."
+              title={t('pages.ai.adminOnly')}
+              description={t('pages.ai.adminOnlyDescription')}
             />
           ))}
         {tab === 'index' && (
@@ -111,6 +113,7 @@ function ConversationsPanel({
   libraries: { id: string; name: string }[];
   currentLibraryId?: string;
 }) {
+  const { t } = useTranslation();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -165,7 +168,7 @@ function ConversationsPanel({
     try {
       const res = (await api.post('/ai/chat/conversations', {
         libraryId: libId,
-        title: 'New conversation',
+        title: t('pages.ai.titleNewConversation'),
       })) as unknown as { success: boolean; data: { id: string } };
       if (res.success) {
         await fetchConversations();
@@ -203,7 +206,7 @@ function ConversationsPanel({
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <Spinner size="md" label="Loading conversations" />
+        <Spinner size="md" label={t('pages.ai.spinnerLoadingConversations')} />
       </div>
     );
   }
@@ -230,22 +233,22 @@ function ConversationsPanel({
             onClick={() => setActiveId(c.id)}
             className={`w-full px-3 py-2 text-left text-sm rounded-md truncate transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${activeId === c.id ? 'bg-primary/10 text-primary font-medium' : 'text-fg hover:bg-bg-hover'}`}
           >
-            {c.title || 'Untitled'}
+            {c.title || t('pages.ai.untitled')}
           </button>
         ))}
         {conversations.length === 0 && (
-          <p className="text-xs text-fg-muted px-3 py-2">No conversations yet.</p>
+          <p className="text-xs text-fg-muted px-3 py-2">{t('pages.ai.emptyNoConversations')}</p>
         )}
       </aside>
       <div className="flex-1 flex flex-col min-w-0">
         {!activeId ? (
           <EmptyState
             icon={MessagesSquare}
-            title="No conversation selected"
-            description="Create a chat to store messages and get replies from the default AI provider."
+            title={t('pages.ai.emptyNoConversationSelected')}
+            description={t('pages.ai.emptyNoConversationSelectedDescription')}
             actions={
               <Button onClick={handleNew} disabled={creating || libraries.length === 0}>
-                <Plus className="w-4 h-4" aria-hidden="true" /> New chat
+                <Plus className="w-4 h-4" aria-hidden="true" /> {t('pages.ai.btnNewChat')}
               </Button>
             }
           />
@@ -284,7 +287,7 @@ function ConversationsPanel({
                 aria-label="Message"
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
-                placeholder="Type a message…"
+                placeholder={t('pages.ai.placeholderMessage')}
                 className="flex-1 min-h-[44px]"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
@@ -296,7 +299,7 @@ function ConversationsPanel({
               <Button
                 onClick={handleSend}
                 disabled={sending || !draft.trim()}
-                aria-label="Send message"
+                aria-label={t('pages.ai.ariaSendMessage')}
               >
                 <Send className="w-4 h-4" aria-hidden="true" />
               </Button>
@@ -309,6 +312,7 @@ function ConversationsPanel({
 }
 
 function ProvidersPanel() {
+  const { t } = useTranslation();
   const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -332,7 +336,7 @@ function ProvidersPanel() {
       };
       if (res.success) setProviders(res.data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load providers');
+      setError(err instanceof Error ? err.message : t('pages.ai.errorLoadProviders'));
     } finally {
       setLoading(false);
     }
@@ -361,7 +365,7 @@ function ProvidersPanel() {
       setChatModel('');
       await fetchProviders();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create provider');
+      setError(err instanceof Error ? err.message : t('pages.ai.errorCreateProvider'));
     } finally {
       setBusy(false);
     }
@@ -379,13 +383,15 @@ function ProvidersPanel() {
       if (res.success) {
         const models = res.data?.models ?? [];
         setTestResult(
-          models.length > 0 ? `Connected. Models: ${models.slice(0, 5).join(', ')}` : 'Connected.'
+          models.length > 0
+            ? t('pages.ai.testConnectedModels', { models: models.slice(0, 5).join(', ') })
+            : t('pages.ai.testConnected')
         );
       } else {
-        setTestResult(res.error?.message || 'Connection failed');
+        setTestResult(res.error?.message || t('pages.ai.testFailed'));
       }
     } catch (err) {
-      setTestResult(err instanceof Error ? err.message : 'Connection failed');
+      setTestResult(err instanceof Error ? err.message : t('pages.ai.testFailed'));
     } finally {
       setTestingId(null);
     }
@@ -397,7 +403,7 @@ function ProvidersPanel() {
       await api.delete(`/ai/providers/${id}`);
       await fetchProviders();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete provider');
+      setError(err instanceof Error ? err.message : t('pages.ai.errorDeleteProvider'));
     } finally {
       setBusy(false);
     }
@@ -410,25 +416,25 @@ function ProvidersPanel() {
           {error && <Alert>{error}</Alert>}
           <div className="flex justify-end">
             <Button size="sm" onClick={() => setShowCreate(true)}>
-              <Plus className="w-4 h-4" aria-hidden="true" /> New provider
+              <Plus className="w-4 h-4" aria-hidden="true" /> {t('pages.ai.btnNewProvider')}
             </Button>
           </div>
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <Spinner size="md" label="Loading providers" />
+              <Spinner size="md" label={t('pages.ai.spinnerLoadingProviders')} />
             </div>
           ) : providers.length === 0 ? (
             <EmptyState
               icon={BrainCircuit}
-              title="No providers"
-              description="Add an OpenAI-compatible provider (OpenAI, Ollama or LM Studio) to enable AI features."
+              title={t('pages.ai.emptyNoProviders')}
+              description={t('pages.ai.emptyNoProvidersDescription')}
             />
           ) : (
             providers.map((p) => (
               <div key={p.id} className="border border-border rounded-lg bg-bg-elevated px-4 py-3">
                 <div className="flex items-center gap-2 flex-wrap">
                   <p className="text-sm font-medium text-fg">{p.name}</p>
-                  {p.isDefault && <Badge variant="default">Default</Badge>}
+                  {p.isDefault && <Badge variant="default">{t('pages.ai.badgeDefault')}</Badge>}
                   <Badge variant="outline">{p.type}</Badge>
                   <span className="ml-auto flex gap-2">
                     <Button
@@ -437,7 +443,7 @@ function ProvidersPanel() {
                       onClick={() => handleTest(p.id)}
                       disabled={testingId === p.id}
                     >
-                      {testingId === p.id ? 'Testing…' : 'Test'}
+                      {testingId === p.id ? t('common.testing') : t('common.test')}
                     </Button>
                     <Button
                       variant="secondary"
@@ -445,7 +451,7 @@ function ProvidersPanel() {
                       onClick={() => handleDelete(p.id)}
                       disabled={busy}
                     >
-                      Delete
+                      {t('common.delete')}
                     </Button>
                   </span>
                 </div>
@@ -466,61 +472,61 @@ function ProvidersPanel() {
         <Dialog open={showCreate} onOpenChange={setShowCreate}>
           <DialogContent size="sm">
             <DialogHeader>
-              <DialogTitle>New provider</DialogTitle>
-              <DialogDescription>Connect an OpenAI-compatible chat API.</DialogDescription>
+              <DialogTitle>{t('pages.ai.dialogNewProvider')}</DialogTitle>
+              <DialogDescription>{t('pages.ai.dialogProviderDescription')}</DialogDescription>
             </DialogHeader>
             <div className="p-6 space-y-4">
               <Input
                 id="providerName"
-                label="Name"
+                label={t('pages.ai.labelName')}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="My Ollama"
+                placeholder={t('pages.ai.placeholderProviderName')}
               />
               <Select
-                aria-label="Type"
-                label="Type"
+                aria-label={t('pages.ai.labelType')}
+                label={t('pages.ai.labelType')}
                 value={type}
                 onChange={(e) => setType(e.target.value)}
                 options={[
-                  { value: 'openai', label: 'OpenAI' },
-                  { value: 'ollama', label: 'Ollama' },
-                  { value: 'lm-studio', label: 'LM Studio' },
-                  { value: 'custom', label: 'Custom' },
+                  { value: 'openai', label: t('pages.ai.typeOpenAI') },
+                  { value: 'ollama', label: t('pages.ai.typeOllama') },
+                  { value: 'lm-studio', label: t('pages.ai.typeLmStudio') },
+                  { value: 'custom', label: t('pages.ai.typeCustom') },
                 ]}
               />
               <Input
                 id="providerBaseUrl"
-                label="Base URL"
+                label={t('pages.ai.labelBaseUrl')}
                 value={baseUrl}
                 onChange={(e) => setBaseUrl(e.target.value)}
-                placeholder="https://api.openai.com/v1"
+                placeholder={t('pages.ai.placeholderBaseUrl')}
               />
               <Input
                 id="providerApiKey"
-                label="API key (optional)"
+                label={t('pages.ai.labelApiKey')}
                 type="password"
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
-                placeholder="Stored encrypted"
+                placeholder={t('pages.ai.placeholderApiKey')}
               />
               <Input
                 id="providerChatModel"
-                label="Chat model"
+                label={t('pages.ai.labelChatModel')}
                 value={chatModel}
                 onChange={(e) => setChatModel(e.target.value)}
-                placeholder="gpt-4o-mini"
+                placeholder={t('pages.ai.placeholderChatModel')}
               />
             </div>
             <DialogFooter>
               <Button variant="secondary" onClick={() => setShowCreate(false)}>
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button
                 onClick={handleCreate}
                 disabled={busy || !name.trim() || !baseUrl.trim() || !chatModel.trim()}
               >
-                {busy ? 'Creating…' : 'Create'}
+                {busy ? t('common.creating') : t('common.create')}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -531,6 +537,7 @@ function ProvidersPanel() {
 }
 
 function IndexPanel({ libraryId, libraryName }: { libraryId?: string; libraryName?: string }) {
+  const { t } = useTranslation();
   const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -569,13 +576,15 @@ function IndexPanel({ libraryId, libraryName }: { libraryId?: string; libraryNam
         error?: { message?: string };
       };
       if (res.success) {
-        setMessage(`Index ${action} requested.`);
+        setMessage(t('pages.ai.messageIndexRequested', { action }));
         await fetchStatus();
       } else {
-        setMessage(res.error?.message || `${action} failed`);
+        setMessage(res.error?.message || t('pages.ai.messageActionFailed', { action }));
       }
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : `${action} failed`);
+      setMessage(
+        error instanceof Error ? error.message : t('pages.ai.messageActionFailed', { action })
+      );
     } finally {
       setBusy(false);
     }
@@ -585,8 +594,8 @@ function IndexPanel({ libraryId, libraryName }: { libraryId?: string; libraryNam
     return (
       <EmptyState
         icon={Bot}
-        title="No library selected"
-        description="Select a library to view its search index status."
+        title={t('pages.ai.emptyNoLibrarySelected')}
+        description={t('pages.ai.emptyNoLibrarySelectedDescription')}
       />
     );
   }
@@ -606,20 +615,18 @@ function IndexPanel({ libraryId, libraryName }: { libraryId?: string; libraryNam
             </div>
             <div className="flex gap-2 mt-3">
               <Button variant="secondary" size="sm" onClick={() => run('rebuild')} disabled={busy}>
-                Rebuild
+                {t('common.rebuild')}
               </Button>
               <Button variant="secondary" size="sm" onClick={() => run('pause')} disabled={busy}>
-                Pause
+                {t('common.pause')}
               </Button>
               <Button variant="secondary" size="sm" onClick={() => run('resume')} disabled={busy}>
-                Resume
+                {t('common.resume')}
               </Button>
             </div>
           </div>
           {message && <Alert variant="info">{message}</Alert>}
-          <p className="text-xs text-fg-subtle">
-            Note: the backend has no embedding worker yet — rebuild only flips the status flag.
-          </p>
+          <p className="text-xs text-fg-subtle">{t('pages.ai.noteNoEmbeddingWorker')}</p>
         </div>
       </ContentShell>
     </ScrollArea>

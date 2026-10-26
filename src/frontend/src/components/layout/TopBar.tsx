@@ -2,6 +2,7 @@ import { Bell, FilePlus, Menu, Moon, NotebookPen, Search, Sun } from 'lucide-rea
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTheme } from '../../hooks/useTheme';
+import { useTranslation } from '../../hooks/useTranslation';
 import { routes } from '../../routes';
 import { api } from '../../services/api';
 import { Breadcrumb, type BreadcrumbItem } from '../ui/Breadcrumb';
@@ -28,6 +29,7 @@ export function TopBar({
   menuOpen = false,
   onLogout,
 }: TopBarProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [unreadCount, setUnreadCount] = useState(0);
   const { isDark, setTheme } = useTheme();
@@ -61,7 +63,7 @@ export function TopBar({
           as a centred page title. */}
       <IconButton
         onClick={onMenuClick}
-        aria-label="Open menu"
+        aria-label={t('components.layout.ariaOpenMenu')}
         aria-expanded={menuOpen}
         aria-controls="mobile-menu-drawer"
         className="lg:hidden"
@@ -89,19 +91,21 @@ export function TopBar({
         <button
           type="button"
           onClick={onOpenPalette}
-          aria-label="Open command palette"
+          aria-label={t('components.layout.ariaOpenCommandPalette')}
           className="hidden md:flex items-center gap-2 w-40 lg:w-52 px-2.5 py-1.5 rounded-md bg-bg-elevated border border-border text-sm text-fg-subtle hover:text-fg hover:bg-bg-hover transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
         >
           <Search className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
-          <span className="flex-1 text-left truncate">Search…</span>
+          <span className="flex-1 text-left truncate">
+            {t('components.layout.placeholderSearch')}
+          </span>
           <kbd className="kbd hidden lg:inline-flex">⌘K</kbd>
         </button>
         <Link
           to={routes.notifications}
           aria-label={
             unreadCount > 0
-              ? `Notifications, ${unreadCount > 1 ? 'multiple' : 'one'} unread`
-              : 'Notifications'
+              ? t('components.layout.ariaNotificationsUnread', { count: unreadCount })
+              : t('components.layout.ariaNotifications')
           }
           className="relative inline-flex items-center justify-center rounded-md p-2 text-fg-muted transition-colors duration-150 hover:text-fg hover:bg-bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg [&_svg]:w-5 [&_svg]:h-5"
         >
@@ -116,7 +120,7 @@ export function TopBar({
         {currentLibrary && (
           <IconButton
             onClick={() => navigate(routes.editor(currentLibrary.id), { state: { newNote: true } })}
-            aria-label="New note"
+            aria-label={t('components.layout.ariaNewNote')}
           >
             <FilePlus className="w-5 h-5" />
           </IconButton>
@@ -124,8 +128,16 @@ export function TopBar({
         <IconButton
           onClick={() => setTheme(isDark ? 'light' : 'dark')}
           aria-pressed={isDark}
-          aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
-          title={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+          aria-label={
+            isDark
+              ? t('components.layout.ariaSwitchToLight')
+              : t('components.layout.ariaSwitchToDark')
+          }
+          title={
+            isDark
+              ? t('components.layout.ariaSwitchToLight')
+              : t('components.layout.ariaSwitchToDark')
+          }
         >
           {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
         </IconButton>

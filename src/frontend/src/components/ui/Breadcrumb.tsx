@@ -7,6 +7,7 @@ import {
   useEffect,
   useState,
 } from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 import { cn } from '../../lib/utils';
 
 export interface BreadcrumbItem {
@@ -36,13 +37,16 @@ export const Breadcrumb = forwardRef<HTMLElement, BreadcrumbProps>(
       items,
       maxItems = 4,
       separator = <ChevronRight className="w-4 h-4 text-fg-subtle" aria-hidden="true" />,
-      ariaLabel = 'Breadcrumb',
-      collapseLabel = 'Show full path',
+      ariaLabel,
+      collapseLabel,
       className,
       ...props
     },
     ref
   ) => {
+    const { t } = useTranslation();
+    const resolvedAriaLabel = ariaLabel ?? t('components.ui.breadcrumb');
+    const resolvedCollapseLabel = collapseLabel ?? t('components.ui.breadcrumbShowFullPath');
     const [expanded, setExpanded] = useState(false);
 
     useEffect(() => {
@@ -75,7 +79,7 @@ export const Breadcrumb = forwardRef<HTMLElement, BreadcrumbProps>(
         return (
           <button
             type="button"
-            aria-label={collapseLabel}
+            aria-label={resolvedCollapseLabel}
             aria-expanded={expanded}
             onClick={() => setExpanded((value) => !value)}
             className={cn(itemClassName, 'hover:text-fg hover:bg-bg-hover', focusRingClassName)}
@@ -125,7 +129,7 @@ export const Breadcrumb = forwardRef<HTMLElement, BreadcrumbProps>(
       <nav
         ref={ref}
         {...props}
-        aria-label={ariaLabel}
+        aria-label={resolvedAriaLabel}
         className={cn('min-w-0 text-sm text-fg-muted', className)}
       >
         <ol className="flex min-w-0 list-none items-center gap-1.5">

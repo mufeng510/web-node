@@ -35,6 +35,7 @@ import { Tabs } from '../components/ui/Tabs';
 import { Textarea } from '../components/ui/Textarea';
 import { ToolbarButton } from '../components/ui/ToolbarButton';
 import { useMediaQuery } from '../hooks/useMediaQuery';
+import { useTranslation } from '../hooks/useTranslation';
 import { applyHeadingIds, outlineOf } from '../lib/markdownOutline';
 import { cn } from '../lib/utils';
 import { routes } from '../routes';
@@ -58,13 +59,13 @@ function encodePath(path: string): string {
   return path.split('/').map(encodeURIComponent).join('/');
 }
 
-const viewOptions = [
-  { id: 'write', label: 'Write' },
-  { id: 'preview', label: 'Preview' },
-  { id: 'split', label: 'Split' },
-] as const;
-
 export function Editor() {
+  const { t } = useTranslation();
+  const viewOptions = [
+    { id: 'write', label: t('editor.viewWrite') },
+    { id: 'preview', label: t('editor.viewPreview') },
+    { id: 'split', label: t('editor.viewSplit') },
+  ] as const;
   const { libraryId, '*': splat } = useParams<{ libraryId: string; '*': string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -185,7 +186,7 @@ export function Editor() {
         // 已经切到别的笔记了，失败信息不该挂到当前笔记头上
         if (noteGenerationRef.current === generation) {
           setSaveState('error');
-          setSaveError(error instanceof Error ? error.message : 'Failed to save');
+          setSaveError(error instanceof Error ? error.message : t('editor.errorFailedToSave'));
         }
         return false;
       } finally {
@@ -233,7 +234,7 @@ export function Editor() {
       } catch (error) {
         console.error('Failed to load note:', error);
         if (!cancelled) {
-          setLoadError(`Failed to load ${splat}`);
+          setLoadError(t('editor.errorFailedToLoad', { path: splat }));
           setNotePath(splat);
           contentRef.current = '';
           setContent('');
@@ -493,7 +494,7 @@ export function Editor() {
           <button
             type="button"
             onClick={() => navigate(routes.home)}
-            aria-label="Back to dashboard"
+            aria-label={t('editor.ariaBackToDashboard')}
             className="p-1.5 rounded-md text-fg-muted hover:text-fg hover:bg-bg-hover transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg flex-shrink-0"
           >
             <ArrowLeft className="w-4 h-4" aria-hidden="true" />
@@ -513,7 +514,7 @@ export function Editor() {
                               ? undefined
                               : routes.editor(libraryId, all.slice(0, index + 1).join('/')),
                         }))
-                    : [{ label: 'New note' }]
+                    : [{ label: t('editor.newNote') }]
                 }
                 maxItems={3}
               />
@@ -521,10 +522,10 @@ export function Editor() {
           )}
           <Input
             ref={pathInputRef}
-            aria-label="Note path"
+            aria-label={t('editor.ariaNotePath')}
             value={notePath}
             onChange={(e) => setNotePath(e.target.value)}
-            placeholder="Note path (e.g., notes/my-note.md)"
+            placeholder={t('editor.placeholderNotePath')}
             className="w-64"
           />
           <StatusDot
@@ -539,18 +540,18 @@ export function Editor() {
             }
             label={
               saveState === 'saved'
-                ? 'Saved'
+                ? t('editor.statusSaved')
                 : saveState === 'saving'
-                  ? 'Saving…'
+                  ? t('editor.statusSaving')
                   : saveState === 'error'
-                    ? 'Save failed'
-                    : 'Unsaved changes'
+                    ? t('editor.statusSaveFailed')
+                    : t('editor.statusUnsavedChanges')
             }
             title={
               saveState === 'error'
-                ? (saveError ?? 'Failed to save')
+                ? (saveError ?? t('editor.errorFailedToSave'))
                 : saveState === 'dirty'
-                  ? `Auto-saves ${AUTOSAVE_DELAY_MS / 1000}s after you stop typing`
+                  ? t('editor.titleAutoSaves', { seconds: AUTOSAVE_DELAY_MS / 1000 })
                   : undefined
             }
           />
@@ -560,7 +561,7 @@ export function Editor() {
             options={viewOptions.map((o) => ({ ...o }))}
             value={view}
             onChange={setView}
-            ariaLabel="Editor view"
+            ariaLabel={t('editor.ariaEditorView')}
           />
           <Button
             onClick={handleSave}
@@ -569,7 +570,7 @@ export function Editor() {
             size="sm"
           >
             <Save className="w-4 h-4" aria-hidden="true" />{' '}
-            {saveState === 'saving' ? 'Saving...' : 'Save'}
+            {saveState === 'saving' ? t('common.saving') : t('common.save')}
           </Button>
         </div>
       </div>
@@ -584,65 +585,65 @@ export function Editor() {
         <div
           className="shrink-0 flex items-center gap-0.5 px-3 py-2 border-b border-border overflow-x-auto"
           role="toolbar"
-          aria-label="Markdown formatting"
+          aria-label={t('editor.ariaMarkdownFormatting')}
         >
           <ToolbarButton
-            label="Bold"
-            tip="Bold"
+            label={t('editor.toolbarBold')}
+            tip={t('editor.toolbarBold')}
             icon={<Bold className="w-4 h-4" aria-hidden="true" />}
             onClick={() => wrapSelection('**', '**')}
           />
           <ToolbarButton
-            label="Italic"
-            tip="Italic"
+            label={t('editor.toolbarItalic')}
+            tip={t('editor.toolbarItalic')}
             icon={<Italic className="w-4 h-4" aria-hidden="true" />}
             onClick={() => wrapSelection('*', '*')}
           />
           <ToolbarButton
-            label="Strikethrough"
-            tip="Strikethrough"
+            label={t('editor.toolbarStrikethrough')}
+            tip={t('editor.toolbarStrikethrough')}
             icon={<Strikethrough className="w-4 h-4" aria-hidden="true" />}
             onClick={() => wrapSelection('~~', '~~')}
           />
           <ToolbarButton
-            label="Code"
-            tip="Inline code"
+            label={t('editor.toolbarCode')}
+            tip={t('editor.toolbarCode')}
             icon={<Code className="w-4 h-4" aria-hidden="true" />}
             onClick={() => wrapSelection('`', '`', 'code')}
           />
           <ToolbarButton
-            label="Link"
-            tip="Insert link"
+            label={t('editor.toolbarLink')}
+            tip={t('editor.toolbarLink')}
             icon={<Link2 className="w-4 h-4" aria-hidden="true" />}
             onClick={insertLink}
           />
           <ToolbarButton
-            label="Heading"
-            tip="Heading"
+            label={t('editor.toolbarHeading')}
+            tip={t('editor.toolbarHeading')}
             icon={<Heading2 className="w-4 h-4" aria-hidden="true" />}
             onClick={() => prefixLines('## ')}
           />
           <ToolbarButton
-            label="Bulleted list"
-            tip="Bulleted list"
+            label={t('editor.toolbarBulletedList')}
+            tip={t('editor.toolbarBulletedList')}
             icon={<List className="w-4 h-4" aria-hidden="true" />}
             onClick={() => prefixLines('- ')}
           />
           <ToolbarButton
-            label="Numbered list"
-            tip="Numbered list"
+            label={t('editor.toolbarNumberedList')}
+            tip={t('editor.toolbarNumberedList')}
             icon={<ListOrdered className="w-4 h-4" aria-hidden="true" />}
             onClick={() => prefixLines('1. ')}
           />
           <ToolbarButton
-            label="Quote"
-            tip="Blockquote"
+            label={t('editor.toolbarQuote')}
+            tip={t('editor.toolbarQuote')}
             icon={<Quote className="w-4 h-4" aria-hidden="true" />}
             onClick={() => prefixLines('> ')}
           />
           <ToolbarButton
-            label="Links"
-            tip="Backlinks and wikilinks"
+            label={t('editor.toolbarLinks')}
+            tip={t('editor.toolbarLinks')}
             icon={<Network className="w-4 h-4" aria-hidden="true" />}
             onClick={openLinks}
           />
@@ -658,7 +659,7 @@ export function Editor() {
       <div ref={splitRef} className="flex-1 min-h-0 overflow-hidden">
         {loading ? (
           <div className="flex-1 flex items-center justify-center">
-            <Spinner size="md" label="Loading note" />
+            <Spinner size="md" label={t('editor.spinnerLoadingNote')} />
           </div>
         ) : draggableSplit ? (
           <Resizable
@@ -666,7 +667,7 @@ export function Editor() {
             size={splitSize ?? 0}
             onSizeChange={setSplitSize}
             min={280}
-            firstLabel="Resize editor panes"
+            firstLabel={t('editor.firstLabelResizeEditorPanes')}
             className="h-full"
             first={editorPane}
             second={previewPane}
@@ -687,18 +688,20 @@ export function Editor() {
       <Dialog open={showLinks} onOpenChange={setShowLinks}>
         <DialogContent size="md">
           <DialogHeader>
-            <DialogTitle>Links</DialogTitle>
+            <DialogTitle>{t('editor.dialogLinks')}</DialogTitle>
             <DialogDescription>
-              {splat ? `Pages linking to ${splat}` : 'Save the note first to see backlinks.'}
+              {splat
+                ? t('editor.dialogPagesLinking', { path: splat })
+                : t('editor.dialogSaveFirst')}
             </DialogDescription>
           </DialogHeader>
           <div className="p-6 space-y-5 max-h-[60vh] overflow-y-auto">
             <div>
               <Input
-                aria-label="Search notes to link"
+                aria-label={t('editor.ariaSearchNotesToLink')}
                 value={linkQuery}
                 onChange={(e) => searchWikilinks(e.target.value)}
-                placeholder="Type to find a note, e.g. [[my-note]]"
+                placeholder={t('editor.placeholderSearchNote')}
               />
               {suggestions.length > 0 && (
                 <ul className="mt-2 border border-border rounded-md divide-y divide-border max-h-48 overflow-y-auto">
@@ -721,11 +724,11 @@ export function Editor() {
               )}
             </div>
             <div>
-              <h3 className="text-sm font-medium text-fg mb-2">Backlinks</h3>
+              <h3 className="text-sm font-medium text-fg mb-2">{t('editor.backlinks')}</h3>
               {linksLoading ? (
-                <Spinner size="sm" label="Loading backlinks" />
+                <Spinner size="sm" label={t('editor.spinnerLoadingBacklinks')} />
               ) : backlinks.length === 0 ? (
-                <p className="text-sm text-fg-muted">No pages link here yet.</p>
+                <p className="text-sm text-fg-muted">{t('editor.noPagesLinkYet')}</p>
               ) : (
                 <ul className="space-y-1.5">
                   {backlinks.map((b, i) => (

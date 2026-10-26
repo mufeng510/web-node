@@ -1,6 +1,6 @@
 {
   "name": "web-note",
-  "version": "0.1.0",
+  "version": "0.9.1",
   "description": "Browser-first, Self-hosted, Markdown-first, Obsidian-compatible, AI-native personal knowledge base",
   "type": "module",
   "scripts": {

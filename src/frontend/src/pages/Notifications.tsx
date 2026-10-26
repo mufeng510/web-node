@@ -8,6 +8,7 @@ import { PageContextBar } from '../components/ui/PageContextBar';
 import { ScrollArea } from '../components/ui/ScrollArea';
 import { Spinner } from '../components/ui/Spinner';
 import { Tabs } from '../components/ui/Tabs';
+import { useTranslation } from '../hooks/useTranslation';
 import { api } from '../services/api';
 import { formatDistanceToNow } from '../utils/format';
 
@@ -23,6 +24,7 @@ interface NotificationItem {
 type Filter = 'all' | 'unread';
 
 export function Notifications() {
+  const { t } = useTranslation();
   const [filter, setFilter] = useState<Filter>('all');
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,11 +77,15 @@ export function Notifications() {
   return (
     <div className="flex-1 flex flex-col min-h-0">
       <PageContextBar
-        title="Notifications"
-        detail={unreadCount > 0 ? `${unreadCount} unread` : 'You are all caught up'}
+        title={t('pages.notifications.title')}
+        detail={
+          unreadCount > 0
+            ? t('pages.notifications.detailUnread', { count: unreadCount })
+            : t('pages.notifications.detailAllCaughtUp')
+        }
         actions={[
           {
-            label: 'Mark all read',
+            label: t('pages.notifications.btnMarkAllRead'),
             onClick: handleReadAll,
             disabled: acting || unreadCount === 0,
             icon: <CheckCheck className="w-4 h-4" aria-hidden="true" />,
@@ -93,12 +99,12 @@ export function Notifications() {
         <div className="mx-auto w-full max-w-[var(--content-max-w)] flex flex-wrap items-center gap-2">
           <Tabs
             options={[
-              { id: 'all', label: 'All' },
-              { id: 'unread', label: 'Unread' },
+              { id: 'all', label: t('pages.notifications.tabAll') },
+              { id: 'unread', label: t('pages.notifications.tabUnread') },
             ]}
             value={filter}
             onChange={setFilter}
-            ariaLabel="Notification filter"
+            ariaLabel={t('pages.notifications.ariaFilter')}
           />
         </div>
       </div>
@@ -107,16 +113,20 @@ export function Notifications() {
         <ContentShell>
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <Spinner size="md" label="Loading notifications" />
+              <Spinner size="md" label={t('pages.notifications.spinnerLoadingNotifications')} />
             </div>
           ) : items.length === 0 ? (
             <EmptyState
               icon={filter === 'unread' ? BellOff : Bell}
-              title={filter === 'unread' ? 'No unread notifications' : 'No notifications'}
+              title={
+                filter === 'unread'
+                  ? t('pages.notifications.emptyNoUnreadNotifications')
+                  : t('pages.notifications.emptyNoNotifications')
+              }
               description={
                 filter === 'unread'
-                  ? 'Everything has been read.'
-                  : 'System events and mentions will appear here.'
+                  ? t('pages.notifications.emptyEverythingRead')
+                  : t('pages.notifications.emptyEventsAppear')
               }
             />
           ) : (
@@ -130,7 +140,9 @@ export function Notifications() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-medium text-fg truncate">{item.title}</p>
-                      {!item.read && <Badge variant="default">New</Badge>}
+                      {!item.read && (
+                        <Badge variant="default">{t('pages.notifications.badgeNew')}</Badge>
+                      )}
                     </div>
                     {item.message && <p className="text-sm text-fg-muted mt-0.5">{item.message}</p>}
                     <p className="text-xs text-fg-subtle mt-1">
@@ -144,7 +156,7 @@ export function Notifications() {
                       onClick={() => handleMarkRead(item.id)}
                       disabled={acting}
                     >
-                      Mark read
+                      {t('pages.notifications.btnMarkRead')}
                     </Button>
                   )}
                 </li>

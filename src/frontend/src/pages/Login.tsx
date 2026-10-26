@@ -8,8 +8,10 @@ import { Checkbox } from '../components/ui/Checkbox';
 import { IconButton } from '../components/ui/IconButton';
 import { Input } from '../components/ui/Input';
 import { useAuth } from '../hooks/useAuth';
+import { useTranslation } from '../hooks/useTranslation';
 
 export function Login() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { login } = useAuth();
   const [email, setEmail] = useState('');
@@ -28,7 +30,7 @@ export function Login() {
       await login(email, password, rememberMe);
       navigate('/');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      setError(err instanceof Error ? err.message : t('pages.login.errorFailed'));
     } finally {
       setLoading(false);
     }
@@ -38,8 +40,8 @@ export function Login() {
     <div className="min-h-screen flex items-center justify-center bg-bg px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-semibold text-fg">Web Note</h1>
-          <p className="text-fg-muted mt-2">Sign in to your knowledge base</p>
+          <h1 className="text-3xl font-semibold text-fg">{t('pages.login.title')}</h1>
+          <p className="text-fg-muted mt-2">{t('pages.login.subtitle')}</p>
         </div>
 
         <Card className="p-6">
@@ -49,12 +51,12 @@ export function Login() {
             <div className="mb-4">
               <Input
                 id="email"
-                label="Email"
+                label={t('pages.login.email')}
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 leadingIcon={<Mail className="w-5 h-5" />}
-                placeholder="you@example.com"
+                placeholder={t('pages.login.placeholderEmail')}
                 required
                 autoComplete="email"
                 disabled={loading}
@@ -64,7 +66,7 @@ export function Login() {
             <div className="mb-4">
               <Input
                 id="password"
-                label="Password"
+                label={t('pages.login.password')}
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -73,7 +75,11 @@ export function Login() {
                   <IconButton
                     size="sm"
                     onClick={() => setShowPassword(!showPassword)}
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    aria-label={
+                      showPassword
+                        ? t('pages.login.ariaHidePassword')
+                        : t('pages.login.ariaShowPassword')
+                    }
                   >
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </IconButton>
@@ -87,7 +93,7 @@ export function Login() {
 
             <div className="mb-6 flex items-center justify-between">
               <Checkbox
-                label="Remember me"
+                label={t('pages.login.rememberMe')}
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
                 disabled={loading}
@@ -95,13 +101,13 @@ export function Login() {
             </div>
 
             <Button type="submit" disabled={loading} className="w-full" size="lg">
-              {loading ? 'Signing in...' : 'Sign in'}
+              {loading ? t('pages.login.signingIn') : t('pages.login.signIn')}
             </Button>
 
             <p className="mt-6 text-center text-sm text-fg-muted">
-              First time?{' '}
+              {t('pages.login.firstTime')}{' '}
               <a href="/setup" className="text-primary hover:text-primary-hover font-medium">
-                Run setup wizard
+                {t('pages.login.setupWizard')}
               </a>
             </p>
           </form>

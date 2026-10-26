@@ -1,6 +1,7 @@
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { Layout } from './components/layout/Layout';
 import { useAuth } from './hooks/useAuth';
+import { useTranslation } from './hooks/useTranslation';
 import { AI } from './pages/AI';
 import { Dashboard } from './pages/Dashboard';
 import { Editor } from './pages/Editor';
@@ -12,10 +13,13 @@ import { Setup } from './pages/Setup';
 import { Tasks } from './pages/Tasks';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation();
   const { user, loading, needsSetup } = useAuth();
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">{t('common.loading')}</div>
+    );
   }
 
   if (needsSetup) {
@@ -30,10 +34,13 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation();
   const { user, loading } = useAuth();
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">{t('common.loading')}</div>
+    );
   }
 
   if (user) {
@@ -55,15 +62,16 @@ function SetupRedirect() {
 }
 
 function NotFound() {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-bg px-6 text-center">
-      <p className="text-5xl font-semibold text-fg">404</p>
-      <p className="text-sm text-fg-muted">This page doesn&apos;t exist or was moved.</p>
+      <p className="text-5xl font-semibold text-fg">{t('pages.notFound.title')}</p>
+      <p className="text-sm text-fg-muted">{t('pages.notFound.pageMoved')}</p>
       <Link
         to="/"
         className="px-4 py-2 rounded-md bg-primary text-primary-fg text-sm font-medium hover:bg-primary-hover transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
       >
-        Back to dashboard
+        {t('pages.notFound.backToDashboard')}
       </Link>
     </div>
   );

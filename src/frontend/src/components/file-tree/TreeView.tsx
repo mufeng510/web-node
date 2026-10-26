@@ -1,5 +1,6 @@
 import { AlertTriangle, FolderX } from 'lucide-react';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 import { cn } from '../../lib/utils';
 import { Button } from '../ui/Button';
 import { EmptyState } from '../ui/EmptyState';
@@ -52,6 +53,7 @@ export function TreeView({
   error,
   onRetry,
 }: TreeViewProps) {
+  const { t } = useTranslation();
   const [focusedPath, setFocusedPath] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -179,7 +181,7 @@ export function TreeView({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <Spinner size="md" label="Loading files" />
+        <Spinner size="md" label={t('components.layout.spinnerLoadingFiles')} />
       </div>
     );
   }
@@ -189,12 +191,12 @@ export function TreeView({
       <EmptyState
         compact
         icon={AlertTriangle}
-        title="Could not load files"
+        title={t('components.fileTree.couldNotLoadFiles')}
         description={error.message}
         actions={
           onRetry && (
             <Button size="sm" variant="secondary" onClick={onRetry}>
-              Retry
+              {t('common.retry')}
             </Button>
           )
         }
@@ -207,8 +209,8 @@ export function TreeView({
       <EmptyState
         compact
         icon={FolderX}
-        title="No files yet"
-        description="Create a note to see it appear here."
+        title={t('components.fileTree.noFilesYet')}
+        description={t('components.fileTree.createNote')}
       />
     );
   }
@@ -217,7 +219,7 @@ export function TreeView({
     <div
       ref={containerRef}
       role="tree"
-      aria-label="Files"
+      aria-label={t('components.layout.labelFiles')}
       tabIndex={-1}
       onKeyDown={handleKeyDown}
       className={cn('min-h-0 flex-1 overflow-y-auto p-2 outline-none', '[scrollbar-gutter:stable]')}

@@ -16,6 +16,7 @@ import { EmptyState } from '../../../components/ui/EmptyState';
 import { Input } from '../../../components/ui/Input';
 import { Spinner } from '../../../components/ui/Spinner';
 import { useLibraries } from '../../../hooks/useLibraries';
+import { useTranslation } from '../../../hooks/useTranslation';
 import { api } from '../../../services/api';
 import { formatDistanceToNow } from '../../../utils/format';
 
@@ -31,6 +32,7 @@ interface McpToken {
 }
 
 export default function McpSection() {
+  const { t } = useTranslation();
   const { currentLibrary } = useLibraries();
   const [tokens, setTokens] = useState<McpToken[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,7 +59,7 @@ export default function McpSection() {
       })) as unknown as { success: boolean; data: McpToken[] };
       if (res.success) setTokens(res.data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load tokens');
+      setError(err instanceof Error ? err.message : t('sections.mcp.errorLoadTokens'));
     } finally {
       setLoading(false);
     }
@@ -85,7 +87,7 @@ export default function McpSection() {
         await fetchTokens();
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create token');
+      setError(err instanceof Error ? err.message : t('sections.mcp.errorCreateToken'));
     } finally {
       setBusy(false);
     }
@@ -102,7 +104,7 @@ export default function McpSection() {
       setConfirmDeleteId(null);
       await fetchTokens();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to revoke token');
+      setError(err instanceof Error ? err.message : t('sections.mcp.errorRevokeToken'));
     } finally {
       setBusy(false);
     }
@@ -117,8 +119,8 @@ export default function McpSection() {
     return (
       <EmptyState
         icon={KeyRound}
-        title="No library selected"
-        description="Select a library to manage its MCP tokens."
+        title={t('sections.mcp.emptyNoLibrarySelected')}
+        description={t('sections.mcp.emptyManageTokens')}
       />
     );
   }
@@ -129,60 +131,69 @@ export default function McpSection() {
         {error && <Alert>{error}</Alert>}
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <Spinner size="md" label="Loading tokens" />
+            <Spinner size="md" label={t('sections.mcp.spinnerLoadingTokens')} />
           </div>
         ) : tokens.length === 0 ? (
           <EmptyState
             icon={KeyRound}
-            title="No tokens"
-            description="Create a token so external tools can access this library."
+            title={t('sections.mcp.emptyNoTokens')}
+            description={t('sections.mcp.emptyNoTokensDescription')}
           />
         ) : (
-          tokens.map((t) => (
+          tokens.map((token) => (
             <div
-              key={t.id}
-              className={`flex items-center gap-3 px-4 py-3 border border-border rounded-lg bg-bg-elevated ${t.revokedAt ? 'opacity-60' : ''}`}
+              key={token.id}
+              className={`flex items-center gap-3 px-4 py-3 border border-border rounded-lg bg-bg-elevated ${token.revokedAt ? 'opacity-60' : ''}`}
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-sm font-medium text-fg truncate">{t.name}</p>
-                  {t.revokedAt ? (
-                    <Badge variant="destructive">Revoked</Badge>
+                  <p className="text-sm font-medium text-fg truncate">{token.name}</p>
+                  {token.revokedAt ? (
+                    <Badge variant="destructive">{t('sections.mcp.badgeRevoked')}</Badge>
                   ) : (
-                    <Badge variant="success">Active</Badge>
+                    <Badge variant="success">{t('sections.mcp.badgeActive')}</Badge>
                   )}
                   {[
-                    t.permissions.read && 'read',
-                    t.permissions.write && 'write',
-                    t.permissions.git && 'git',
+                    token.permissions.read && 'read',
+                    token.permissions.write && 'write',
+                    token.permissions.git && 'git',
                   ]
-                    .filter(Boolean)
-                    .map((p) => (
-                      <Badge key={p as string} variant="outline">
-                        {p}
-                      </Badge>
-                    ))}
+                    .filter((p): p is string => Boolean(p))
+                    .map((p) => {
+                      const permKey = `sections.mcp.perm${p.charAt(0).toUpperCase() + p.slice(1)}`;
+                      return (
+                        <Badge key={p} variant="outline">
+                          {t(permKey)}
+                        </Badge>
+                      );
+                    })}
                 </div>
                 <p className="text-xs text-fg-subtle mt-0.5">
-                  Created {formatDistanceToNow(t.createdAt)}
-                  {t.expiresAt ? ` · expires ${formatDistanceToNow(t.expiresAt)}` : ''}
-                  {t.lastUsedAt
-                    ? ` · last used ${formatDistanceToNow(t.lastUsedAt)}`
-                    : ' · never used'}
+                  {t('sections.mcp.textCreated', { date: formatDistanceToNow(token.createdAt) })}
+                  {token.expiresAt
+                    ? ` · ${t('sections.mcp.textExpires', { date: formatDistanceToNow(token.expiresAt) })}`
+                    : ''}
+                  {token.lastUsedAt
+                    ? ` · ${t('sections.mcp.textLastUsed', { date: formatDistanceToNow(token.lastUsedAt) })}`
+                    : ` · ${t('sections.mcp.textNeverUsed')}`}
                 </p>
               </div>
-              {!t.revokedAt && (
+              {!token.revokedAt && (
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => handleDelete(t.id)}
+                  onClick={() => handleDelete(token.id)}
                   disabled={busy}
                   aria-label={
-                    confirmDeleteId === t.id ? `Confirm revoke ${t.name}` : `Revoke ${t.name}`
+                    confirmDeleteId === token.id
+                      ? t('sections.mcp.ariaConfirmRevoke', { name: token.name })
+                      : t('sections.mcp.ariaRevoke', { name: token.name })
                   }
                 >
                   <Trash2 className="w-4 h-4" aria-hidden="true" />
-                  {confirmDeleteId === t.id ? 'Confirm?' : 'Revoke'}
+                  {confirmDeleteId === token.id
+                    ? t('sections.mcp.btnConfirm')
+                    : t('sections.mcp.btnRevoke')}
                 </Button>
               )}
             </div>
@@ -193,11 +204,11 @@ export default function McpSection() {
       <Dialog open={showCreate} onOpenChange={closeDialog}>
         <DialogContent size="sm">
           <DialogHeader>
-            <DialogTitle>New token</DialogTitle>
+            <DialogTitle>{t('sections.mcp.dialogNewToken')}</DialogTitle>
             <DialogDescription>
               {createdToken
-                ? 'Copy this token now — it will never be shown again.'
-                : `Grant an external tool access to ${currentLibrary.name}.`}
+                ? t('sections.mcp.dialogCopyToken')
+                : t('sections.mcp.dialogGrantAccess', { libraryName: currentLibrary.name })}
             </DialogDescription>
           </DialogHeader>
           {createdToken ? (
@@ -206,7 +217,7 @@ export default function McpSection() {
                 {createdToken}
               </code>
               <DialogFooter>
-                <Button onClick={closeDialog}>Done</Button>
+                <Button onClick={closeDialog}>{t('sections.mcp.btnDone')}</Button>
               </DialogFooter>
             </div>
           ) : (
@@ -214,28 +225,28 @@ export default function McpSection() {
               <div className="p-6 space-y-4">
                 <Input
                   id="tokenName"
-                  label="Name"
+                  label={t('sections.mcp.labelTokenName')}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="CI runner"
+                  placeholder={t('sections.mcp.placeholderTokenName')}
                 />
                 <Checkbox
-                  label="Write access (create/edit files)"
+                  label={t('sections.mcp.labelWriteAccess')}
                   checked={canWrite}
                   onChange={(e) => setCanWrite(e.target.checked)}
                 />
                 <Checkbox
-                  label="Git access (commit/push/pull)"
+                  label={t('sections.mcp.labelGitAccess')}
                   checked={canGit}
                   onChange={(e) => setCanGit(e.target.checked)}
                 />
               </div>
               <DialogFooter>
                 <Button variant="secondary" onClick={closeDialog}>
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
                 <Button onClick={handleCreate} disabled={busy || !name.trim()}>
-                  {busy ? 'Creating…' : 'Create'}
+                  {busy ? t('common.creating') : t('common.create')}
                 </Button>
               </DialogFooter>
             </>

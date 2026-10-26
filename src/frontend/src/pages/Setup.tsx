@@ -6,8 +6,10 @@ import { Card } from '../components/ui/Card';
 import { IconButton } from '../components/ui/IconButton';
 import { Input } from '../components/ui/Input';
 import { useAuth } from '../hooks/useAuth';
+import { useTranslation } from '../hooks/useTranslation';
 
 export function Setup() {
+  const { t } = useTranslation();
   const { setup } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -21,12 +23,12 @@ export function Setup() {
     setError('');
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError(t('pages.setup.errorPasswordsDoNotMatch'));
       return;
     }
 
     if (password.length < 8) {
-      setError('Password must be at least 8 characters');
+      setError(t('pages.setup.errorPasswordTooShort'));
       return;
     }
 
@@ -35,7 +37,7 @@ export function Setup() {
     try {
       await setup(email, password);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Setup failed');
+      setError(err instanceof Error ? err.message : t('pages.setup.errorFailed'));
     } finally {
       setLoading(false);
     }
@@ -58,8 +60,8 @@ export function Setup() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
             <CheckCircle className="w-8 h-8 text-primary" aria-hidden="true" />
           </div>
-          <h1 className="text-3xl font-semibold text-fg">Welcome to Web Note</h1>
-          <p className="text-fg-muted mt-2">Create your admin account to get started</p>
+          <h1 className="text-3xl font-semibold text-fg">{t('pages.setup.title')}</h1>
+          <p className="text-fg-muted mt-2">{t('pages.setup.subtitle')}</p>
         </div>
 
         <Card className="p-6">
@@ -69,12 +71,12 @@ export function Setup() {
             <div className="mb-4">
               <Input
                 id="email"
-                label="Admin Email"
+                label={t('pages.setup.adminEmail')}
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 leadingIcon={<Mail className="w-5 h-5" />}
-                placeholder="admin@example.com"
+                placeholder={t('pages.setup.placeholderEmail')}
                 required
                 autoComplete="email"
                 disabled={loading}
@@ -84,7 +86,7 @@ export function Setup() {
             <div className="mb-4">
               <Input
                 id="password"
-                label="Password"
+                label={t('pages.setup.password')}
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -100,7 +102,7 @@ export function Setup() {
             <div className="mb-6">
               <Input
                 id="confirmPassword"
-                label="Confirm Password"
+                label={t('pages.setup.confirmPassword')}
                 type={showPassword ? 'text' : 'password'}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
@@ -113,7 +115,7 @@ export function Setup() {
             </div>
 
             <Button type="submit" disabled={loading} className="w-full" size="lg">
-              {loading ? 'Creating account...' : 'Create Admin Account'}
+              {loading ? t('pages.setup.creatingAccount') : t('pages.setup.createAdminAccount')}
             </Button>
           </form>
         </Card>

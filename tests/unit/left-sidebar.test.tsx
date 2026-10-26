@@ -164,7 +164,7 @@ describe('LeftSidebar file tree', () => {
 
     const aside = container.querySelector('aside');
     const tree = aside?.querySelector('[role="tree"]') as HTMLElement | null;
-    const nav = aside?.querySelector('nav[aria-label="主导航"]') as HTMLElement | null;
+    const nav = aside?.querySelector('nav[aria-label="Main navigation"]') as HTMLElement | null;
     expect(tree).toBeTruthy();
     expect(nav).toBeTruthy();
 

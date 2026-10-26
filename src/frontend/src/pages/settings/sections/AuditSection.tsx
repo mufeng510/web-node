@@ -5,6 +5,7 @@ import { Button } from '../../../components/ui/Button';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { Input } from '../../../components/ui/Input';
 import { Spinner } from '../../../components/ui/Spinner';
+import { useTranslation } from '../../../hooks/useTranslation';
 import { api } from '../../../services/api';
 import { formatDistanceToNow } from '../../../utils/format';
 
@@ -21,6 +22,7 @@ interface AuditItem {
 }
 
 export default function AuditSection() {
+  const { t } = useTranslation();
   const [action, setAction] = useState('');
   const [resourceType, setResourceType] = useState('');
   const [items, setItems] = useState<AuditItem[]>([]);
@@ -71,34 +73,34 @@ export default function AuditSection() {
       >
         <div className="flex-1 min-w-0">
           <Input
-            aria-label="Filter by action"
+            aria-label={t('sections.audit.ariaFilterAction')}
             value={action}
             onChange={(e) => setAction(e.target.value)}
-            placeholder="Filter by action (e.g. auth.login)"
+            placeholder={t('sections.audit.placeholderAction')}
           />
         </div>
         <div className="flex-1 min-w-0">
           <Input
-            aria-label="Filter by resource type"
+            aria-label={t('sections.audit.ariaFilterResourceType')}
             value={resourceType}
             onChange={(e) => setResourceType(e.target.value)}
-            placeholder="Filter by resource type (e.g. file)"
+            placeholder={t('sections.audit.placeholderResourceType')}
           />
         </div>
         <Button type="submit" disabled={loading}>
-          Apply
+          {t('sections.audit.btnApply')}
         </Button>
       </form>
 
       {loading && items.length === 0 ? (
         <div className="flex items-center justify-center py-12">
-          <Spinner size="md" label="Loading audit logs" />
+          <Spinner size="md" label={t('sections.audit.spinnerLoadingAuditLogs')} />
         </div>
       ) : items.length === 0 ? (
         <EmptyState
           icon={ScrollText}
-          title="No audit events"
-          description="No events match the current filters."
+          title={t('sections.audit.emptyNoAuditEvents')}
+          description={t('sections.audit.emptyNoEventsMatch')}
         />
       ) : (
         <div className="max-w-4xl mx-auto space-y-2">
@@ -131,7 +133,7 @@ export default function AuditSection() {
           {hasMore && nextCursor && (
             <div className="flex justify-center pt-2">
               <Button variant="secondary" onClick={() => fetchAudit(nextCursor)} disabled={loading}>
-                {loading ? 'Loading…' : 'Load more'}
+                {loading ? t('sections.audit.btnLoading') : t('sections.audit.btnLoadMore')}
               </Button>
             </div>
           )}

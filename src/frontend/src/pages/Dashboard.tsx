@@ -16,8 +16,10 @@ import { Input } from '../components/ui/Input';
 import { PageContextBar } from '../components/ui/PageContextBar';
 import { Spinner } from '../components/ui/Spinner';
 import { type DiscoverDirectory, type DiscoverResult, useLibraries } from '../hooks/useLibraries';
+import { useTranslation } from '../hooks/useTranslation';
 
 export function Dashboard() {
+  const { t } = useTranslation();
   const { currentLibrary, createLibrary, discoverLibraryDirs } = useLibraries();
   const navigate = useNavigate();
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -122,9 +124,9 @@ export function Dashboard() {
   };
 
   const buildBreadcrumbSegments = (path: string) => {
-    if (!path) return [{ name: 'Root', path: '' }];
+    if (!path) return [{ name: t('pages.dashboard.breadcrumbRoot'), path: '' }];
     const parts = path.split('/');
-    const segments = [{ name: 'Root', path: '' }];
+    const segments = [{ name: t('pages.dashboard.breadcrumbRoot'), path: '' }];
     let current = '';
     for (const part of parts) {
       current = current ? `${current}/${part}` : part;
@@ -140,11 +142,11 @@ export function Dashboard() {
       {!currentLibrary ? (
         <EmptyState
           icon={FolderGit2}
-          title="No Library Selected"
-          description="Create or select a library to get started"
+          title={t('pages.dashboard.noLibrarySelected')}
+          description={t('pages.dashboard.createOrSelectLibrary')}
           actions={
             <Button onClick={() => setShowCreateModal(true)}>
-              <Plus className="w-4 h-4" aria-hidden="true" /> Create Library
+              <Plus className="w-4 h-4" aria-hidden="true" /> {t('pages.dashboard.createLibrary')}
             </Button>
           }
         />
@@ -155,13 +157,13 @@ export function Dashboard() {
             detail={currentLibrary.path}
             actions={[
               {
-                label: 'New Note',
+                label: t('pages.dashboard.newNote'),
                 onClick: handleNewNote,
                 primary: true,
                 icon: <Plus className="w-4 h-4" aria-hidden="true" />,
               },
               {
-                label: 'New Library',
+                label: t('pages.dashboard.newLibrary'),
                 onClick: () => setShowCreateModal(true),
                 icon: <FolderGit2 className="w-4 h-4" aria-hidden="true" />,
               },
@@ -170,12 +172,12 @@ export function Dashboard() {
 
           <EmptyState
             icon={FolderGit2}
-            title={`Welcome to ${currentLibrary.name}`}
-            description="Create your first note, or pick one from the files in the sidebar."
+            title={t('pages.dashboard.welcomeTo', { name: currentLibrary.name })}
+            description={t('pages.dashboard.createFirstNote')}
             actions={
               <Button variant="secondary" onClick={handleNewNote}>
                 <Plus className="w-4 h-4" aria-hidden="true" />
-                New Note
+                {t('pages.dashboard.newNote')}
               </Button>
             }
           />
@@ -185,11 +187,11 @@ export function Dashboard() {
       <Dialog open={showCreateModal} onOpenChange={handleDialogClose}>
         <DialogContent size="md">
           <DialogHeader>
-            <DialogTitle>Add Library</DialogTitle>
+            <DialogTitle>{t('pages.dashboard.dialogAddLibrary')}</DialogTitle>
             <DialogDescription>
               {mode === 'create'
-                ? 'Create a new library by specifying a name and folder path'
-                : 'Browse and select an existing folder under /data to register as a library'}
+                ? t('pages.dashboard.dialogCreateNew')
+                : t('pages.dashboard.dialogSelectExisting')}
             </DialogDescription>
           </DialogHeader>
 
@@ -205,7 +207,7 @@ export function Dashboard() {
                     : 'text-fg-muted hover:bg-bg-hover hover:text-fg'
                 }`}
               >
-                Create new
+                {t('pages.dashboard.modeCreateNew')}
               </button>
               <button
                 type="button"
@@ -216,7 +218,7 @@ export function Dashboard() {
                     : 'text-fg-muted hover:bg-bg-hover hover:text-fg'
                 }`}
               >
-                Select existing
+                {t('pages.dashboard.modeSelectExisting')}
               </button>
             </div>
 
@@ -225,17 +227,17 @@ export function Dashboard() {
               <div className="space-y-4">
                 <Input
                   id="libraryName"
-                  label="Library Name"
+                  label={t('pages.dashboard.labelLibraryName')}
                   value={newLibraryName}
                   onChange={(e) => setNewLibraryName(e.target.value)}
-                  placeholder="My Notes"
+                  placeholder={t('pages.dashboard.placeholderLibraryName')}
                 />
                 <Input
                   id="libraryPath"
-                  label="Folder Path (relative to /data)"
+                  label={t('pages.dashboard.labelFolderPath')}
                   value={newLibraryPath}
                   onChange={(e) => setNewLibraryPath(e.target.value)}
-                  placeholder="my-notes"
+                  placeholder={t('pages.dashboard.placeholderFolderPath')}
                 />
               </div>
             )}
@@ -261,7 +263,11 @@ export function Dashboard() {
                             ? 'text-fg font-medium'
                             : 'text-fg-muted hover:bg-bg-hover hover:text-fg'
                         }`}
-                        aria-label={segment.path ? `Go to ${segment.path}` : 'Go to root'}
+                        aria-label={
+                          segment.path
+                            ? t('pages.dashboard.ariaGoToPath', { path: segment.path })
+                            : t('pages.dashboard.ariaGoToRoot')
+                        }
                         aria-current={segment.path === discoverPath ? 'location' : undefined}
                       >
                         {segment.name}
@@ -276,10 +282,10 @@ export function Dashboard() {
                     type="button"
                     onClick={handleParentClick}
                     className="flex items-center gap-2 px-3 py-2 text-sm text-fg-muted hover:bg-bg-hover hover:text-fg rounded-md transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
-                    aria-label="Go to parent directory"
+                    aria-label={t('pages.dashboard.ariaGoToParent')}
                   >
                     <ChevronLeft className="w-4 h-4" aria-hidden="true" />
-                    <span>Up to parent</span>
+                    <span>{t('pages.dashboard.btnUpToParent')}</span>
                   </button>
                 )}
 
@@ -287,11 +293,11 @@ export function Dashboard() {
                 <div className="border border-border rounded-md max-h-64 overflow-y-auto bg-bg">
                   {discoverLoading ? (
                     <div className="flex items-center justify-center py-8">
-                      <Spinner size="md" label="Loading directories" />
+                      <Spinner size="md" label={t('pages.dashboard.spinnerLoadingDirectories')} />
                     </div>
                   ) : !discoverData || discoverData.directories.length === 0 ? (
                     <div className="flex items-center justify-center py-8 text-fg-muted text-sm">
-                      No subdirectories
+                      {t('pages.dashboard.emptyNoSubdirectories')}
                     </div>
                   ) : (
                     <ul className="divide-y divide-border">
@@ -303,8 +309,8 @@ export function Dashboard() {
                             className="w-full px-3 py-2.5 text-left flex items-center gap-3 hover:bg-bg-hover transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
                             aria-label={
                               dir.registered
-                                ? `${dir.name}, already added as library`
-                                : `Navigate into ${dir.name}`
+                                ? t('pages.dashboard.ariaAlreadyAdded', { name: dir.name })
+                                : t('pages.dashboard.ariaNavigateInto', { name: dir.name })
                             }
                           >
                             <svg
@@ -324,7 +330,7 @@ export function Dashboard() {
                             <span className="flex-1 truncate font-medium text-fg">{dir.name}</span>
                             {dir.registered && (
                               <Badge variant="success" className="flex-shrink-0">
-                                Added
+                                {t('pages.dashboard.badgeAdded')}
                               </Badge>
                             )}
                           </button>
@@ -337,10 +343,10 @@ export function Dashboard() {
                 {/* Library Name Input for Selected Folder */}
                 <Input
                   id="selectedLibraryName"
-                  label="Library Name"
+                  label={t('pages.dashboard.labelSelectedLibraryName')}
                   value={selectedFolderName}
                   onChange={(e) => setSelectedFolderName(e.target.value)}
-                  placeholder="Enter library name"
+                  placeholder={t('pages.dashboard.placeholderEnterLibraryName')}
                   disabled={discoverLoading}
                 />
               </div>
@@ -349,11 +355,11 @@ export function Dashboard() {
 
           <DialogFooter>
             <Button variant="secondary" onClick={handleDialogClose}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             {mode === 'create' ? (
               <Button onClick={handleCreateLibrary} disabled={creating}>
-                {creating ? 'Creating...' : 'Create'}
+                {creating ? t('common.creating') : t('common.create')}
               </Button>
             ) : (
               <Button
@@ -366,7 +372,7 @@ export function Dashboard() {
                   isCurrentFolderRegistered()
                 }
               >
-                {creating ? 'Adding...' : 'Add this folder'}
+                {creating ? t('common.adding') : t('pages.dashboard.btnAddThisFolder')}
               </Button>
             )}
           </DialogFooter>

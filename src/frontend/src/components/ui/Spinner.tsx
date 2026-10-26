@@ -1,4 +1,5 @@
 import { type HTMLAttributes, forwardRef } from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 import { cn } from '../../lib/utils';
 
 export interface SpinnerProps extends HTMLAttributes<HTMLOutputElement> {
@@ -13,18 +14,27 @@ const sizeStyles = {
 };
 
 export const Spinner = forwardRef<HTMLOutputElement, SpinnerProps>(
-  ({ className, size = 'md', label = 'Loading', ...props }, ref) => (
-    <output ref={ref} aria-label={label} className={cn('inline-flex', className)} {...props}>
-      <span
-        aria-hidden="true"
-        className={cn(
-          'animate-spin rounded-full border-primary border-t-transparent',
-          sizeStyles[size]
-        )}
-      />
-      <span className="sr-only">{label}</span>
-    </output>
-  )
+  ({ className, size = 'md', label, ...props }, ref) => {
+    const { t } = useTranslation();
+    const resolvedLabel = label ?? t('common.loading');
+    return (
+      <output
+        ref={ref}
+        aria-label={resolvedLabel}
+        className={cn('inline-flex', className)}
+        {...props}
+      >
+        <span
+          aria-hidden="true"
+          className={cn(
+            'animate-spin rounded-full border-primary border-t-transparent',
+            sizeStyles[size]
+          )}
+        />
+        <span className="sr-only">{resolvedLabel}</span>
+      </output>
+    );
+  }
 );
 
 Spinner.displayName = 'Spinner';

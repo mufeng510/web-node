@@ -5,6 +5,7 @@ import { useLibraries } from '../../hooks/useLibraries';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { useRouteFocus } from '../../hooks/useRouteFocus';
 import { useSidebarSize } from '../../hooks/useSidebarSize';
+import { useTranslation } from '../../hooks/useTranslation';
 import { routes } from '../../routes';
 import { CommandPalette } from '../command-palette/CommandPalette';
 import type { BreadcrumbItem } from '../ui/Breadcrumb';
@@ -22,6 +23,7 @@ export function Layout() {
   const location = useLocation();
   const params = useParams();
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
   const { libraries, currentLibrary, setCurrentLibrary, loading: libLoading } = useLibraries();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -54,7 +56,9 @@ export function Layout() {
 
     if (segments[0] === 'editor') {
       const libraryName =
-        libraries.find((l) => l.id === params.libraryId)?.name ?? currentLibrary?.name ?? 'Library';
+        libraries.find((l) => l.id === params.libraryId)?.name ??
+        currentLibrary?.name ??
+        t('common.library');
       items.push({ label: libraryName, href: routes.home });
       const notePath = params['*'];
       if (notePath) {
@@ -67,11 +71,11 @@ export function Layout() {
 
     const match = WORKSPACE_NAV.find((item) => item.to === location.pathname);
     if (match) {
-      items.push({ label: match.label });
+      items.push({ label: t(match.label) });
       return items;
     }
     if (location.pathname === routes.settings) {
-      items.push({ label: 'Settings' });
+      items.push({ label: t('nav.settings') });
       return items;
     }
     return items;
@@ -98,7 +102,7 @@ export function Layout() {
   if (libLoading) {
     return (
       <div className="h-[var(--shell-h)] flex items-center justify-center bg-bg">
-        <Spinner label="Loading libraries" />
+        <Spinner label={t('components.layout.spinnerLoadingLibraries')} />
       </div>
     );
   }
@@ -110,7 +114,7 @@ export function Layout() {
           href="#main-content"
           className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[var(--z-toast)] focus:rounded-md focus:bg-bg-elevated focus:px-3 focus:py-2 focus:text-sm focus:shadow-lg"
         >
-          跳到主内容
+          {t('components.layout.skipToMainContent')}
         </a>
 
         <TopBar

@@ -10,6 +10,7 @@ import {
   X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { useTranslation } from '../../hooks/useTranslation';
 import { cn } from '../../lib/utils';
 import { DANGEROUS_SETTINGS_TABS, type SettingsTab } from './settingsTabs';
 
@@ -26,15 +27,15 @@ const ICONS: Record<SettingsTab, LucideIcon> = {
 };
 
 const LABELS: Record<SettingsTab, string> = {
-  account: '账号',
-  security: '安全',
-  appearance: '外观',
-  advanced: '高级',
-  diagnostics: '诊断',
-  git: 'Git',
-  mcp: 'MCP Tokens',
-  users: '用户',
-  audit: '审计日志',
+  account: 'settings.account',
+  security: 'settings.security',
+  appearance: 'settings.appearance',
+  advanced: 'settings.advanced',
+  diagnostics: 'settings.diagnostics',
+  git: 'common.git',
+  mcp: 'common.mcp',
+  users: 'common.users',
+  audit: 'common.audit',
 };
 
 export interface SettingsSectionNavProps {
@@ -44,6 +45,7 @@ export interface SettingsSectionNavProps {
 }
 
 export function SettingsSectionNav({ groups, activeTab, onChange }: SettingsSectionNavProps) {
+  const { t } = useTranslation();
   const visibleGroups = groups.filter((group) => group.tabs.length > 0);
 
   return (
@@ -56,7 +58,7 @@ export function SettingsSectionNav({ groups, activeTab, onChange }: SettingsSect
               id={headingId}
               className="px-2 pb-1 text-xs font-medium text-fg-subtle uppercase tracking-wider"
             >
-              {group.label}
+              {t(group.label)}
             </p>
             <ul className="space-y-0.5" aria-labelledby={headingId}>
               {group.tabs.map((tab) => {
@@ -77,7 +79,7 @@ export function SettingsSectionNav({ groups, activeTab, onChange }: SettingsSect
                       )}
                     >
                       <Icon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
-                      {LABELS[tab]}
+                      {t(LABELS[tab])}
                       {DANGEROUS_SETTINGS_TABS.includes(tab) && (
                         <X
                           className="w-3.5 h-3.5 ml-auto flex-shrink-0 text-fg-subtle"

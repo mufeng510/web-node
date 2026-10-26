@@ -11,6 +11,7 @@ import { SettingRow } from '../../../components/ui/SettingRow';
 import { Spinner } from '../../../components/ui/Spinner';
 import { Switch } from '../../../components/ui/Switch';
 import { useLibraries } from '../../../hooks/useLibraries';
+import { useTranslation } from '../../../hooks/useTranslation';
 import { api } from '../../../services/api';
 
 type AuthType = 'none' | 'https' | 'ssh';
@@ -26,25 +27,6 @@ interface GitConfig {
   lastBackupAt: number | null;
 }
 
-const AUTH_OPTIONS: { value: AuthType; label: string }[] = [
-  { value: 'none', label: 'None (public repo)' },
-  { value: 'https', label: 'HTTPS (username / token)' },
-  { value: 'ssh', label: 'SSH (private key)' },
-];
-
-const CREDENTIALS_HINT: Record<AuthType, string> = {
-  none: 'No credentials are used.',
-  https: 'Format: username:password, or a personal access token on its own.',
-  ssh: 'Absolute path to the private key file inside the container.',
-};
-
-const SCHEDULE_PRESETS: { label: string; value: string }[] = [
-  { label: 'Every 5 minutes', value: '*/5 * * * *' },
-  { label: 'Every hour', value: '0 * * * *' },
-  { label: 'Every day at 02:00', value: '0 2 * * *' },
-  { label: 'Every Monday at 03:00', value: '0 3 * * 1' },
-];
-
 interface DetectedRepo {
   isRepository: boolean;
   remotes: { name: string; url: string; fetchUrl: string; pushUrl: string }[];
@@ -53,6 +35,27 @@ interface DetectedRepo {
 }
 
 export default function GitSection() {
+  const { t } = useTranslation();
+
+  const AUTH_OPTIONS: { value: AuthType; label: string }[] = [
+    { value: 'none', label: t('sections.git.authNone') },
+    { value: 'https', label: t('sections.git.authHttps') },
+    { value: 'ssh', label: t('sections.git.authSsh') },
+  ];
+
+  const CREDENTIALS_HINT: Record<AuthType, string> = {
+    none: t('sections.git.hintCredentialsNone'),
+    https: t('sections.git.hintCredentialsStored'),
+    ssh: t('sections.git.hintCredentialsNone'),
+  };
+
+  const SCHEDULE_PRESETS: { label: string; value: string }[] = [
+    { label: t('sections.git.presetEvery5Minutes'), value: '*/5 * * * *' },
+    { label: t('sections.git.presetEveryHour'), value: '0 * * * *' },
+    { label: t('sections.git.presetEveryDay2am'), value: '0 2 * * *' },
+    { label: t('sections.git.presetEveryMonday3am'), value: '0 3 * * 1' },
+  ];
+
   const { currentLibrary, updateLibrary } = useLibraries();
   const [config, setConfig] = useState<GitConfig | null>(null);
   const [detected, setDetected] = useState<DetectedRepo | null>(null);
@@ -114,10 +117,10 @@ export default function GitSection() {
         setCredentials('');
         setClearCredentials(false);
       } else {
-        setError('Failed to load Git configuration');
+        setError(t('sections.git.errorLoadGit'));
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load Git configuration');
+      setError(err instanceof Error ? err.message : t('sections.git.errorLoadGit'));
     } finally {
       setLoading(false);
     }
@@ -143,17 +146,20 @@ export default function GitSection() {
         error?: { message?: string };
       };
       if (res.success) {
-        setTestResult({ type: 'success', message: res.data?.message ?? 'Connection successful' });
+        setTestResult({
+          type: 'success',
+          message: res.data?.message ?? t('sections.git.msgConnectionSuccessful'),
+        });
       } else {
         setTestResult({
           type: 'error',
-          message: res.error?.message || 'Test failed',
+          message: res.error?.message || t('sections.git.msgTestFailed'),
         });
       }
     } catch (err) {
       setTestResult({
         type: 'error',
-        message: err instanceof Error ? err.message : 'Test failed',
+        message: err instanceof Error ? err.message : t('sections.git.msgTestFailed'),
       });
     } finally {
       setTestLoading(false);
@@ -184,10 +190,10 @@ export default function GitSection() {
       await updateLibrary(currentLibrary.id, { git });
       setCredentials('');
       setClearCredentials(false);
-      setNotice('Git configuration saved.');
+      setNotice(t('sections.git.msgGitConfigSaved'));
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save Git configuration');
+      setError(err instanceof Error ? err.message : t('sections.git.errorSaveGit'));
     } finally {
       setSaving(false);
     }
@@ -197,8 +203,8 @@ export default function GitSection() {
     return (
       <EmptyState
         icon={GitBranch}
-        title="No library selected"
-        description="Select a library to configure its Git remote and automatic backups."
+        title={t('sections.git.emptyNoLibrarySelected')}
+        description={t('sections.git.emptyConfigureGit')}
       />
     );
   }
@@ -206,13 +212,13 @@ export default function GitSection() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Spinner size="md" label="Loading Git configuration" />
+        <Spinner size="md" label={t('sections.git.spinnerLoadingGitConfig')} />
       </div>
     );
   }
 
   if (!config) {
-    return <Alert>{error || 'Failed to load Git configuration'}</Alert>;
+    return <Alert>{error || t('sections.git.errorLoadGit')}</Alert>;
   }
 
   const lastBackup = config.lastBackupAt
@@ -227,14 +233,15 @@ export default function GitSection() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <GitBranch className="w-5 h-5 text-fg-muted" aria-hidden="true" /> Git Configuration
+            <GitBranch className="w-5 h-5 text-fg-muted" aria-hidden="true" />{' '}
+            {t('sections.git.title')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {detected?.isRepository && (
             <div className="rounded-md border border-border bg-bg-elevated px-3 py-2 text-sm">
               <div className="flex items-center gap-2">
-                <Badge variant="success">Git repository detected</Badge>
+                <Badge variant="success">{t('sections.git.detected')}</Badge>
                 {detected.branch && (
                   <span className="text-fg-muted">
                     on branch <span className="text-fg">{detected.branch}</span>
@@ -243,20 +250,20 @@ export default function GitSection() {
               </div>
               {detected.remotes.length > 0 ? (
                 <p className="mt-1.5 text-xs text-fg-muted">
-                  {detected.remotes.length === 1 ? 'Remote: ' : 'Remotes: '}
+                  {detected.remotes.length === 1
+                    ? t('sections.git.labelRemote')
+                    : t('sections.git.labelRemotes')}
                   {detected.remotes.map((r) => `${r.name} → ${r.url || '(no url)'}`).join(', ')}
                 </p>
               ) : (
-                <p className="mt-1.5 text-xs text-fg-muted">
-                  This repository has no remote configured yet.
-                </p>
+                <p className="mt-1.5 text-xs text-fg-muted">{t('sections.git.textNoRemote')}</p>
               )}
             </div>
           )}
 
           <SettingRow
-            label="Enable Git"
-            description="Track this library in a Git repository and allow commit, push and pull."
+            label={t('sections.git.labelEnableGit')}
+            description={t('sections.git.descEnableGit')}
             control={
               <Switch
                 id="git-enabled"
@@ -268,24 +275,24 @@ export default function GitSection() {
 
           <Input
             id="git-remote-url"
-            label="Remote URL"
+            label={t('sections.git.labelRemoteUrl')}
             value={config.remoteUrl}
             onChange={(e) => update('remoteUrl', e.target.value)}
-            placeholder="https://github.com/owner/repo.git"
+            placeholder={t('sections.git.placeholderRemoteUrl')}
             hint={
               detected?.isRepository
-                ? 'Prefilled from the repository. Leave empty to use the repository’s own remote as-is.'
-                : 'Leave empty to keep the repository local only.'
+                ? t('sections.git.hintRemoteUrlDetected')
+                : t('sections.git.hintRemoteUrlLocal')
             }
           />
 
           <Input
             id="git-branch"
-            label="Branch"
+            label={t('sections.git.labelBranch')}
             value={config.branch}
             onChange={(e) => update('branch', e.target.value)}
-            placeholder="main"
-            hint={detected?.branch ? 'Prefilled from the repository’s current branch.' : undefined}
+            placeholder={t('sections.git.placeholderBranch')}
+            hint={detected?.branch ? t('sections.git.hintBranch') : undefined}
           />
 
           <div className="flex items-center gap-2">
@@ -299,7 +306,7 @@ export default function GitSection() {
               ) : (
                 <RefreshCw className="w-4 h-4" />
               )}
-              {testLoading ? 'Testing…' : 'Test connection'}
+              {testLoading ? t('common.testing') : t('sections.git.btnTestConnection')}
             </Button>
             {testResult && (
               <Badge variant={testResult.type === 'success' ? 'success' : 'destructive'}>
@@ -310,7 +317,7 @@ export default function GitSection() {
 
           <Select
             id="git-auth-type"
-            label="Authentication"
+            label={t('sections.git.labelAuthentication')}
             value={config.authType}
             onChange={(e) => update('authType', e.target.value as AuthType)}
             options={AUTH_OPTIONS}
@@ -321,7 +328,7 @@ export default function GitSection() {
             <div className="space-y-2">
               <Input
                 id="git-credentials"
-                label="Credentials"
+                label={t('sections.git.labelCredentials')}
                 type="password"
                 value={credentials}
                 onChange={(e) => {
@@ -330,15 +337,17 @@ export default function GitSection() {
                 }}
                 disabled={clearCredentials}
                 placeholder={
-                  config.hasCredentials ? '•••••••• (unchanged)' : 'username:password or token'
+                  config.hasCredentials
+                    ? t('sections.git.placeholderCredentialsUnchanged')
+                    : t('sections.git.placeholderCredentials')
                 }
                 leadingIcon={<KeyRound className="w-4 h-4" />}
                 hint={
                   clearCredentials
-                    ? 'Credentials will be removed when you save.'
+                    ? t('sections.git.hintCredentialsRemove')
                     : config.hasCredentials
-                      ? 'Credentials are stored encrypted. Leave blank to keep the current value.'
-                      : 'No credentials stored yet.'
+                      ? t('sections.git.hintCredentialsStored')
+                      : t('sections.git.hintCredentialsNone')
                 }
               />
               {config.hasCredentials && (
@@ -350,7 +359,9 @@ export default function GitSection() {
                     setCredentials('');
                   }}
                 >
-                  {clearCredentials ? 'Keep credentials' : 'Clear credentials'}
+                  {clearCredentials
+                    ? t('sections.git.btnKeepCredentials')
+                    : t('sections.git.btnClearCredentials')}
                 </Button>
               )}
             </div>
@@ -366,8 +377,8 @@ export default function GitSection() {
         </CardHeader>
         <CardContent className="space-y-4">
           <SettingRow
-            label="Auto backup"
-            description="Commit and push this library automatically on a schedule."
+            label={t('sections.git.labelAutoBackup')}
+            description={t('sections.git.descAutoBackup')}
             control={
               <Switch
                 id="git-auto-backup"
@@ -381,11 +392,11 @@ export default function GitSection() {
             <>
               <Input
                 id="git-auto-backup-schedule"
-                label="Schedule (cron)"
+                label={t('sections.git.labelSchedule')}
                 value={config.autoBackupSchedule}
                 onChange={(e) => update('autoBackupSchedule', e.target.value)}
-                placeholder="0 * * * *"
-                hint="Five fields: minute hour day-of-month month day-of-week. The server checks every minute."
+                placeholder={t('sections.git.placeholderSchedule')}
+                hint={t('sections.git.hintSchedule')}
               />
               <div className="flex flex-wrap gap-2">
                 {SCHEDULE_PRESETS.map((preset) => (
@@ -404,11 +415,11 @@ export default function GitSection() {
           )}
 
           <div className="flex items-center justify-between text-sm">
-            <span className="text-fg-muted">Last backup</span>
+            <span className="text-fg-muted">{t('sections.git.labelLastBackup')}</span>
             {lastBackup ? (
               <Badge variant="success">{lastBackup}</Badge>
             ) : (
-              <Badge variant="outline">Never</Badge>
+              <Badge variant="outline">{t('sections.git.textNever')}</Badge>
             )}
           </div>
         </CardContent>
@@ -417,7 +428,7 @@ export default function GitSection() {
       <div className="flex justify-end">
         <Button onClick={handleSave} disabled={saving}>
           <Save className="w-4 h-4" aria-hidden="true" />
-          {saving ? 'Saving…' : 'Save Git configuration'}
+          {saving ? t('common.saving') : t('sections.git.btnSaveGitConfig')}
         </Button>
       </div>
     </div>

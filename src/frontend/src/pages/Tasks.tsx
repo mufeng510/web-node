@@ -9,6 +9,7 @@ import { Select } from '../components/ui/Select';
 import { Spinner } from '../components/ui/Spinner';
 import { Tabs } from '../components/ui/Tabs';
 import { useLibraries } from '../hooks/useLibraries';
+import { useTranslation } from '../hooks/useTranslation';
 import { api } from '../services/api';
 import { formatDistanceToNow } from '../utils/format';
 
@@ -40,6 +41,7 @@ const statusVariant = (status: string): 'default' | 'success' | 'destructive' | 
 };
 
 export function Tasks() {
+  const { t } = useTranslation();
   const { libraries, currentLibrary } = useLibraries();
   const [tab, setTab] = useState<TaskTab>('general');
   const [statusFilter, setStatusFilter] = useState('');
@@ -75,12 +77,8 @@ export function Tasks() {
   return (
     <div className="flex-1 flex flex-col min-h-0">
       <PageContextBar
-        title="Tasks"
-        detail={
-          tab === 'agent'
-            ? 'AI agent tasks (read-only: no executor is running)'
-            : 'Background tasks across your libraries'
-        }
+        title={t('pages.tasks.title')}
+        detail={tab === 'agent' ? t('pages.tasks.detailAgent') : t('pages.tasks.detailGeneral')}
         className="border-b-0"
       />
       {/* Tab and status controls are view state, not actions, so they stay in the
@@ -89,25 +87,25 @@ export function Tasks() {
         <div className="mx-auto w-full max-w-[var(--content-max-w)] flex flex-wrap items-center gap-2">
           <Tabs
             options={[
-              { id: 'general', label: 'General', icon: ClipboardList },
-              { id: 'agent', label: 'Agent', icon: Cpu },
+              { id: 'general', label: t('pages.tasks.tabGeneral'), icon: ClipboardList },
+              { id: 'agent', label: t('pages.tasks.tabAgent'), icon: Cpu },
             ]}
             value={tab}
             onChange={setTab}
-            ariaLabel="Task type"
+            ariaLabel={t('pages.tasks.ariaTaskType')}
           />
           <div className="w-36 flex-shrink-0">
             <Select
-              aria-label="Status filter"
+              aria-label={t('pages.tasks.ariaStatusFilter')}
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               options={[
-                { value: '', label: 'All statuses' },
-                { value: 'pending', label: 'Pending' },
-                { value: 'running', label: 'Running' },
-                { value: 'completed', label: 'Completed' },
-                { value: 'failed', label: 'Failed' },
-                { value: 'cancelled', label: 'Cancelled' },
+                { value: '', label: t('pages.tasks.filterAllStatuses') },
+                { value: 'pending', label: t('pages.tasks.filterPending') },
+                { value: 'running', label: t('pages.tasks.filterRunning') },
+                { value: 'completed', label: t('pages.tasks.filterCompleted') },
+                { value: 'failed', label: t('pages.tasks.filterFailed') },
+                { value: 'cancelled', label: t('pages.tasks.filterCancelled') },
               ]}
             />
           </div>
@@ -118,18 +116,18 @@ export function Tasks() {
         <ContentShell>
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <Spinner size="md" label="Loading tasks" />
+              <Spinner size="md" label={t('pages.tasks.spinnerLoadingTasks')} />
             </div>
           ) : items.length === 0 ? (
             <EmptyState
               icon={tab === 'agent' ? Cpu : ClipboardList}
-              title="No tasks"
+              title={t('pages.tasks.emptyNoTasks')}
               description={
                 tab === 'agent'
-                  ? 'No AI agent tasks yet. The agent executor is not running, so new tasks cannot be started from the UI.'
+                  ? t('pages.tasks.emptyNoAgentTasks')
                   : currentLibrary
-                    ? `No tasks in ${currentLibrary.name}.`
-                    : 'No tasks found.'
+                    ? t('pages.tasks.emptyNoTasksInLibrary', { name: currentLibrary.name })
+                    : t('pages.tasks.emptyNoTasksFound')
               }
             />
           ) : (
@@ -143,12 +141,14 @@ export function Tasks() {
                     <p className="text-sm font-medium text-fg truncate">{titleOf(task)}</p>
                     <p className="text-xs text-fg-subtle mt-0.5">
                       {task.libraryId
-                        ? `${libraries.find((l) => l.id === task.libraryId)?.name ?? 'Library'} · `
+                        ? `${libraries.find((l) => l.id === task.libraryId)?.name ?? t('common.library')} · `
                         : ''}
                       {formatDistanceToNow(task.createdAt)}
                     </p>
                   </div>
-                  <Badge variant={statusVariant(task.status)}>{task.status}</Badge>
+                  <Badge variant={statusVariant(task.status)}>
+                    {t(`pages.tasks.status.${task.status}`) ?? task.status}
+                  </Badge>
                 </li>
               ))}
             </ul>

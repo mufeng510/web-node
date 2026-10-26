@@ -12,6 +12,8 @@ import { ScrollArea } from '../components/ui/ScrollArea';
 import { useAuth } from '../hooks/useAuth';
 import { useLibraries } from '../hooks/useLibraries';
 import { useTheme } from '../hooks/useTheme';
+import { useTranslation } from '../hooks/useTranslation';
+import { type Locale, getLocale, setLocale } from '../lib/i18n';
 import type { ThemeChoice } from '../lib/theme';
 import { cn } from '../lib/utils';
 import { api } from '../services/api';
@@ -65,9 +67,10 @@ export function Settings() {
   const [passwordSuccess, setPasswordSuccess] = useState(false);
 
   // Appearance tab
+  const { t } = useTranslation();
   const { theme, setTheme } = useTheme();
   const [fontSize, setFontSize] = useState(16);
-  const [language, setLanguage] = useState('en');
+  const [language, setLanguage] = useState<Locale>(getLocale());
   const fontSizeSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const appearanceSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -110,7 +113,8 @@ export function Settings() {
             setTheme(res.data.user.theme);
           }
           if (typeof res.data.user.language === 'string') {
-            setLanguage(res.data.user.language);
+            setLanguage(res.data.user.language as Locale);
+            setLocale(res.data.user.language as Locale);
           }
         }
       } catch (error) {
@@ -147,10 +151,10 @@ export function Settings() {
       a.download = 'webnote-config.json';
       a.click();
       URL.revokeObjectURL(url);
-      setAdvancedMsg('Configuration exported');
+      setAdvancedMsg(t('settings.msgConfigExported'));
     } catch (error) {
       console.error('Failed to export config:', error);
-      setAdvancedMsg(error instanceof Error ? error.message : 'Export failed');
+      setAdvancedMsg(error instanceof Error ? error.message : t('settings.msgExportFailed'));
     } finally {
       setAdvancedBusy(false);
     }
@@ -165,10 +169,10 @@ export function Settings() {
         data: { size: number };
       };
       if (!res.success) throw new Error('Backup failed');
-      setAdvancedMsg(`Database backup completed (${res.data.size} bytes)`);
+      setAdvancedMsg(t('settings.msgBackupCompleted', { size: res.data.size }));
     } catch (error) {
       console.error('Failed to back up database:', error);
-      setAdvancedMsg(error instanceof Error ? error.message : 'Backup failed');
+      setAdvancedMsg(error instanceof Error ? error.message : t('settings.errorBackupFailedShort'));
     } finally {
       setAdvancedBusy(false);
     }
@@ -208,12 +212,12 @@ export function Settings() {
     setPasswordSuccess(false);
 
     if (newPassword !== confirmPassword) {
-      setPasswordError('Passwords do not match');
+      setPasswordError(t('settings.errorPasswordsDoNotMatch'));
       return;
     }
 
     if (newPassword.length < 8) {
-      setPasswordError('Password must be at least 8 characters');
+      setPasswordError(t('settings.errorPasswordTooShort'));
       return;
     }
 
@@ -225,7 +229,7 @@ export function Settings() {
       setNewPassword('');
       setConfirmPassword('');
     } catch (error) {
-      setPasswordError(error instanceof Error ? error.message : 'Failed to change password');
+      setPasswordError(error instanceof Error ? error.message : t('settings.errorChangePassword'));
     } finally {
       setSaving(false);
     }
@@ -233,7 +237,7 @@ export function Settings() {
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      <PageContextBar title="Settings" />
+      <PageContextBar title={t('settings.title')} />
 
       <ScrollArea>
         <div className="flex flex-col sm:flex-row">
@@ -243,10 +247,10 @@ export function Settings() {
           >
             <SettingsSectionNav
               groups={[
-                { id: 'personal', label: '个人', tabs: PERSONAL_TABS },
+                { id: 'personal', label: 'settings.groupPersonal', tabs: PERSONAL_TABS },
                 {
                   id: 'system',
-                  label: '系统',
+                  label: 'settings.groupSystem',
                   tabs: isAdmin
                     ? SYSTEM_TABS
                     : SYSTEM_TABS.filter((t) => !ADMIN_ONLY_TABS.includes(t)),
@@ -267,10 +271,17 @@ export function Settings() {
               {activeTab === 'account' && (
                 <div className="max-w-md space-y-6">
                   <div>
-                    <h2 className="text-lg font-medium text-fg mb-4">Account Information</h2>
+                    <h2 className="text-lg font-medium text-fg mb-4">
+                      {t('settings.accountInformation')}
+                    </h2>
                     <div className="space-y-4">
-                      <Input id="email" label="Email" value={email} disabled />
-                      <Input id="role" label="Role" value={user?.role || 'user'} disabled />
+                      <Input id="email" label={t('common.email')} value={email} disabled />
+                      <Input
+                        id="role"
+                        label={t('common.role')}
+                        value={user?.role || 'user'}
+                        disabled
+                      />
                     </div>
                   </div>
                 </div>
@@ -279,15 +290,17 @@ export function Settings() {
               {activeTab === 'security' && (
                 <div className="max-w-md space-y-6">
                   <div>
-                    <h2 className="text-lg font-medium text-fg mb-4">Change Password</h2>
+                    <h2 className="text-lg font-medium text-fg mb-4">
+                      {t('settings.changePassword')}
+                    </h2>
                     <form onSubmit={handlePasswordChange} className="space-y-4">
                       {passwordError && <Alert>{passwordError}</Alert>}
                       {passwordSuccess && (
-                        <Alert variant="success">Password changed successfully</Alert>
+                        <Alert variant="success">{t('settings.alertPasswordChanged')}</Alert>
                       )}
                       <Input
                         id="currentPassword"
-                        label="Current Password"
+                        label={t('settings.labelCurrentPassword')}
                         type={showPasswords ? 'text' : 'password'}
                         value={currentPassword}
                         onChange={(e) => setCurrentPassword(e.target.value)}
@@ -296,7 +309,7 @@ export function Settings() {
                       />
                       <Input
                         id="newPassword"
-                        label="New Password"
+                        label={t('settings.labelNewPassword')}
                         type={showPasswords ? 'text' : 'password'}
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
@@ -305,7 +318,7 @@ export function Settings() {
                       />
                       <Input
                         id="confirmPassword"
-                        label="Confirm New Password"
+                        label={t('settings.labelConfirmNewPassword')}
                         type={showPasswords ? 'text' : 'password'}
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
@@ -313,24 +326,28 @@ export function Settings() {
                         placeholder="••••••••"
                       />
                       <Checkbox
-                        label="Show passwords"
+                        label={t('settings.checkboxShowPasswords')}
                         checked={showPasswords}
                         onChange={(e) => setShowPasswords(e.target.checked)}
                       />
                       <Button type="submit" disabled={saving} className="w-full">
-                        {saving ? 'Saving...' : 'Change Password'}
+                        {saving ? t('common.saving') : t('settings.btnChangePassword')}
                       </Button>
                     </form>
                   </div>
                   <div>
-                    <h2 className="text-lg font-medium text-fg mb-4">Sessions</h2>
+                    <h2 className="text-lg font-medium text-fg mb-4">{t('settings.sessions')}</h2>
                     <Button
                       variant="secondary"
                       className="w-full justify-between"
                       onClick={handleSignOutAll}
                       disabled={signingOutAll}
                     >
-                      <span>{signingOutAll ? 'Signing out...' : 'Sign out of all devices'}</span>
+                      <span>
+                        {signingOutAll
+                          ? t('settings.btnSigningOut')
+                          : t('settings.btnSignOutAllDevices')}
+                      </span>
                       <LogOut className="w-4 h-4" aria-hidden="true" />
                     </Button>
                   </div>
@@ -341,45 +358,59 @@ export function Settings() {
                 <div className="max-w-md space-y-6">
                   <div>
                     <fieldset>
-                      <legend className="text-lg font-medium text-fg mb-4 px-0">Theme</legend>
+                      <legend className="text-lg font-medium text-fg mb-4 px-0">
+                        {t('settings.legendTheme')}
+                      </legend>
                       <div className="grid grid-cols-3 gap-2">
-                        {(['light', 'dark', 'system'] as const).map((t) => (
+                        {(['light', 'dark', 'system'] as const).map((themeValue) => (
                           <button
-                            key={t}
+                            key={themeValue}
                             type="button"
-                            onClick={() => handleThemeChange(t)}
-                            aria-pressed={theme === t}
+                            onClick={() => handleThemeChange(themeValue)}
+                            aria-pressed={theme === themeValue}
                             className={cn(
                               'p-3 rounded-md border-2 text-center text-sm transition-colors duration-150',
                               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
-                              theme === t
+                              theme === themeValue
                                 ? 'border-primary bg-primary/5 text-fg'
                                 : 'border-border hover:border-border-strong text-fg-muted'
                             )}
                           >
-                            <span className="capitalize">{t}</span>
+                            <span className="capitalize">
+                              {themeValue === 'light'
+                                ? t('settings.btnLight')
+                                : themeValue === 'dark'
+                                  ? t('settings.btnDark')
+                                  : t('settings.btnSystem')}
+                            </span>
                           </button>
                         ))}
                       </div>
                     </fieldset>
                   </div>
                   <div>
-                    <h2 className="text-lg font-medium text-fg mb-4">Font Size</h2>
+                    <h2 className="text-lg font-medium text-fg mb-4">
+                      {t('settings.headingFontSize')}
+                    </h2>
                     <div className="flex items-center gap-4">
                       <input
                         type="range"
                         min="12"
                         max="24"
                         value={fontSize}
-                        aria-label="Font size"
+                        aria-label={t('settings.ariaFontSize')}
                         onChange={(e) => handleFontSizeChange(Number(e.target.value))}
                         className="flex-1 accent-primary"
                       />
-                      <span className="text-sm text-fg-muted w-12">{fontSize}px</span>
+                      <span className="text-sm text-fg-muted w-12">
+                        {t('settings.textFontSize', { size: fontSize })}
+                      </span>
                     </div>
                   </div>
                   <div>
-                    <h2 className="text-lg font-medium text-fg mb-4">Language</h2>
+                    <h2 className="text-lg font-medium text-fg mb-4">
+                      {t('settings.headingLanguage')}
+                    </h2>
                     <div className="grid grid-cols-2 gap-2">
                       {(
                         [
@@ -392,6 +423,7 @@ export function Settings() {
                           type="button"
                           onClick={() => {
                             setLanguage(l.id);
+                            setLocale(l.id as Locale);
                             saveAppearance({ language: l.id });
                           }}
                           aria-pressed={language === l.id}
@@ -415,7 +447,7 @@ export function Settings() {
                 <div className="max-w-md space-y-6">
                   <Card>
                     <CardHeader>
-                      <CardTitle>Data Management</CardTitle>
+                      <CardTitle>{t('settings.cardDataManagement')}</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <Button
@@ -424,7 +456,7 @@ export function Settings() {
                         onClick={handleExportConfig}
                         disabled={advancedBusy}
                       >
-                        <span>Export Application Config</span>
+                        <span>{t('settings.btnExportConfig')}</span>
                         <Download className="w-4 h-4" aria-hidden="true" />
                       </Button>
                       <Button
@@ -433,7 +465,7 @@ export function Settings() {
                         onClick={handleBackupDatabase}
                         disabled={advancedBusy}
                       >
-                        <span>Backup Database</span>
+                        <span>{t('settings.btnBackupDatabase')}</span>
                         <Database className="w-4 h-4" aria-hidden="true" />
                       </Button>
                       {advancedMsg && (
@@ -443,11 +475,11 @@ export function Settings() {
                   </Card>
                   <Card>
                     <CardHeader>
-                      <CardTitle>Libraries</CardTitle>
+                      <CardTitle>{t('settings.cardLibraries')}</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-2">
                       {libraries.length === 0 ? (
-                        <p className="text-sm text-fg-muted">No libraries yet.</p>
+                        <p className="text-sm text-fg-muted">{t('settings.textNoLibraries')}</p>
                       ) : (
                         libraries.map((lib) => (
                           <div
@@ -459,7 +491,7 @@ export function Settings() {
                                 {lib.name}
                                 {currentLibrary?.id === lib.id && (
                                   <span className="ml-2 text-xs font-normal text-primary">
-                                    Current
+                                    {t('settings.textCurrent')}
                                   </span>
                                 )}
                               </p>
@@ -472,12 +504,14 @@ export function Settings() {
                               disabled={libraryBusyId === lib.id}
                               aria-label={
                                 confirmDeleteId === lib.id
-                                  ? `Confirm delete ${lib.name}`
-                                  : `Delete ${lib.name}`
+                                  ? t('settings.ariaConfirmDelete', { name: lib.name })
+                                  : t('settings.ariaDelete', { name: lib.name })
                               }
                             >
                               <Trash2 className="w-4 h-4" aria-hidden="true" />
-                              {confirmDeleteId === lib.id ? 'Confirm?' : 'Delete'}
+                              {confirmDeleteId === lib.id
+                                ? t('settings.btnConfirm')
+                                : t('settings.btnDelete')}
                             </Button>
                           </div>
                         ))
