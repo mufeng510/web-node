@@ -344,6 +344,11 @@
   },
   "settings": {
     "title": "Settings",
+    "account": "Account",
+    "security": "Security",
+    "appearance": "Appearance",
+    "advanced": "Advanced",
+    "diagnostics": "Diagnostics",
     "groupPersonal": "Personal",
     "groupSystem": "System",
     "accountInformation": "Account Information",

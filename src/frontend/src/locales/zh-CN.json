@@ -344,6 +344,11 @@
   },
   "settings": {
     "title": "设置",
+    "account": "账号",
+    "security": "安全",
+    "appearance": "外观",
+    "advanced": "高级",
+    "diagnostics": "诊断",
     "groupPersonal": "个人",
     "groupSystem": "系统",
     "accountInformation": "账号信息",
