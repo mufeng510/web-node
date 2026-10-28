@@ -94,6 +94,11 @@ async function runAutoBackup(libraryId: string, libraryPath: string, gitConfig: 
 
     const status = await git.status();
     if (status.files.length === 0 && status.not_added.length === 0) {
+      // 没有未提交的更改，但仍然更新 lastBackupAt 表示自动备份已运行
+      await db
+        .update(gitConfigs)
+        .set({ lastBackupAt: new Date(), updatedAt: new Date() })
+        .where(eq(gitConfigs.libraryId, libraryId));
       console.log(`[AutoBackup] Library ${libraryId}: no changes to back up`);
       return;
     }
@@ -130,19 +135,22 @@ async function runAutoBackup(libraryId: string, libraryPath: string, gitConfig: 
       '--author': 'Web Note <webnote@local>',
     });
 
-    // git push（如有 remoteUrl）
-    if (gitConfig.remoteUrl) {
-      await git.push(pushRemote, gitConfig.branch || 'main');
-    }
-
-    // 更新 lastBackupAt
+    // 只要 commit 成功，就更新 lastBackupAt——push 失败不应抹掉这次备份记录
     await db
       .update(gitConfigs)
       .set({ lastBackupAt: new Date(), updatedAt: new Date() })
       .where(eq(gitConfigs.libraryId, libraryId));
 
+    // git push（如有 remoteUrl）—— push 失败单独捕获，不影响 lastBackupAt
+    if (gitConfig.remoteUrl) {
+      try {
+        await git.push(pushRemote, gitConfig.branch || 'main');
+      } catch (pushError) {
+        console.error(`[AutoBackup] Library ${libraryId}: push failed:`, pushError);
+      }
+    }
+
     auditLog({
-      userId: 'system',
       libraryId,
       action: 'git.commit',
       resourceType: 'git',
