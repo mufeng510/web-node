@@ -96,6 +96,10 @@ async function getGit(
   const root = getLibraryRoot(libraryPath);
   let git = simpleGit(root);
 
+  // 确保 Git 信任当前库目录，避免 "dubious ownership" 错误
+  // 当 .git 目录属于其他用户（如 root），Git 会拒绝操作
+  await ensureSafeDirectory(git, root);
+
   // SSH 模式下通过环境变量指定私钥，不写进仓库的 .git/config —— 那是用户的
   // 仓库，Web Note 不该往里面塞自己的配置
   if (authType === 'ssh' && credentials) {
@@ -111,6 +115,33 @@ async function getGit(
   }
 
   return git;
+}
+
+/**
+ * 确保 Git 信任当前库目录，避免 "dubious ownership" 错误。
+ *
+ * 当 .git 目录属于其他用户（如 root），而容器以 webnote 用户运行时，
+ * Git 会拒绝操作该仓库。将库路径加入 safe.directory 后，Git 就会信任它。
+ * 重复添加不会导致错误，这里先检查是否已存在以避免配置文件冗长。
+ */
+async function ensureSafeDirectory(git: SimpleGit, root: string): Promise<void> {
+  try {
+    const existing = await git.raw(['config', '--global', '--get-all', 'safe.directory']);
+    if (
+      existing
+        .split('\n')
+        .map((s) => s.trim())
+        .includes(root)
+    )
+      return;
+  } catch {
+    // 配置不存在或读取失败，继续尝试添加
+  }
+  try {
+    await git.raw(['config', '--global', '--add', 'safe.directory', root]);
+  } catch {
+    // 忽略错误，后续 git 命令会报出更明确的错误
+  }
 }
 
 gitRoutes.get('/:libraryId/config', async (c) => {
