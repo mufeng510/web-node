@@ -94,6 +94,19 @@ async function runAutoBackup(libraryId: string, libraryPath: string, gitConfig: 
       return;
     }
 
+    // 自动设置 Git 用户名和邮箱，避免 commit 失败
+    // 自动备份是系统行为，不应依赖用户手动配置 Git 用户
+    try {
+      await git.raw(['config', '--local', 'user.name', 'Web Note']);
+    } catch {
+      // 忽略，commit 阶段会报错
+    }
+    try {
+      await git.raw(['config', '--local', 'user.email', 'webnote@local']);
+    } catch {
+      // 忽略，commit 阶段会报错
+    }
+
     // git add .
     await git.add('.');
 
