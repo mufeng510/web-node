@@ -36,10 +36,18 @@ import { startLibraryWatcher, stopLibraryWatcher } from './watcher.js';
  */
 function encryptGitConfig(gitConfig: any, previous?: any): any {
   if (!gitConfig || typeof gitConfig !== 'object') return gitConfig;
-  const merged = { ...(previous ?? {}), ...gitConfig };
+
+  // 如果前端没有提供 credentials 字段（undefined），说明用户没有修改凭据
+  // 应该保留之前的加密值，不要重新加密（避免双重加密导致凭据损坏）
   if (gitConfig.credentials === undefined && previous?.credentials) {
-    merged.credentials = previous.credentials;
+    return {
+      ...previous,
+      ...gitConfig,
+      credentials: previous.credentials,
+    };
   }
+
+  const merged = { ...(previous ?? {}), ...gitConfig };
   return {
     ...merged,
     credentials: merged.credentials ? encrypt(merged.credentials) : merged.credentials,
