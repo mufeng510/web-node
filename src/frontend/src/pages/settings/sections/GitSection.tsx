@@ -222,7 +222,11 @@ export default function GitSection() {
   }
 
   const lastBackup = config.lastBackupAt
-    ? new Date(config.lastBackupAt * 1000).toLocaleString()
+    ? new Date(
+        typeof config.lastBackupAt === 'string'
+          ? config.lastBackupAt
+          : config.lastBackupAt * 1000
+      ).toLocaleString()
     : null;
 
   return (
