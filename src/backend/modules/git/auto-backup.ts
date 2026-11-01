@@ -159,10 +159,31 @@ async function runAutoBackup(libraryId: string, libraryPath: string, gitConfig: 
       .set({ lastBackupAt: new Date(), updatedAt: new Date() })
       .where(eq(gitConfigs.libraryId, libraryId));
 
-    // git push（如有 remoteUrl）—— push 失败单独捕获，不影响 lastBackupAt
+    // git push（如有 remoteUrl）——直接使用配置的 remote URL，不依赖本地
+    // 仓库的 remote 名称（如 'origin'），因为用户的仓库可能没有配置任何 remote。
     if (gitConfig.remoteUrl) {
+      let pushTarget: string;
+      if (gitConfig.authType === 'https' && gitConfig.credentials) {
+        try {
+          const decrypted = decrypt(gitConfig.credentials);
+          const url = new URL(gitConfig.remoteUrl);
+          if (decrypted.includes(':')) {
+            const [user = '', pass = ''] = decrypted.split(':');
+            url.username = user;
+            url.password = pass;
+          } else {
+            url.username = decrypted;
+          }
+          pushTarget = url.toString();
+        } catch {
+          pushTarget = gitConfig.remoteUrl;
+        }
+      } else {
+        pushTarget = gitConfig.remoteUrl;
+      }
+
       try {
-        await git.push(pushRemote, gitConfig.branch || 'main');
+        await git.push(pushTarget, gitConfig.branch || 'main');
       } catch (pushError) {
         console.error(`[AutoBackup] Library ${libraryId}: push failed:`, pushError);
       }
