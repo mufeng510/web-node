@@ -71,6 +71,8 @@ export default function GitSection() {
   /** 凭据输入框留空表示“保持原值”，避免把已存凭据覆盖成空 */
   const [credentials, setCredentials] = useState('');
   const [clearCredentials, setClearCredentials] = useState(false);
+  /** 是否已从表单输入过新凭据（用于区分“未输入”和“清除”） */
+  const [credentialsTouched, setCredentialsTouched] = useState(false);
 
   const load = useCallback(async () => {
     if (!currentLibrary?.id) {
@@ -116,6 +118,7 @@ export default function GitSection() {
         setDetected(repo);
         setCredentials('');
         setClearCredentials(false);
+        setCredentialsTouched(false);
       } else {
         setError(t('sections.git.errorLoadGit'));
       }
@@ -181,9 +184,7 @@ export default function GitSection() {
         autoBackupSchedule: config.autoBackupSchedule,
       };
       // 只有用户明确输入或勾选清除时才发送 credentials，其余情况沿用已存值
-      if (clearCredentials) {
-        git.credentials = '';
-      } else if (credentials) {
+      if (clearCredentials || credentialsTouched) {
         git.credentials = credentials;
       }
 
@@ -336,6 +337,7 @@ export default function GitSection() {
                 onChange={(e) => {
                   setCredentials(e.target.value);
                   setClearCredentials(false);
+                  setCredentialsTouched(true);
                 }}
                 disabled={clearCredentials}
                 placeholder={
@@ -359,6 +361,7 @@ export default function GitSection() {
                   onClick={() => {
                     setClearCredentials((v) => !v);
                     setCredentials('');
+                    setCredentialsTouched(true);
                   }}
                 >
                   {clearCredentials
