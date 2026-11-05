@@ -54,6 +54,19 @@ export function clearCsrfCookie(c: Context) {
   );
 }
 
+function csrfCookieMaxAge(): number {
+  return getEnv().SESSION_MAX_AGE_DAYS * 24 * 60 * 60;
+}
+
+function setCsrfCookieValue(c: Context, value: string, maxAge: number) {
+  const secure = cookieSecureAttr(c);
+  c.header(
+    'Set-Cookie',
+    `${csrfCookieName()}=${value}; HttpOnly; SameSite=Lax${secure}; Path=/; Max-Age=${maxAge}`,
+    { append: true }
+  );
+}
+
 /**
  * 签发新的 CSRF token：cookie 里存 SHA-256 哈希（HttpOnly 分发器），
  * 响应头 `x-csrf-token` 回传原始 token 给前端（由前端保存在内存里）。
@@ -62,18 +75,23 @@ export function clearCsrfCookie(c: Context) {
  * 跨站页面读不到，因此伪造请求拿不到可用 token。
  */
 export function setCsrfToken(c: Context): string {
-  const env = getEnv();
-  const secure = cookieSecureAttr(c);
   const token = generateCsrfToken();
+  setCsrfCookieValue(c, hashSecret(token), csrfCookieMaxAge());
+  c.header(CSRF_HEADER_NAME, token);
+  return token;
+}
 
+/**
+ * 重新签发 CSRF token：删除旧的 cookie（清空 Max-Age=0）并下发新的一对。
+ * 等同浏览器侧“忘记旧令牌”，专供 csrfMiddleware 在令牌缺失/失配时自救。
+ */
+export function refreshCsrfToken(c: Context): string {
   c.header(
     'Set-Cookie',
-    `${csrfCookieName()}=${hashSecret(token)}; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=${env.SESSION_MAX_AGE_DAYS * 24 * 60 * 60}`,
+    `${csrfCookieName()}=; HttpOnly; SameSite=Lax${cookieSecureAttr(c)}; Path=/; Max-Age=0`,
     { append: true }
   );
-  c.header(CSRF_HEADER_NAME, token);
-
-  return token;
+  return setCsrfToken(c);
 }
 
 export function getCsrfFromHeader(c: Context): string | null {
@@ -99,15 +117,19 @@ function isBearerRequest(c: Context): boolean {
 }
 
 /**
- * CSRF 防护中间件，挂在 `/api/*` 上。
+ * CSRF 防护中间件，挂在 `/api/*` 上（必须在 API 路由注册之前）。
  *
  * 1. 只用 cookie 会话认证、且是状态改变方法的请求才校验——
  *    Bearer token 调用方拿不到 cookie，无法替用户伪造请求。
  * 2. 没带 cookie 会话的请求直接放行：没有会话就没有可被冒用的身份，
  *    认证中间件会照常拒绝。这样登录、初始化等无会话接口不受影响。
  * 3. 有会话时必须同时满足：请求头 `x-csrf-token` 存在、cookie 里存在哈希、
- *    且 `hash(header) === cookie`。前端拿不到原始 token 时会重新登录，
- *    而不是被永久卡住。
+ *    且 `hash(header) === cookie`。
+ * 4. 带会话却没有可用令牌的场景不报 403，而是**重建**令牌并返回 403
+ *    `CSRF_TOKEN_REFRESHED`：前端（axios 拦截器）收到该错误码后重试一次，
+ *    这样旧版登录的会话、CSRF cookie 被清理、页面刷新后内存令牌丢失等
+ *    情况都能自动恢复，不会把用户卡死在“请求全部失败”上。
+ *    跨站攻击者的响应会被浏览器 CORS 拦住，读不到新令牌，也读不到这个错误码。
  */
 export function csrfMiddleware() {
   return async (c: Context, next: Next) => {
@@ -134,34 +156,23 @@ export function csrfMiddleware() {
     const headerToken = getCsrfFromHeader(c);
     const cookieHash = getCsrfFromCookie(c);
 
-    if (!headerToken || !cookieHash) {
-      return c.json(
-        {
-          success: false,
-          error: {
-            code: 'CSRF_TOKEN_MISSING',
-            message: 'CSRF token missing',
-            requestId: c.get('requestId'),
-          },
-        },
-        403
-      );
+    const valid = !!headerToken && !!cookieHash && verifyCsrfToken(headerToken, cookieHash);
+    if (valid) {
+      return next();
     }
 
-    if (!verifyCsrfToken(headerToken, cookieHash)) {
-      return c.json(
-        {
-          success: false,
-          error: {
-            code: 'CSRF_TOKEN_INVALID',
-            message: 'Invalid CSRF token',
-            requestId: c.get('requestId'),
-          },
+    // 令牌缺失或失配：重新签发一份并发回，前端据此重试一次
+    refreshCsrfToken(c);
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: 'CSRF_TOKEN_REFRESHED',
+          message: 'CSRF token was missing or stale; a new token has been issued, retry',
+          requestId: c.get('requestId'),
         },
-        403
-      );
-    }
-
-    return next();
+      },
+      403
+    );
   };
 }

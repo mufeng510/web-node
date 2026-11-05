@@ -33,17 +33,22 @@ function buildApp() {
     csrf.clearCsrfCookie(c);
     return c.json({ ok: true });
   });
+  // 模拟真实端点：校验通过才落库（这里直接回 ok）
   return app;
 }
 
-/** 从 Set-Cookie 列表里取出某个 cookie 的值 */
+/**
+ * 从 Set-Cookie 列表里取出某个 cookie **最终生效**的值：
+ * 刷新令牌时会先发 `name=; Max-Age=0` 清除，再发新值，所以要取最后一个。
+ */
 function cookieValue(setCookieHeaders: string[], name: string): string | null {
+  let found: string | null = null;
   for (const header of setCookieHeaders) {
     const pair = header.split(';')[0] ?? '';
     const [key = '', value] = pair.split('=');
-    if (key.trim() === name) return value ?? '';
+    if (key.trim() === name) found = value ?? '';
   }
-  return null;
+  return found;
 }
 
 describe('csrfMiddleware', () => {
@@ -60,27 +65,53 @@ describe('csrfMiddleware', () => {
     expect(res.status).toBe(200);
   });
 
-  it('有会话但缺 CSRF 头时拒绝', async () => {
+  it('有会话但缺 CSRF 头时拒绝，并下发新令牌供重试', async () => {
     const res = await app.request('/api/protected', {
       method: 'POST',
       headers: { cookie: `${SESSION_COOKIE}=tok` },
     });
     expect(res.status).toBe(403);
     const body = (await res.json()) as { error: { code: string } };
-    expect(body.error.code).toBe('CSRF_TOKEN_MISSING');
+    expect(body.error.code).toBe('CSRF_TOKEN_REFRESHED');
+
+    // 响应里带新的 token（头）+ 新的 cookie（哈希），且旧 cookie 被清掉
+    const rawToken = res.headers.get('x-csrf-token');
+    const setCookies = res.headers.getSetCookie();
+    const freshHash = cookieValue(setCookies, 'webnote_csrf');
+    expect(rawToken).toBeTruthy();
+    expect(freshHash).toBe(csrf.hashCsrfToken(rawToken as string));
+    expect(setCookies.some((h) => h.startsWith('webnote_csrf=;'))).toBe(true);
   });
 
-  it('有会话、有头但缺 CSRF cookie 时拒绝', async () => {
+  it('拿到新令牌后重试同一请求即可通过', async () => {
+    const first = await app.request('/api/protected', {
+      method: 'POST',
+      headers: { cookie: `${SESSION_COOKIE}=tok` },
+    });
+    const rawToken = first.headers.get('x-csrf-token') as string;
+    const freshHash = cookieValue(first.headers.getSetCookie(), 'webnote_csrf');
+
+    const retry = await app.request('/api/protected', {
+      method: 'POST',
+      headers: {
+        cookie: `${SESSION_COOKIE}=tok; webnote_csrf=${freshHash}`,
+        'x-csrf-token': rawToken,
+      },
+    });
+    expect(retry.status).toBe(200);
+  });
+
+  it('有会话、有头但缺 CSRF cookie 时拒绝并刷新令牌', async () => {
     const res = await app.request('/api/protected', {
       method: 'POST',
       headers: { cookie: `${SESSION_COOKIE}=tok`, 'x-csrf-token': 'abc' },
     });
     expect(res.status).toBe(403);
     const body = (await res.json()) as { error: { code: string } };
-    expect(body.error.code).toBe('CSRF_TOKEN_MISSING');
+    expect(body.error.code).toBe('CSRF_TOKEN_REFRESHED');
   });
 
-  it('token 与 cookie 哈希不匹配时拒绝', async () => {
+  it('token 与 cookie 哈希不匹配时拒绝并刷新令牌', async () => {
     const res = await app.request('/api/protected', {
       method: 'POST',
       headers: {
@@ -90,7 +121,7 @@ describe('csrfMiddleware', () => {
     });
     expect(res.status).toBe(403);
     const body = (await res.json()) as { error: { code: string } };
-    expect(body.error.code).toBe('CSRF_TOKEN_INVALID');
+    expect(body.error.code).toBe('CSRF_TOKEN_REFRESHED');
   });
 
   it('登录下发的 token 可用于后续写请求', async () => {

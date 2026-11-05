@@ -31,6 +31,8 @@ export function withSuppressedAuthRedirect<T>(fn: () => Promise<T>): Promise<T> 
   });
 }
 
+type RetryableConfig = InternalAxiosRequestConfig & { _csrfRetried?: boolean };
+
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   if (csrfToken && ['post', 'put', 'patch', 'delete'].includes(config.method || '')) {
     config.headers['x-csrf-token'] = csrfToken;
@@ -49,7 +51,21 @@ api.interceptors.response.use(
     }
     return response;
   },
-  (error: AxiosError) => {
+  async (error: AxiosError) => {
+    // 后端在 CSRF 令牌缺失/失配时会删除旧 cookie、下发新令牌并返回 403
+    // `CSRF_TOKEN_REFRESHED`。这里收下新令牌并静默重试一次，用户无感；
+    // 只重试一次，避免异常情况下打成死循环。
+    const refreshedToken = error.response?.headers?.['x-csrf-token'] as string | undefined;
+    if (refreshedToken) {
+      csrfToken = refreshedToken;
+    }
+    const original = error.config as RetryableConfig | undefined;
+    const code = (error.response?.data as { error?: { code?: string } } | undefined)?.error?.code;
+    if (refreshedToken && code === 'CSRF_TOKEN_REFRESHED' && original && !original._csrfRetried) {
+      original._csrfRetried = true;
+      return api.request(original);
+    }
+
     if (error.response?.status === 401 && !suppressAuthRedirect) {
       window.location.href = '/login';
     }
