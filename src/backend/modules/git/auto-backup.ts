@@ -6,6 +6,7 @@ import { libraries } from '../../db/schema/libraries.js';
 import { auditLog } from '../../middleware/audit.js';
 import { decrypt } from '../../utils/crypto.js';
 import { getLibraryRoot } from '../../utils/path.js';
+import { buildAuthenticatedRemote, safeGitEnv, sanitizeGitError } from './remote.js';
 
 /** 自动备份定时器句柄 */
 let backupInterval: ReturnType<typeof setInterval> | null = null;
@@ -67,24 +68,28 @@ async function runAutoBackup(libraryId: string, libraryPath: string, gitConfig: 
   try {
     const db = getDb();
     const root = getLibraryRoot(libraryPath);
-    let git = simpleGit(root);
+
+    // SSH 模式要传 GIT_SSH_COMMAND，必须显式解锁 simple-git 的对应安全类别
+    const rawGit = simpleGit(root, {
+      unsafe: { allowUnsafeSshCommand: gitConfig.authType === 'ssh' && !!gitConfig.credentials },
+    });
 
     // 确保 Git 信任当前库目录，避免 "dubious ownership" 错误
     // 当 .git 目录属于其他用户（如 root），Git 会拒绝操作
-    await ensureSafeDirectory(git, root);
+    await ensureSafeDirectory(rawGit, root);
 
     // SSH 模式：私钥路径通过环境变量传给 git 子进程，不写进仓库的 .git/config
+    const extra: Record<string, string> = {};
     if (gitConfig.authType === 'ssh' && gitConfig.credentials) {
       try {
         const decrypted = decrypt(gitConfig.credentials);
-        git = git.env({
-          ...process.env,
-          GIT_SSH_COMMAND: `ssh -i ${decrypted} -o StrictHostKeyChecking=accept-new`,
-        });
+        extra.GIT_SSH_COMMAND = `ssh -i ${decrypted} -o StrictHostKeyChecking=accept-new`;
       } catch {
         // 忽略，push 阶段会报错
       }
     }
+    // 剔除 simple-git 会拦截的环境变量（如 PAGER），并固定 GIT_TERMINAL_PROMPT=0
+    const git = rawGit.env(safeGitEnv(extra));
 
     // 确保是 git 仓库
     try {
@@ -121,32 +126,6 @@ async function runAutoBackup(libraryId: string, libraryPath: string, gitConfig: 
       return;
     }
 
-    /**
-     * 凭据只在本次操作里生效，绝不写回仓库的 .git/config。
-     *
-     * 早先的实现用 `git remote set-url` 把带明文凭据的 URL 写进 .git/config，
-     * 凭据因此以明文留在磁盘上，还可能随仓库一起被推走。这里改为把带凭据的
-     * URL 直接作为 push 的目标传给 git，仓库自身的 origin 保持原样。
-     */
-    let pushRemote = 'origin';
-    if (gitConfig.authType === 'https' && gitConfig.credentials && gitConfig.remoteUrl) {
-      try {
-        const decrypted = decrypt(gitConfig.credentials);
-        const url = new URL(gitConfig.remoteUrl);
-        if (decrypted.includes(':')) {
-          const [user = '', pass = ''] = decrypted.split(':');
-          url.username = user;
-          url.password = pass;
-        } else {
-          url.username = decrypted;
-        }
-        pushRemote = url.toString();
-      } catch {
-        // 凭据解不开就退回用 origin，让 push 自己报错
-        pushRemote = 'origin';
-      }
-    }
-
     // git commit
     const commit = await git.commit('Auto backup', {
       '--no-verify': null,
@@ -159,23 +138,20 @@ async function runAutoBackup(libraryId: string, libraryPath: string, gitConfig: 
       .set({ lastBackupAt: new Date(), updatedAt: new Date() })
       .where(eq(gitConfigs.libraryId, libraryId));
 
-    // git push（如有 remoteUrl）——直接使用配置的 remote URL，不依赖本地
-    // 仓库的 remote 名称（如 'origin'），因为用户的仓库可能没有配置任何 remote。
+    // git push（如有 remoteUrl）
+    //
+    // 凭据只在本次操作里生效，绝不写回仓库的 .git/config。直接把带凭据的
+    // URL 作为 push 的目标传给 git，仓库自身的 origin 保持原样。
     if (gitConfig.remoteUrl) {
       let pushTarget: string;
       if (gitConfig.authType === 'https' && gitConfig.credentials) {
         try {
-          const decrypted = decrypt(gitConfig.credentials);
-          const url = new URL(gitConfig.remoteUrl);
-          if (decrypted.includes(':')) {
-            const [user = '', pass = ''] = decrypted.split(':');
-            url.username = user;
-            url.password = pass;
-          } else {
-            url.username = decrypted;
-          }
-          pushTarget = url.toString();
+          pushTarget = buildAuthenticatedRemote(
+            gitConfig.remoteUrl,
+            decrypt(gitConfig.credentials)
+          );
         } catch {
+          // 凭据解不开就退回用 remoteUrl，让 push 自己报错（不含凭据，可安全记录）
           pushTarget = gitConfig.remoteUrl;
         }
       } else {
@@ -185,7 +161,10 @@ async function runAutoBackup(libraryId: string, libraryPath: string, gitConfig: 
       try {
         await git.push(pushTarget, gitConfig.branch || 'main');
       } catch (pushError) {
-        console.error(`[AutoBackup] Library ${libraryId}: push failed:`, pushError);
+        console.error(
+          `[AutoBackup] Library ${libraryId}: push failed:`,
+          sanitizeGitError(pushError instanceof Error ? pushError.message : String(pushError))
+        );
       }
     }
 
@@ -203,7 +182,10 @@ async function runAutoBackup(libraryId: string, libraryPath: string, gitConfig: 
 
     console.log(`[AutoBackup] Library ${libraryId}: backed up to ${commit.commit.slice(0, 7)}`);
   } catch (error) {
-    console.error(`[AutoBackup] Library ${libraryId}: backup failed:`, error);
+    console.error(
+      `[AutoBackup] Library ${libraryId}: backup failed:`,
+      sanitizeGitError(error instanceof Error ? (error.stack ?? error.message) : String(error))
+    );
   } finally {
     backingUp.delete(libraryId);
   }

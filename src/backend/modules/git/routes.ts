@@ -13,35 +13,17 @@ import { ValidationError } from '../../utils/errors.js';
 import { createId } from '../../utils/id.js';
 import { getLibraryRoot } from '../../utils/path.js';
 import { checkLibraryAccess } from '../libraries/access.js';
+import { buildAuthenticatedRemote, safeGitEnv, sanitizeGitError } from './remote.js';
 
 const gitRoutes = new Hono<Env>();
 
 gitRoutes.use('*', authMiddleware());
 
 /**
- * 将 HTTPS remote URL 中嵌入凭据。
- * credentials 格式: "username:password" 或 "token"
- */
-function urlWithAuth(remoteUrl: string, credentials: string): string {
-  try {
-    const url = new URL(remoteUrl);
-    if (credentials.includes(':')) {
-      const [user = '', pass = ''] = credentials.split(':');
-      url.username = user;
-      url.password = pass;
-    } else {
-      // 纯 token，用作用户名（GitHub/GitLab PAT 等）
-      url.username = credentials;
-    }
-    return url.toString();
-  } catch {
-    return remoteUrl;
-  }
-}
-
-/**
  * 解析 push/pull 所需的 remote 参数。若配置了 HTTPS 凭据，返回带凭据的 URL；
  * 否则返回原 remote 名（如 'origin'）。
+ *
+ * `credentials` 必须是**明文**（getGitConfig 已解密），不要再 decrypt。
  */
 function resolveRemote(
   remote: string | undefined,
@@ -52,8 +34,7 @@ function resolveRemote(
   const r = remote || 'origin';
   if (authType === 'https' && credentials && remoteUrl) {
     try {
-      const decrypted = decrypt(credentials);
-      return urlWithAuth(remoteUrl, decrypted);
+      return buildAuthenticatedRemote(remoteUrl, credentials);
     } catch {
       return r;
     }
@@ -63,6 +44,7 @@ function resolveRemote(
 
 /**
  * 查询库的 Git 配置，并解密 credentials。
+ * 返回的 credentials 为明文（解密失败则为 null）——调用方不得再次 decrypt。
  */
 async function getGitConfig(libraryId: string) {
   const db = getDb();
@@ -88,33 +70,37 @@ async function getGitConfig(libraryId: string) {
   };
 }
 
+/**
+ * `credentials` 为明文（见 getGitConfig）。SSH 模式把私钥路径写进
+ * GIT_SSH_COMMAND 传给 git 子进程，不写进仓库的 .git/config。
+ * 始终设置 GIT_TERMINAL_PROMPT=0，避免凭据错误时 git 挂起等待终端输入。
+ */
 async function getGit(
   libraryPath: string,
   authType: string | null = null,
   credentials: string | null = null
 ): Promise<SimpleGit> {
   const root = getLibraryRoot(libraryPath);
-  let git = simpleGit(root);
+  // SSH 模式要传 GIT_SSH_COMMAND，必须显式解锁 simple-git 的对应安全类别
+  const git = simpleGit(root, {
+    unsafe: { allowUnsafeSshCommand: authType === 'ssh' && !!credentials },
+  });
 
   // 确保 Git 信任当前库目录，避免 "dubious ownership" 错误
   // 当 .git 目录属于其他用户（如 root），Git 会拒绝操作
   await ensureSafeDirectory(git, root);
 
+  const extra: Record<string, string> = {};
   // SSH 模式下通过环境变量指定私钥，不写进仓库的 .git/config —— 那是用户的
   // 仓库，Web Note 不该往里面塞自己的配置
   if (authType === 'ssh' && credentials) {
-    try {
-      const decrypted = decrypt(credentials);
-      git = git.env({
-        ...process.env,
-        GIT_SSH_COMMAND: `ssh -i ${decrypted} -o StrictHostKeyChecking=accept-new`,
-      });
-    } catch {
-      // 配置失败不阻塞后续操作
-    }
+    extra.GIT_SSH_COMMAND = `ssh -i ${credentials} -o StrictHostKeyChecking=accept-new`;
   }
 
-  return git;
+  // 剔除 simple-git 会拦截的环境变量（如 PAGER），并固定 GIT_TERMINAL_PROMPT=0
+  const gitWithEnv = git.env(safeGitEnv(extra));
+
+  return gitWithEnv;
 }
 
 /**
@@ -197,7 +183,7 @@ gitRoutes.post('/:libraryId/test', async (c) => {
   let testRemote: string;
   if (gitConfig.authType === 'https' && gitConfig.credentials) {
     try {
-      testRemote = urlWithAuth(gitConfig.remoteUrl, decrypt(gitConfig.credentials));
+      testRemote = buildAuthenticatedRemote(gitConfig.remoteUrl, gitConfig.credentials);
     } catch {
       testRemote = gitConfig.remoteUrl;
     }
@@ -217,7 +203,7 @@ gitRoutes.post('/:libraryId/test', async (c) => {
     return c.json({ success: true, data: { message: 'Connection successful' } });
   } catch (error) {
     throw new ValidationError(
-      `Connection test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      `Connection test failed: ${sanitizeGitError(error instanceof Error ? error.message : 'Unknown error')}`
     );
   }
 });
@@ -259,7 +245,8 @@ gitRoutes.get('/:libraryId/detect', async (c) => {
 
   const { library } = await checkLibraryAccess(userId, libraryId, 'admin');
 
-  const git = simpleGit(getLibraryRoot(library.path));
+  // 同样剔除会被 simple-git 拦截的环境变量（如 PAGER）
+  const git = simpleGit(getLibraryRoot(library.path)).env(safeGitEnv());
 
   try {
     await git.revparse(['--is-inside-work-tree']);
@@ -271,7 +258,18 @@ gitRoutes.get('/:libraryId/detect', async (c) => {
   }
 
   const remotes = await git.getRemotes(true);
-  const branch = await git.revparse(['--abbrev-ref', 'HEAD']);
+
+  // 未产生首个提交时 HEAD 是 unborn，rev-parse 会报错；symbolic-ref 仍能给出分支名
+  let branch: string | null = null;
+  try {
+    branch = (await git.revparse(['--abbrev-ref', 'HEAD'])).trim() || null;
+  } catch {
+    try {
+      branch = (await git.raw(['symbolic-ref', '--short', 'HEAD'])).trim() || null;
+    } catch {
+      branch = null;
+    }
+  }
 
   let upstream: string | null = null;
   try {
@@ -292,7 +290,7 @@ gitRoutes.get('/:libraryId/detect', async (c) => {
         fetchUrl: stripCredentials(r.refs.fetch || ''),
         pushUrl: stripCredentials(r.refs.push || ''),
       })),
-      branch: branch.trim() || null,
+      branch,
       upstream,
     },
   });
@@ -401,6 +399,19 @@ gitRoutes.post(
       gitConfig?.credentials ?? null
     );
 
+    // 与自动备份一致：仓库没配置 user.name/email 时用 Web Note 兜底，
+    // 否则全新仓库在 Web Note 里永远提交不了（git 报 "Committer identity unknown"）
+    for (const [key, fallback] of [
+      ['user.name', 'Web Note'],
+      ['user.email', 'webnote@local'],
+    ] as const) {
+      try {
+        await git.raw(['config', '--local', key]);
+      } catch {
+        await git.raw(['config', '--local', key, fallback]);
+      }
+    }
+
     if (filesToCommit?.length) {
       await git.add(filesToCommit);
     } else {
@@ -475,12 +486,22 @@ gitRoutes.post(
       gitConfig?.remoteUrl ?? null
     );
 
-    // SSH 模式：通过 core.sshCommand 已在 getGit 中配置；此处直接执行 push
+    // 未显式传 branch 时：优先用配置的分支，否则推送当前分支。
+    // 直接 `git push <url>` 在 push.default=simple 且 URL 无 upstream 时必然失败。
+    let branchToPush = branch ?? gitConfig?.branch;
+    if (!branchToPush) {
+      try {
+        branchToPush = (await git.revparse(['--abbrev-ref', 'HEAD'])).trim();
+      } catch {
+        branchToPush = 'main';
+      }
+    }
+
     try {
-      await git.push(resolvedRemote, branch, force ? ['--force'] : []);
+      await git.push(resolvedRemote, branchToPush, force ? ['--force'] : []);
     } catch (error) {
       throw new ValidationError(
-        `Push failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        `Push failed: ${sanitizeGitError(error instanceof Error ? error.message : 'Unknown error')}`
       );
     }
 
@@ -489,7 +510,7 @@ gitRoutes.post(
       libraryId,
       action: 'git.push',
       resourceType: 'git',
-      metadata: { remote, branch, force },
+      metadata: { remote, branch: branchToPush, force },
     });
 
     return c.json({ success: true });
@@ -531,11 +552,21 @@ gitRoutes.post(
       gitConfig?.remoteUrl ?? null
     );
 
+    // 未显式传 branch 时：优先用配置的分支，否则用当前分支（见 push 的说明）
+    let branchToPull = branch ?? gitConfig?.branch;
+    if (!branchToPull) {
+      try {
+        branchToPull = (await git.revparse(['--abbrev-ref', 'HEAD'])).trim();
+      } catch {
+        branchToPull = 'main';
+      }
+    }
+
     try {
-      await git.pull(resolvedRemote, branch, rebase ? ['--rebase'] : []);
+      await git.pull(resolvedRemote, branchToPull, rebase ? ['--rebase'] : []);
     } catch (error) {
       throw new ValidationError(
-        `Pull failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        `Pull failed: ${sanitizeGitError(error instanceof Error ? error.message : 'Unknown error')}`
       );
     }
 
@@ -544,7 +575,7 @@ gitRoutes.post(
       libraryId,
       action: 'git.pull',
       resourceType: 'git',
-      metadata: { remote, branch, rebase },
+      metadata: { remote, branch: branchToPull, rebase },
     });
 
     return c.json({ success: true });
@@ -584,7 +615,7 @@ gitRoutes.post(
       }
     } catch (error) {
       throw new ValidationError(
-        `Restore failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        `Restore failed: ${sanitizeGitError(error instanceof Error ? error.message : 'Unknown error')}`
       );
     }
 
