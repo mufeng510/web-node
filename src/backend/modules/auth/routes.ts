@@ -17,9 +17,10 @@ import {
 } from '../../middleware/auth.js';
 import { authMiddleware } from '../../middleware/auth.middleware.js';
 import type { Env } from '../../middleware/env.js';
+import { hashSecret } from '../../utils/crypto.js';
 import { NotFoundError } from '../../utils/errors.js';
 import { createId } from '../../utils/id.js';
-import { generateCsrfToken, hashSecret } from './csrf.js';
+import { clearCsrfCookie, setCsrfToken } from './csrf.js';
 import { authenticateUser, changePassword, hashPassword } from './password.js';
 
 const auth = new Hono<Env>();
@@ -93,14 +94,13 @@ auth.post('/setup', zValidator('json', setupSchema), async (c) => {
     'setup-wizard',
     c.req.header('x-forwarded-for')
   );
-  const csrfToken = generateCsrfToken();
 
   const secure = cookieSecureAttr(c);
   const sessionMaxAge = getEnv().SESSION_MAX_AGE_DAYS * 24 * 60 * 60;
   const sessionCookie = `${getEnv().SESSION_COOKIE_NAME}=${token}; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=${sessionMaxAge}`;
-  const csrfCookie = `${getEnv().CSRF_COOKIE_NAME}=${hashSecret(csrfToken)}; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=${sessionMaxAge}`;
   c.header('Set-Cookie', sessionCookie, { append: true });
-  c.header('Set-Cookie', csrfCookie, { append: true });
+  // CSRF：cookie 存哈希（HttpOnly），响应头回传原始 token 给前端
+  setCsrfToken(c);
 
   auditLog({
     userId,
@@ -129,13 +129,11 @@ auth.post('/login', zValidator('json', loginSchema), async (c) => {
     c.req.header('user-agent'),
     c.req.header('x-forwarded-for')
   );
-  const csrfToken = generateCsrfToken();
-
   const secure = cookieSecureAttr(c);
   const sessionCookie = `${getEnv().SESSION_COOKIE_NAME}=${token}; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=${maxAge}`;
-  const csrfCookie = `${getEnv().CSRF_COOKIE_NAME}=${hashSecret(csrfToken)}; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=${maxAge}`;
   c.header('Set-Cookie', sessionCookie, { append: true });
-  c.header('Set-Cookie', csrfCookie, { append: true });
+  // CSRF：cookie 存哈希（HttpOnly），响应头回传原始 token 给前端
+  setCsrfToken(c);
 
   auditLog({
     userId: user.id,
@@ -162,9 +160,8 @@ auth.post('/logout', async (c) => {
 
   const secure = cookieSecureAttr(c);
   const sessionClear = `${getEnv().SESSION_COOKIE_NAME}=; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=0`;
-  const csrfClear = `${getEnv().CSRF_COOKIE_NAME}=; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=0`;
   c.header('Set-Cookie', sessionClear, { append: true });
-  c.header('Set-Cookie', csrfClear, { append: true });
+  clearCsrfCookie(c);
 
   auditLog({
     userId,
@@ -184,9 +181,8 @@ auth.post('/logout-all', authMiddleware(), async (c) => {
 
   const secure = cookieSecureAttr(c);
   const sessionClear = `${getEnv().SESSION_COOKIE_NAME}=; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=0`;
-  const csrfClear = `${getEnv().CSRF_COOKIE_NAME}=; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=0`;
   c.header('Set-Cookie', sessionClear, { append: true });
-  c.header('Set-Cookie', csrfClear, { append: true });
+  clearCsrfCookie(c);
 
   auditLog({
     userId,
@@ -234,9 +230,8 @@ auth.post(
 
     const secure = cookieSecureAttr(c);
     const sessionClear = `${getEnv().SESSION_COOKIE_NAME}=; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=0`;
-    const csrfClear = `${getEnv().CSRF_COOKIE_NAME}=; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=0`;
     c.header('Set-Cookie', sessionClear, { append: true });
-    c.header('Set-Cookie', csrfClear, { append: true });
+    clearCsrfCookie(c);
 
     auditLog({
       userId,

@@ -16,6 +16,7 @@ import conversationRoutes from './modules/ai/conversations/routes.js';
 import aiIndexRoutes from './modules/ai/index/routes.js';
 import aiProviderRoutes from './modules/ai/providers/routes.js';
 import auditRoutes from './modules/audit/routes.js';
+import { csrfMiddleware } from './modules/auth/csrf.js';
 import authRoutes from './modules/auth/routes.js';
 import backupRoutes from './modules/backup/routes.js';
 import diagnosticsRoutes from './modules/diagnostics/routes.js';
@@ -46,13 +47,18 @@ export function createApp() {
   app.onError(errorHandler);
   app.use('*', auditMiddleware());
 
+  // CSRF 防护：状态改变方法必须带有效的 x-csrf-token（token 由登录/初始化响应头下发）。
+  // Hono 的中间件对之后注册的路由才生效，所以必须放在所有 api.route() 之前。
+  app.use('/api/*', csrfMiddleware());
+
   app.use(
     '/api/*',
     cors({
       origin: env.FRONTEND_URL || '*',
       allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       allowHeaders: ['Content-Type', 'Authorization', 'x-csrf-token', 'x-request-id'],
-      exposeHeaders: ['x-request-id'],
+      // x-csrf-token 由登录/初始化响应头下发，前端必须能读到它
+      exposeHeaders: ['x-request-id', 'x-csrf-token'],
       credentials: true,
       maxAge: 86400,
     })

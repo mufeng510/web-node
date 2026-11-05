@@ -2,6 +2,7 @@ import { type ReactNode, createContext, useCallback, useContext, useEffect, useS
 import {
   type ApiResult,
   api,
+  resetCsrfToken,
   setSuppressAuthRedirect,
   withSuppressedAuthRedirect,
 } from '../services/api';
@@ -47,9 +48,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(response.data.user ?? response.data);
       } else {
         setUser(null);
+        resetCsrfToken();
       }
     } catch {
+      // 401：会话已失效，之前下发的 CSRF token 也随之作废
       setUser(null);
+      resetCsrfToken();
     } finally {
       setLoading(false);
       setSuppressAuthRedirect(false);

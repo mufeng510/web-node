@@ -65,6 +65,17 @@ api.interceptors.response.use(
   }
 );
 
+/**
+ * 清掉当前内存里的 CSRF token。
+ *
+ * 需要“重置为未认证状态”时使用（例如 `/auth/me` 返回 401）：此时浏览器里
+ * 可能仍残留 CSRF cookie，若继续用旧 token，之后的写请求会被中间件判为无效。
+ * 清空后要等下一次登录/初始化重新下发 token。
+ */
+export function resetCsrfToken() {
+  csrfToken = null;
+}
+
 export function setCsrfToken(token: string) {
   csrfToken = token;
 }
