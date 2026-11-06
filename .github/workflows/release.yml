@@ -73,8 +73,8 @@ jobs:
           elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
             VERSION="${{ github.ref_name }}"
           else
-            # Auto-calculate from conventional commits
-            VERSION=$(bun run scripts/calculate-version.ts)
+            # Auto-calculate from conventional commits (script prints JSON)
+            VERSION=$(bun run scripts/calculate-version.ts | sed -E 's/.*"version":"([^"]+)".*/\1/')
           fi
           # Normalize to vX.Y.Z so branch pushes, tags and manual inputs share one format
           VERSION="${VERSION#v}"
