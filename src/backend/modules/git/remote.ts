@@ -6,10 +6,27 @@
  */
 
 /**
+ * 纯 token 作为用户名直接发时，GitHub 会用「密码为空」的 Basic 认证，返回 401
+ * （只有少数老路径会把它当密码处理）。把 token 同时用于用户名和密码可以过，
+ * 但更稳妥、也符合 GitHub 文档的是 x-access-token 作为用户名。
+ *
+ * 仅当凭据看起来是 token（无冒号、常见前缀、无空格）时才这样映射，避免把
+ * 「只有用户名」的误解当作 token 处理。
+ */
+const TOKEN_PATTERN =
+  /^(gh[pousr]_[A-Za-z0-9_]+|github_pat_[A-Za-z0-9_]+|glpat-[A-Za-z0-9_-]+|ATBB[A-Za-z0-9_-]+)$/;
+
+function asTokenPassword(credentials: string): { username: string; password: string } | null {
+  if (!TOKEN_PATTERN.test(credentials)) return null;
+  return { username: 'x-access-token', password: credentials };
+}
+
+/**
  * 把凭据嵌入 HTTPS remote URL。
  *
  * credentials 格式：
- * - 纯 token（如 `ghp_…` / `github_pat_…`）：作为用户名，密码留空
+ * - 纯 token（如 `ghp_…` / `github_pat_…` / `glpat-…`）：映射为
+ *   `x-access-token:<token>`；无法识别为 token 的纯字符串按旧行为作为用户名
  * - "username:password"：按**第一个**冒号切分，password 可再含冒号
  *
  * 凭据通过 URL API 写入，特殊字符会被正确百分号编码。
@@ -22,8 +39,9 @@ export function buildAuthenticatedRemote(remoteUrl: string, credentials: string)
   }
   const separator = credentials.indexOf(':');
   if (separator === -1) {
-    url.username = credentials;
-    url.password = '';
+    const token = asTokenPassword(credentials);
+    url.username = token ? token.username : credentials;
+    url.password = token ? token.password : '';
     return url.toString();
   }
   url.username = credentials.slice(0, separator);

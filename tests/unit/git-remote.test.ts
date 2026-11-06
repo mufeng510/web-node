@@ -8,9 +8,28 @@ import {
 import { describe, expect, it } from 'vitest';
 
 describe('buildAuthenticatedRemote', () => {
-  it('纯 token 作为用户名嵌入', () => {
-    expect(buildAuthenticatedRemote('https://github.com/o/r.git', 'ghp_abc123')).toBe(
-      'https://ghp_abc123@github.com/o/r.git'
+  it('纯 GitHub token 映射为 x-access-token（密码位放 token）', () => {
+    // 直接把 token 当用户名、密码留空，GitHub 会 401；x-access-token 是官方方式
+    expect(buildAuthenticatedRemote('https://github.com/o/r.git', 'ghp_aBc123')).toBe(
+      'https://x-access-token:ghp_aBc123@github.com/o/r.git'
+    );
+    expect(
+      buildAuthenticatedRemote(
+        'https://github.com/o/r.git',
+        `github_pat_${'a'.repeat(22)}_${'b'.repeat(59)}`
+      )
+    ).toContain('x-access-token:github_pat_');
+  });
+
+  it('GitLab token 同样映射', () => {
+    expect(buildAuthenticatedRemote('https://gitlab.com/o/r.git', 'glpat-abc123')).toBe(
+      'https://x-access-token:glpat-abc123@gitlab.com/o/r.git'
+    );
+  });
+
+  it('无法识别为 token 的纯字符串仍作为用户名', () => {
+    expect(buildAuthenticatedRemote('https://git.example.com/o/r.git', 'alice')).toBe(
+      'https://alice@git.example.com/o/r.git'
     );
   });
 
