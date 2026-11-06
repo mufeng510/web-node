@@ -27,32 +27,9 @@ import {
   readLibraryConfig,
   writeLibraryConfig,
 } from './config.js';
+import { encryptGitConfig, looksLikeCiphertext } from './routes-helpers.js';
 import { type TreeNode, scanLibraryTree } from './scanner.js';
 import { startLibraryWatcher, stopLibraryWatcher } from './watcher.js';
-
-/**
- * 将 git 配置中的敏感 credentials 加密后再持久化。
- * `previous` 为库中已存的配置：未提供 credentials 时沿用旧值，避免误清空。
- */
-function encryptGitConfig(gitConfig: any, previous?: any): any {
-  if (!gitConfig || typeof gitConfig !== 'object') return gitConfig;
-
-  // 如果前端没有提供 credentials 字段（undefined），说明用户没有修改凭据
-  // 应该保留之前的加密值，不要重新加密（避免双重加密导致凭据损坏）
-  if (gitConfig.credentials === undefined && previous?.credentials) {
-    return {
-      ...previous,
-      ...gitConfig,
-      credentials: previous.credentials,
-    };
-  }
-
-  const merged = { ...(previous ?? {}), ...gitConfig };
-  return {
-    ...merged,
-    credentials: merged.credentials ? encrypt(merged.credentials) : merged.credentials,
-  };
-}
 
 const libraryRoutes = new Hono<Env>();
 
@@ -355,7 +332,32 @@ libraryRoutes.patch(
 
     const updates: any = { updatedAt: new Date() };
     if (data.name) updates.name = data.name;
-    if (data.git) updates.gitConfig = encryptGitConfig(data.git, library.gitConfig);
+
+    // 结构化副本（git_configs）是 Git 操作的唯一数据源。以它里面的密文为准，
+    // 库级 JSON 只保留展示用的字段——否则两条写入路径会各加密一次，
+    // 密文在两种派生方式之间来回传递，最终谁也不能解密。
+    const existingGitConfig = data.git
+      ? await db.query.gitConfigs.findFirst({ where: eq(gitConfigs.libraryId, libraryId) })
+      : null;
+
+    if (data.git) {
+      const jsonGit: Record<string, unknown> = { ...data.git };
+      if (jsonGit.credentials === undefined) {
+        // 前端没改凭据：沿用 git_configs 里的密文
+        jsonGit.credentials = existingGitConfig?.credentials ?? undefined;
+      } else if (jsonGit.credentials === '') {
+        jsonGit.credentials = undefined;
+      } else if (
+        typeof jsonGit.credentials === 'string' &&
+        !looksLikeCiphertext(jsonGit.credentials)
+      ) {
+        jsonGit.credentials = encrypt(jsonGit.credentials);
+      }
+      updates.gitConfig = encryptGitConfig(jsonGit, {
+        ...(library.gitConfig ?? {}),
+        credentials: jsonGit.credentials,
+      });
+    }
     if (data.aiIndex) updates.aiIndexConfig = data.aiIndex;
     if (data.attachments || data.visibility || data.readOnly !== undefined) {
       const config: LibraryConfig = (await readLibraryConfig(library.path)) ?? getDefaultConfig();
@@ -368,11 +370,8 @@ libraryRoutes.patch(
 
     await db.update(libraries).set(updates).where(eq(libraries.id, libraryId));
 
-    // Upsert gitConfigs 表（同步 libraries.gitConfig 的结构化副本）
+    // Upsert gitConfigs 表（Git 操作读取的结构化副本）
     if (data.git) {
-      const existingGitConfig = await db.query.gitConfigs.findFirst({
-        where: eq(gitConfigs.libraryId, libraryId),
-      });
       const gitValues: Record<string, unknown> = {
         remoteUrl: data.git.remoteUrl ?? existingGitConfig?.remoteUrl ?? '',
         branch: data.git.branch ?? existingGitConfig?.branch ?? 'main',
