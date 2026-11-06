@@ -86,6 +86,13 @@ jobs:
               echo "skip=true" >> $GITHUB_OUTPUT
               echo "Version $VERSION already released, skipping publish"
             fi
+            # Never publish a version older than an existing release, even if an
+            # out-of-order tag made the computed value look newer than the last one.
+            HIGHEST=$(git tag --list "v*" | sed 's/^v//' | sort -V | tail -1)
+            if [[ -n "$HIGHEST" ]] && [[ "$(printf '%s\n%s\n' "$HIGHEST" "${VERSION#v}" | sort -V | tail -1)" != "${VERSION#v}" ]]; then
+              echo "skip=true" >> $GITHUB_OUTPUT
+              echo "Computed $VERSION is older than existing release v$HIGHEST, skipping publish"
+            fi
           fi
 
       - name: Build and push Docker image
