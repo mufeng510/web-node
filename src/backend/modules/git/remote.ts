@@ -58,6 +58,10 @@ const BLOCKED_ENV_KEYS = new Set([
   'git_template_dir',
 ]);
 
+/**
+ * 无法凭校验的密钥问题，但可以用「没有凭据」在报错里区分开——
+ * 见 routes.ts 的 CREDENTIAL_DECRYPT_HINT。
+ */
 export function safeGitEnv(
   extra: Record<string, string> = {},
   sourceEnv: NodeJS.ProcessEnv = process.env
@@ -71,6 +75,14 @@ export function safeGitEnv(
     if (lower.startsWith('git_config')) continue;
     env[key] = value;
   }
+  // 代理账号密码可能被写进 http_proxy（http://user:pass@proxy:port），
+  // 脱敏后仍能走代理，只是不再自动认证——总比把密码带进日志强。
+  for (const key of ['http_proxy', 'https_proxy', 'HTTP_PROXY', 'HTTPS_PROXY']) {
+    const value = env[key];
+    if (value && /\/\/[^/\s@]+@/.test(value)) {
+      env[key] = value.replace(/(\/\/)[^/\s@]+@/, '$1');
+    }
+  }
   return { ...env, ...extra };
 }
 
@@ -83,4 +95,99 @@ export function safeGitEnv(
  */
 export function sanitizeGitError(message: string): string {
   return message.replace(/([a-z][a-z0-9+.-]*:\/\/)[^/\s@'"]+(?::[^/\s@'"]*)?@/gi, '$1***@');
+}
+
+/** 仓库自带配置中，会让 Web Note 的 git 调用行为偏离预期或执行外部程序的项 */
+const REPO_CONFIG_RULES: {
+  match: (key: string) => boolean;
+  reason: string;
+  severity: 'high' | 'medium';
+}[] = [
+  {
+    match: (k) => k === 'http.extraheader',
+    reason: '仓库自带认证头会覆盖 Web Note 的凭据，并可能被日志带出',
+    severity: 'high',
+  },
+  {
+    match: (k) => k.startsWith('credential.'),
+    reason: '会调用外部凭据程序（容器里通常不存在）',
+    severity: 'high',
+  },
+  {
+    match: (k) => k.startsWith('url.') && k.endsWith('.insteadof'),
+    reason: 'URL 改写规则会替换实际访问的地址',
+    severity: 'high',
+  },
+  {
+    match: (k) => /^remote\..*\.(receive|upload)pack$/.test(k),
+    reason: '推送/拉取会执行指定程序',
+    severity: 'high',
+  },
+  {
+    match: (k) => k.startsWith('core.sshcommand'),
+    reason: 'SSH 命令写死，私钥路径在容器里通常不存在（会覆盖 Web Note 的设置）',
+    severity: 'medium',
+  },
+  {
+    match: (k) => k.startsWith('http.') && (k.endsWith('.sslverify') || k.endsWith('.proxy')),
+    reason: '会改变 TLS 校验或代理设置',
+    severity: 'medium',
+  },
+  {
+    match: (k) => k === 'core.hookspath',
+    reason: '提交会运行自定义钩子',
+    severity: 'medium',
+  },
+  {
+    match: (k) => k === 'core.fsmonitor',
+    reason: '会启动外部进程监视文件',
+    severity: 'medium',
+  },
+  {
+    match: (k) => k.startsWith('filter.'),
+    reason: 'clean/smudge 过滤器需要外部程序（如 Git LFS）',
+    severity: 'medium',
+  },
+  {
+    match: (k) => k === 'commit.gpgsign' || k === 'gpg.program',
+    reason: '提交需要 GPG 签名，容器里通常没有',
+    severity: 'medium',
+  },
+];
+
+export type RepoConfigWarning = { key: string; reason: string; severity: 'high' | 'medium' };
+
+/**
+ * 根据 `git config --local -z --list` 的输出，检查导入仓库自带的配置。
+ *
+ * 导入的库往往带着别人（或桌面端工具）写下的 .git/config：认证头、凭据助手、
+ * URL 改写、SSH 命令、LFS 过滤器……这些会悄悄改变 Web Note 的行为，而且
+ * 相关取值里可能就有明文凭据。这里只做只读检查，返回给界面的值全部脱敏。
+ */
+export function inspectRepositoryConfig(raw: string): RepoConfigWarning[] {
+  const warnings: RepoConfigWarning[] = [];
+  for (const entry of raw.split('\0')) {
+    if (!entry) continue;
+    const splitAt = entry.indexOf('\n');
+    const key = (splitAt === -1 ? entry : entry.slice(0, splitAt)).toLowerCase().trim();
+    const rule = REPO_CONFIG_RULES.find((r) => r.match(key));
+    if (rule) warnings.push({ key, reason: rule.reason, severity: rule.severity });
+  }
+  return warnings;
+}
+
+/**
+ * 导入仓库时，用哪几条信息判断"Web Note 需要接管它"。
+ * 认证方式与远端协议不一致、远端指向 SSH 而容器里没有私钥，都会让
+ * 一键自动备份持续失败，所以导入时就该告诉用户。
+ */
+export function classifyRemote(remoteUrl: string): 'https' | 'ssh' | 'other' {
+  if (/^https?:\/\//i.test(remoteUrl)) return 'https';
+  if (/^ssh:\/\//i.test(remoteUrl) || /^[^/\s]+@[^/\s]+:/.test(remoteUrl)) return 'ssh';
+  return 'other';
+}
+
+/** SSH 凭据应当是私钥文件路径；不是路径就说明填错了 */
+export function isPrivateKeyPath(credentials: string): boolean {
+  return credentials.startsWith('/') || credentials.startsWith('~/');
 }
