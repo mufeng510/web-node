@@ -60,6 +60,14 @@ function matchesCron(cron: string, date: Date): boolean {
   );
 }
 
+/** 解析 `git diff --name-only --diff-filter=U` 的输出：处于冲突状态的文件 */
+function conflictedFiles(raw: string): string[] {
+  return raw
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
 /** 执行单个库的自动备份 */
 async function runAutoBackup(libraryId: string, libraryPath: string, gitConfig: any) {
   if (backingUp.has(libraryId)) return;
@@ -91,6 +99,18 @@ async function runAutoBackup(libraryId: string, libraryPath: string, gitConfig: 
     // 剔除 simple-git 会拦截的环境变量（如 PAGER），并固定 GIT_TERMINAL_PROMPT=0
     const git = rawGit.env(safeGitEnv(extra));
 
+    // 凭据解不开时不要在后台静默失败：日志里留下明确原因，便于排查密钥变更
+    if (gitConfig.credentials && gitConfig.authType === 'https') {
+      try {
+        decrypt(gitConfig.credentials);
+      } catch (error) {
+        console.error(
+          `[AutoBackup] Library ${libraryId}: credentials cannot be decrypted ` +
+            `(MASTER_ENCRYPTION_KEY may have changed): ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+    }
+
     // 确保是 git 仓库
     try {
       await git.revparse(['--is-inside-work-tree']);
@@ -114,6 +134,15 @@ async function runAutoBackup(libraryId: string, libraryPath: string, gitConfig: 
 
     // git add .
     await git.add('.');
+
+    // 冲突中的仓库不能自动提交：会把冲突标记（<<<<<<<）直接提交上去。
+    // 交给用户在界面上处理，这里只记一条日志。
+    if (conflictedFiles(await git.raw(['diff', '--name-only', '--diff-filter=U'])).length > 0) {
+      console.log(
+        `[AutoBackup] Library ${libraryId}: unresolved merge conflicts, skipping auto backup`
+      );
+      return;
+    }
 
     const status = await git.status();
     if (status.files.length === 0 && status.not_added.length === 0) {
