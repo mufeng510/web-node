@@ -71,10 +71,12 @@ export function Editor() {
   const location = useLocation();
   const [notePath, setNotePath] = useState<string>('');
   const [content, setContent] = useState('');
-  const [view, setView] = useState<EditorView>('split');
   // The panes stack on narrow screens and drag apart on wide ones, which needs
   // the breakpoint in JS instead of utility classes alone.
+  // useMediaQuery seeds synchronously from matchMedia, so the initial view can
+  // depend on it: phones default to preview, desktop keeps split.
   const isDesktop = useMediaQuery('(min-width: 1024px)');
+  const [view, setView] = useState<EditorView>(() => (isDesktop ? 'split' : 'preview'));
   const splitRef = useRef<HTMLDivElement>(null);
   const [splitSize, setSplitSize] = useState<number | null>(null);
 
