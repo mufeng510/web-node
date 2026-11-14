@@ -1,13 +1,15 @@
 import { ChevronRight, FolderGit2, X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { NavLink, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 import { cn } from '../../lib/utils';
+import { routes } from '../../routes';
 import { TreeView } from '../file-tree/TreeView';
+import { readExpanded, writeExpanded } from '../file-tree/expandedState';
 import { type TreeNode, useFileTree } from '../file-tree/useFileTree';
 import { IconButton } from '../ui/IconButton';
 import { Spinner } from '../ui/Spinner';
-import { SETTINGS_ENTRY, WORKSPACE_NAV } from './navConfig';
+import { WORKSPACE_NAV } from './navConfig';
 
 interface MobileDrawerProps {
   isOpen: boolean;
@@ -31,13 +33,32 @@ export function MobileDrawer({
 
   const activeLibraryId = libraryId ?? currentLibrary?.id;
   const { tree, isLoading, error } = useFileTree(activeLibraryId);
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  // 与桌面侧栏共享同一份展开状态（localStorage），两边看到的树是一致的
+  const [expanded, setExpanded] = useState<Set<string>>(() => readExpanded(activeLibraryId));
+
+  useEffect(() => {
+    setExpanded(readExpanded(activeLibraryId));
+  }, [activeLibraryId]);
+
+  const handleExpandedChange = useCallback(
+    (next: Set<string>) => {
+      setExpanded(next);
+      if (!activeLibraryId) return;
+      writeExpanded(activeLibraryId, next);
+    },
+    [activeLibraryId]
+  );
 
   const handleOpenFile = (node: TreeNode) => {
     if (!activeLibraryId) return;
     navigate(`/editor/${activeLibraryId}/${node.relativePath}`);
     onClose();
   };
+
+  // 移动端抽屉只保留「别处找不到」的入口：通知在顶栏铃铛、仪表盘/搜索/任务
+  // 在底部栏、设置在右上角账号菜单，这里重复列一遍只会让文件区被挤扁。
+  const aiItem = WORKSPACE_NAV.find((item) => item.to === routes.ai);
+  const AiIcon = aiItem?.icon;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -115,9 +136,9 @@ export function MobileDrawer({
           </IconButton>
         </div>
 
-        <div className="px-3 py-3 border-b border-border">
+        <div className="px-3 py-3 border-b border-border flex-shrink-0 max-h-56 overflow-y-auto [scrollbar-gutter:stable]">
           <h3 className="text-xs font-medium text-fg-muted uppercase tracking-wider mb-2">
-            Libraries
+            {t('components.layout.labelLibraries')}
           </h3>
           {libraries.map((lib) => (
             <button
@@ -145,28 +166,30 @@ export function MobileDrawer({
         </div>
 
         {activeLibraryId && (
-          <div className="px-3 py-3 border-b border-border">
-            <h3 className="text-xs font-medium text-fg-muted uppercase tracking-wider mb-2">
+          <div className="flex min-h-0 flex-1 flex-col px-3 py-3">
+            <h3 className="text-xs font-medium text-fg-muted uppercase tracking-wider mb-2 flex-shrink-0">
               {t('components.layout.labelFiles')}
             </h3>
             {isLoading ? (
-              <div className="flex items-center justify-center py-4">
+              <div className="flex min-h-0 flex-1 items-center justify-center">
                 <Spinner size="sm" label={t('components.layout.spinnerLoadingFiles')} />
               </div>
             ) : error ? (
-              <div className="px-2 py-2 text-sm text-destructive">{error.message}</div>
+              <div className="flex min-h-0 flex-1 items-center justify-center px-2 py-2 text-sm text-destructive">
+                {error.message}
+              </div>
             ) : tree.length === 0 ? (
-              <div className="px-2 py-2 text-sm text-fg-muted">
-                No files yet. Create a note to see it appear here.
+              <div className="flex min-h-0 flex-1 items-center justify-center px-2 py-2 text-sm text-fg-muted text-center">
+                {t('components.layout.emptyNoFilesYet')}
               </div>
             ) : (
-              <div className="max-h-48 overflow-y-auto [scrollbar-gutter:stable]">
+              <div className="flex min-h-0 flex-1 flex-col">
                 <TreeView
                   nodes={tree}
                   selectedPath={null}
                   onOpenFile={handleOpenFile}
-                  expanded={new Set()}
-                  onExpandedChange={() => {}}
+                  expanded={expanded}
+                  onExpandedChange={handleExpandedChange}
                   isLoading={false}
                   error={null}
                 />
@@ -175,34 +198,28 @@ export function MobileDrawer({
           </div>
         )}
 
-        <nav
-          className="min-h-0 flex-1 px-3 py-3 space-y-1 overflow-y-auto [scrollbar-gutter:stable] [overscroll-behavior:contain]"
-          aria-label={t('components.layout.ariaMobileMainNav')}
-        >
-          {[...WORKSPACE_NAV, SETTINGS_ENTRY].map((item) => {
-            const Icon = item.icon;
-            return (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.end}
-                onClick={onClose}
-                className={({ isActive }) =>
-                  cn(
-                    'flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors duration-150',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
-                    isActive
-                      ? 'bg-primary/10 text-primary font-medium'
-                      : 'text-fg hover:bg-bg-hover'
-                  )
-                }
-              >
-                <Icon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
-                {t(item.label)}
-              </NavLink>
-            );
-          })}
-        </nav>
+        {aiItem && AiIcon && (
+          <nav
+            className="mt-auto flex-shrink-0 border-t border-border px-3 py-2"
+            aria-label={t('components.layout.ariaMobileMainNav')}
+          >
+            <NavLink
+              to={aiItem.to}
+              end
+              onClick={onClose}
+              className={({ isActive }) =>
+                cn(
+                  'flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors duration-150',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
+                  isActive ? 'bg-primary/10 text-primary font-medium' : 'text-fg hover:bg-bg-hover'
+                )
+              }
+            >
+              <AiIcon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+              {t(aiItem.label)}
+            </NavLink>
+          </nav>
+        )}
       </dialog>
     </>
   );

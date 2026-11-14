@@ -5,6 +5,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { cn } from '../../lib/utils';
 import { routes } from '../../routes';
 import { TreeView } from '../file-tree/TreeView';
+import { readExpanded, writeExpanded } from '../file-tree/expandedState';
 import { useFileTree } from '../file-tree/useFileTree';
 import { LibrarySwitcher } from '../library/LibrarySwitcher';
 import { WORKSPACE_NAV } from './navConfig';
@@ -18,19 +19,6 @@ interface LeftSidebarProps {
   /** True when a parent grid track already controls the width. */
   resizable?: boolean;
   className?: string;
-}
-
-function readExpanded(libraryId: string | undefined): Set<string> {
-  if (!libraryId) return new Set();
-  try {
-    const raw = localStorage.getItem(`expanded:${libraryId}`);
-    if (!raw) return new Set();
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return new Set();
-    return new Set(parsed.filter((value): value is string => typeof value === 'string'));
-  } catch {
-    return new Set();
-  }
 }
 
 /**
@@ -77,11 +65,7 @@ export function LeftSidebar({
     (next: Set<string>) => {
       setExpanded(next);
       if (!libraryId) return;
-      try {
-        localStorage.setItem(`expanded:${libraryId}`, JSON.stringify([...next]));
-      } catch {
-        // storage unavailable — expansion still works for this session
-      }
+      writeExpanded(libraryId, next);
     },
     [libraryId]
   );
